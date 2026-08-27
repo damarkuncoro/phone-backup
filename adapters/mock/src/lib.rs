@@ -47,6 +47,10 @@ impl AppProviderPort for MockAppProvider {
         let content = vec![0u8; 1024]; // Dummy APK content
         Ok(Box::new(std::io::Cursor::new(content)))
     }
+
+    fn install_app(&self, _device_id: &DeviceId, _apk_data: &mut dyn std::io::Read) -> Result<()> {
+        Ok(())
+    }
 }
 
 pub struct MockDataProvider;
@@ -189,6 +193,10 @@ impl DevicePort for MockDeviceAdapter {
         // Return some dummy content for mock
         let content = "this is mock file content".as_bytes().to_vec();
         Ok(Box::new(std::io::Cursor::new(content)))
+    }
+
+    fn push_file(&self, _id: &DeviceId, _source: &mut dyn std::io::Read, _target_path: &str) -> Result<()> {
+        Ok(())
     }
 }
 

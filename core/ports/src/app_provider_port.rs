@@ -7,4 +7,7 @@ pub trait AppProviderPort {
 
     /// Extract the APK for a specific app.
     fn get_apk(&self, device_id: &DeviceId, package_name: &str) -> Result<Box<dyn std::io::Read>>;
+
+    /// Install an APK to the device.
+    fn install_app(&self, device_id: &DeviceId, apk_data: &mut dyn std::io::Read) -> Result<()>;
 }

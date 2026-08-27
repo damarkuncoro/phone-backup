@@ -14,6 +14,9 @@ pub trait RepositoryPort {
     /// Find a device by its ID.
     fn get_device(&self, id: &DeviceId) -> Result<Option<Device>>;
 
+    /// Get a snapshot by its ID.
+    fn get_snapshot(&self, id: &SnapshotId) -> Result<Option<Snapshot>>;
+
     /// Find files for a device.
     fn list_files(&self, device_id: &DeviceId) -> Result<Vec<FileEntry>>;
 
@@ -58,4 +61,7 @@ pub trait RepositoryPort {
 
     /// Delete a snapshot and its metadata (not physical objects).
     fn delete_snapshot(&self, snapshot_id: &SnapshotId) -> Result<()>;
+
+    /// Search for files across all devices and snapshots by name pattern.
+    fn search_files(&self, query: &str) -> Result<Vec<FileEntry>>;
 }

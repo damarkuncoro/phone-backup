@@ -91,9 +91,18 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
         self.check_available_disk_space(total_required)?;
 
         // 6. Record files, link to snapshot, and write to storage
+        use indicatif::{ProgressBar, ProgressStyle};
+        let pb = ProgressBar::new(files.len() as u64);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")?
+            .progress_chars("#>-"));
+
         let mut total_bytes = 0;
         let mut total_files = 0;
+        let mut deduped_bytes = 0;
+
         for mut file in files {
+            pb.set_message(format!("Processing {}", file.name));
             let mut skip_content = false;
 
             // Incremental check
@@ -104,6 +113,7 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
                 {
                     file.hash_sha256 = prev.hash_sha256.clone();
                     skip_content = true;
+                    deduped_bytes += file.size_bytes;
                 }
             }
 
@@ -144,6 +154,8 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
                             }
 
                             self.storage.write(&object_path, &mut std::io::Cursor::new(data_to_write))?;
+                        } else {
+                            deduped_bytes += file.size_bytes;
                         }
                     }
                     Err(e) => {
@@ -158,7 +170,9 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
 
             total_bytes += file.size_bytes;
             total_files += 1;
+            pb.inc(1);
         }
+        pb.finish_with_message("File backup finished.");
 
         // 8. Backup Apps
         if let Ok(apps) = self.app_provider.list_apps(id) {
@@ -176,6 +190,7 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
         snapshot.finished_at = Some(Utc::now());
         snapshot.total_files = total_files;
         snapshot.total_bytes = total_bytes;
+        snapshot.deduped_bytes = deduped_bytes;
         self.repository.update_snapshot(&snapshot)?;
 
         // 11. Apply Retention
@@ -233,7 +248,43 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
                     info.height = field.value.get_uint(0);
                 }
 
+                // Extract Timestamp (Phase 19)
+                if let Some(field) = exif_data.get_field(exif::Tag::DateTimeOriginal, exif::In::PRIMARY) {
+                    let date_str = field.display_value().to_string();
+                    // Exif format: "YYYY:MM:DD HH:MM:SS"
+                    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(&date_str, "%Y:%m:%d %H:%M:%S") {
+                        info.taken_at = Some(chrono::DateTime::<Utc>::from_naive_utc_and_offset(dt, Utc));
+                    }
+                }
+
+                // Extract GPS (Phase 19)
+                if let (Some(lat_field), Some(lat_ref), Some(lon_field), Some(lon_ref)) = (
+                    exif_data.get_field(exif::Tag::GPSLatitude, exif::In::PRIMARY),
+                    exif_data.get_field(exif::Tag::GPSLatitudeRef, exif::In::PRIMARY),
+                    exif_data.get_field(exif::Tag::GPSLongitude, exif::In::PRIMARY),
+                    exif_data.get_field(exif::Tag::GPSLongitudeRef, exif::In::PRIMARY),
+                ) {
+                    let lat = self.parse_gps_coordinate(lat_field, lat_ref.display_value().to_string().contains('S'));
+                    let lon = self.parse_gps_coordinate(lon_field, lon_ref.display_value().to_string().contains('W'));
+                    info.latitude = lat;
+                    info.longitude = lon;
+                }
+
                 return Some(info);
+            }
+        }
+        None
+    }
+
+    fn parse_gps_coordinate(&self, field: &exif::Field, is_negative: bool) -> Option<f64> {
+        if let exif::Value::Rational(ref values) = field.value {
+            if values.len() >= 3 {
+                let d = values[0].to_f64();
+                let m = values[1].to_f64();
+                let s = values[2].to_f64();
+                let mut coord = d + (m / 60.0) + (s / 3600.0);
+                if is_negative { coord = -coord; }
+                return Some(coord);
             }
         }
         None
@@ -288,24 +339,35 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
         self.repository.list_snapshots(id)
     }
 
+    pub fn get_snapshot(&self, id: &SnapshotId) -> Result<Option<Snapshot>> {
+        self.repository.get_snapshot(id)
+    }
+
+    pub fn get_snapshot_apps(&self, snapshot_id: &SnapshotId) -> Result<Vec<AppInfo>> {
+        self.repository.get_snapshot_apps(snapshot_id)
+    }
+
     pub fn delete_snapshot(&self, id: &SnapshotId) -> Result<()> {
         self.repository.delete_snapshot(id)
     }
 
     pub fn apply_retention_policy(&self, device_id: &DeviceId, policy: RetentionPolicy) -> Result<u32> {
         let snapshots = self.repository.list_snapshots(device_id)?;
+        let mut completed_snapshots: Vec<_> = snapshots.into_iter()
+            .filter(|s| s.status == SnapshotStatus::Completed)
+            .collect();
+
+        // Sort by date descending (latest first) - list_snapshots already does this, but let's be sure
+        completed_snapshots.sort_by(|a, b| b.started_at.cmp(&a.started_at));
+
         let mut deleted_count = 0;
+        let limit = policy.keep_daily as usize;
 
-        // Simplified retention: keep the N latest completed snapshots
-        let limit = policy.keep_daily as usize; // using keep_daily as 'keep latest N' for MVP
-
-        if snapshots.len() > limit {
-            let to_delete = &snapshots[limit..];
-            for s in to_delete {
-                if s.status == SnapshotStatus::Completed {
-                    self.repository.delete_snapshot(&s.id)?;
-                    deleted_count += 1;
-                }
+        if completed_snapshots.len() > limit {
+            for s in completed_snapshots.iter().skip(limit) {
+                println!("Auto-cleanup: Deleting old snapshot {} (Retention)", s.id.0);
+                self.repository.delete_snapshot(&s.id)?;
+                deleted_count += 1;
             }
         }
 
@@ -351,7 +413,7 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
         Ok(())
     }
 
-    pub fn perform_restore(&self, snapshot_id: &SnapshotId, target_dir: &str, password: Option<&str>) -> Result<()> {
+    pub fn perform_restore(&self, snapshot_id: &SnapshotId, target_dir: &str, password: Option<&str>, filter: Option<&str>) -> Result<()> {
         use std::fs;
         use std::path::Path;
 
@@ -359,6 +421,13 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
         let target_base = Path::new(target_dir);
 
         for file in files {
+            // Apply filter if provided
+            if let Some(f) = filter {
+                if !file.path.contains(f) && !file.name.contains(f) {
+                    continue;
+                }
+            }
+
             let hash = file.hash_sha256.as_ref().ok_or_else(|| anyhow::anyhow!("File {} has no hash", file.path))?;
 
             // Reconstruct object path (Must match perform_backup logic)
@@ -481,6 +550,64 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
         Ok(report)
     }
 
+    pub fn search_files(&self, query: &str) -> Result<Vec<FileEntry>> {
+        self.repository.search_files(query)
+    }
+
+    pub fn get_storage_stats(&self) -> Result<StorageStats> {
+        let mut stats = StorageStats::default();
+        let devices = self.repository.list_devices()?;
+        stats.total_devices = devices.len() as u64;
+
+        for device in devices {
+            let snapshots = self.repository.list_snapshots(&device.id)?;
+            stats.total_snapshots += snapshots.len() as u64;
+            for s in snapshots {
+                stats.total_logical_bytes += s.total_bytes;
+                stats.total_deduped_bytes += s.deduped_bytes;
+            }
+        }
+        Ok(stats)
+    }
+
+    /// Direct Device-to-Device transfer (Phase 22+)
+    pub fn migrate_device(&self, source_id: &DeviceId, target_id: &DeviceId) -> Result<()> {
+        println!("🚀 Starting migration: {} -> {}", source_id, target_id);
+
+        // 1. Migrate Applications
+        println!("📦 Migrating applications...");
+        if let Ok(apps) = self.app_provider.list_apps(source_id) {
+            for app in apps {
+                println!("   Installing {}...", app.app_name);
+                if let Ok(mut apk) = self.app_provider.get_apk(source_id, &app.package_name) {
+                    let _ = self.app_provider.install_app(target_id, &mut *apk);
+                }
+            }
+        }
+
+        // 2. Migrate Files
+        println!("📂 Migrating files...");
+        if let Ok(files) = self.scanner_adapter.scan(source_id) {
+            use indicatif::{ProgressBar, ProgressStyle};
+            let pb = ProgressBar::new(files.len() as u64);
+            pb.set_style(ProgressStyle::default_bar()
+                .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")?
+                .progress_chars("#>-"));
+
+            for file in files {
+                pb.set_message(format!("Transferring {}", file.name));
+                if let Ok(mut content) = self.device_adapter.read_file(source_id, &file.path) {
+                    let _ = self.device_adapter.push_file(target_id, &mut *content, &file.path);
+                }
+                pb.inc(1);
+            }
+            pb.finish_with_message("Files migrated.");
+        }
+
+        println!("✨ Migration completed!");
+        Ok(())
+    }
+
     fn backup_structured_data(&self, device_id: &DeviceId, snapshot_id: &SnapshotId, password: Option<&str>) -> Result<()> {
         // Backup Contacts
         let contacts = self.data_provider.list_contacts(device_id)?;
@@ -532,5 +659,20 @@ pub struct VerificationReport {
 impl VerificationReport {
     pub fn is_healthy(&self) -> bool {
         self.missing_objects.is_empty() && self.corrupted_files.is_empty()
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct StorageStats {
+    pub total_devices: u64,
+    pub total_snapshots: u64,
+    pub total_logical_bytes: u64,
+    pub total_deduped_bytes: u64,
+}
+
+impl StorageStats {
+    pub fn efficiency_ratio(&self) -> f64 {
+        if self.total_logical_bytes == 0 { return 1.0; }
+        (self.total_deduped_bytes as f64 / self.total_logical_bytes as f64) * 100.0
     }
 }

@@ -65,6 +65,9 @@ enum Commands {
     Snapshots {
         /// Device id, e.g. A1B2C3D4
         id: String,
+        /// Optional snapshot ID to show details
+        #[arg(short, long)]
+        snapshot: Option<String>,
     },
     /// Restore a snapshot to a local directory
     Restore {
@@ -76,12 +79,34 @@ enum Commands {
         /// Optional password for encrypted backups
         #[arg(short, long)]
         password: Option<String>,
+        /// Optional filter pattern (restore only matching files)
+        #[arg(short, long)]
+        filter: Option<String>,
     },
     /// Verify repository integrity
     Verify {
         /// Optional password if backup is encrypted
         #[arg(short, long)]
         password: Option<String>,
+    },
+    /// Show repository statistics
+    Stats,
+    /// Search for files in the repository
+    Search {
+        /// Query pattern
+        query: String,
+    },
+    /// Direct transfer from one device to another
+    Clone {
+        /// Source device id
+        source: String,
+        /// Target device id
+        target: String,
+    },
+    /// List all photos with metadata
+    Photos {
+        /// Device id
+        id: String,
     },
     /// Manage backup schedules
     Schedule {
@@ -162,9 +187,19 @@ where
         Commands::Scan { id } => scan_device(&service, &id)?,
         Commands::Apps { id } => list_apps(&service, &id)?,
         Commands::Backup { id, repo: _, password, include, exclude } => run_backup(&service, &id, password.as_deref(), include, exclude)?,
-        Commands::Snapshots { id } => list_snapshots(&service, &id)?,
-        Commands::Restore { snapshot_id, target, password } => run_restore(&service, &snapshot_id, &target, password.as_deref())?,
+        Commands::Snapshots { id, snapshot } => {
+            if let Some(s_id) = snapshot {
+                show_snapshot_detail(&service, &s_id)?;
+            } else {
+                list_snapshots(&service, &id)?;
+            }
+        }
+        Commands::Restore { snapshot_id, target, password, filter } => run_restore(&service, &snapshot_id, &target, password.as_deref(), filter.as_deref())?,
         Commands::Verify { password } => run_verify(&service, password.as_deref())?,
+        Commands::Stats => run_stats(&service)?,
+        Commands::Search { query } => run_search(&service, &query)?,
+        Commands::Clone { source, target } => service.migrate_device(&DeviceId::new(&source), &DeviceId::new(&target))?,
+        Commands::Photos { id } => list_photos(&service, &id)?,
         Commands::Schedule { command } => {
             match command {
                 ScheduleCommands::Add { id, frequency } => {
@@ -289,6 +324,10 @@ where
     println!("Snapshot ID: {}", snapshot.id.0);
     println!("Files:       {}", snapshot.total_files);
     println!("Total Size:  {} bytes", snapshot.total_bytes);
+    if snapshot.total_bytes > 0 {
+        let ratio = (snapshot.deduped_bytes as f64 / snapshot.total_bytes as f64) * 100.0;
+        println!("Deduplication: {:.1}% ({} bytes saved)", ratio, snapshot.deduped_bytes);
+    }
     Ok(())
 }
 
@@ -306,12 +345,44 @@ where D: ports::DevicePort, S: ports::ScannerPort, R: ports::RepositoryPort, T: 
     Ok(())
 }
 
-fn run_restore<D, S, R, T, A, DP>(service: &BackupService<D, S, R, T, A, DP>, snapshot_id: &str, target: &str, password: Option<&str>) -> Result<()>
+fn show_snapshot_detail<D, S, R, T, A, DP>(service: &BackupService<D, S, R, T, A, DP>, snapshot_id: &str) -> Result<()>
 where D: ports::DevicePort, S: ports::ScannerPort, R: ports::RepositoryPort, T: ports::StoragePort, A: ports::AppProviderPort, DP: ports::DataProviderPort
 {
     use domain::SnapshotId;
-    println!("Restoring snapshot {} to {}...", snapshot_id, target);
-    service.perform_restore(&SnapshotId(snapshot_id.to_string()), target, password)?;
+    let s_id = SnapshotId(snapshot_id.to_string());
+    let snapshot = service.get_snapshot(&s_id)?
+        .ok_or_else(|| anyhow::anyhow!("Snapshot not found"))?;
+
+    println!("Snapshot Details");
+    println!("----------------");
+    println!("ID:          {}", snapshot.id.0);
+    println!("Device ID:   {}", snapshot.device_id.0);
+    println!("Started:     {}", snapshot.started_at.format("%Y-%m-%d %H:%M:%S"));
+    println!("Finished:    {}", snapshot.finished_at.map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string()).unwrap_or("-".into()));
+    println!("Status:      {:?}", snapshot.status);
+    println!("Total files: {}", snapshot.total_files);
+    println!("Total size:  {:.2} MB", snapshot.total_bytes as f64 / 1024.0 / 1024.0);
+    println!("Saved:       {:.2} MB", snapshot.deduped_bytes as f64 / 1024.0 / 1024.0);
+
+    let apps = service.get_snapshot_apps(&s_id)?;
+    println!("\nApplications ({}):", apps.len());
+    for app in apps {
+        println!("  - {} ({})", app.app_name, app.package_name);
+    }
+
+    Ok(())
+}
+
+fn run_restore<D, S, R, T, A, DP>(service: &BackupService<D, S, R, T, A, DP>, snapshot_id: &str, target: &str, password: Option<&str>, filter: Option<&str>) -> Result<()>
+where D: ports::DevicePort, S: ports::ScannerPort, R: ports::RepositoryPort, T: ports::StoragePort, A: ports::AppProviderPort, DP: ports::DataProviderPort
+{
+    use domain::SnapshotId;
+    if let Some(f) = filter {
+        println!("Restoring files matching '{}' from snapshot {} to {}...", f, snapshot_id, target);
+    } else {
+        println!("Restoring snapshot {} to {}...", snapshot_id, target);
+    }
+    service.perform_restore(&SnapshotId(snapshot_id.to_string()), target, password, filter)?;
     println!("\nRestore completed successfully!");
     Ok(())
 }
@@ -328,5 +399,67 @@ where D: ports::DevicePort, S: ports::ScannerPort, R: ports::RepositoryPort, T: 
     println!("Missing objects:       {}", report.missing_objects.len());
     println!("Corrupted files:       {}", report.corrupted_files.len());
     if report.is_healthy() { println!("\nSTATUS: HEALTHY"); } else { println!("\nSTATUS: UNHEALTHY"); }
+    Ok(())
+}
+
+fn run_stats<D, S, R, T, A, DP>(service: &BackupService<D, S, R, T, A, DP>) -> Result<()>
+where D: ports::DevicePort, S: ports::ScannerPort, R: ports::RepositoryPort, T: ports::StoragePort, A: ports::AppProviderPort, DP: ports::DataProviderPort
+{
+    let stats = service.get_storage_stats()?;
+    println!("Repository Statistics");
+    println!("---------------------");
+    println!("Devices tracked:    {}", stats.total_devices);
+    println!("Total snapshots:    {}", stats.total_snapshots);
+    println!("Total data backed:  {:.2} GB", stats.total_logical_bytes as f64 / 1024.0 / 1024.0 / 1024.0);
+    println!("Storage saved:      {:.2} GB ({:.1}%)",
+        stats.total_deduped_bytes as f64 / 1024.0 / 1024.0 / 1024.0,
+        stats.efficiency_ratio()
+    );
+    println!("Physical storage:   {:.2} GB (estimated)",
+        (stats.total_logical_bytes - stats.total_deduped_bytes) as f64 / 1024.0 / 1024.0 / 1024.0
+    );
+    Ok(())
+}
+
+fn run_search<D, S, R, T, A, DP>(service: &BackupService<D, S, R, T, A, DP>, query: &str) -> Result<()>
+where D: ports::DevicePort, S: ports::ScannerPort, R: ports::RepositoryPort, T: ports::StoragePort, A: ports::AppProviderPort, DP: ports::DataProviderPort
+{
+    println!("Searching for '{}'...", query);
+    let files = service.search_files(query)?;
+    println!("\nFound {} matches:", files.len());
+    println!("{:<15} {:<40} {:>10} bytes", "DEVICE", "PATH", "SIZE");
+    println!("{}", "-".repeat(70));
+    for f in files {
+        println!("{:<15} {:<40} {:>10}", f.device_id.0, f.path, f.size_bytes);
+    }
+    Ok(())
+}
+
+fn list_photos<D, S, R, T, A, DP>(service: &BackupService<D, S, R, T, A, DP>, id: &str) -> Result<()>
+where D: ports::DevicePort, S: ports::ScannerPort, R: ports::RepositoryPort, T: ports::StoragePort, A: ports::AppProviderPort, DP: ports::DataProviderPort
+{
+    let device_id = DeviceId::new(id);
+    let files = service.scan_device(&device_id)?;
+    println!("Photo Gallery for device {}\n", id);
+    println!("{:<30} {:<15} {:<15} {}", "FILE", "CAMERA", "TAKEN AT", "LOCATION");
+    println!("{}", "-".repeat(90));
+
+    for f in files {
+        if f.mime_type.starts_with("image/") {
+            let camera = f.media_info.as_ref()
+                .and_then(|m| m.camera_model.clone())
+                .unwrap_or("-".into());
+            let taken = f.media_info.as_ref()
+                .and_then(|m| m.taken_at)
+                .map(|t| t.format("%Y-%m-%d").to_string())
+                .unwrap_or("-".into());
+            let loc = f.media_info.as_ref()
+                .and_then(|m| m.latitude.zip(m.longitude))
+                .map(|(lat, lon)| format!("{:.4}, {:.4}", lat, lon))
+                .unwrap_or("-".into());
+
+            println!("{:<30} {:<15} {:<15} {}", f.name, camera, taken, loc);
+        }
+    }
     Ok(())
 }

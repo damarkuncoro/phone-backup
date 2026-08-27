@@ -22,6 +22,7 @@ pub struct Snapshot {
     pub status: SnapshotStatus,
     pub total_files: u64,
     pub total_bytes: u64,
+    pub deduped_bytes: u64,
 }
 
 impl Snapshot {
@@ -35,6 +36,7 @@ impl Snapshot {
             status: SnapshotStatus::Pending,
             total_files: 0,
             total_bytes: 0,
+            deduped_bytes: 0,
         }
     }
 }

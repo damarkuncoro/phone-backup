@@ -60,6 +60,7 @@ impl SqliteRepository {
                 status TEXT NOT NULL,
                 total_files INTEGER NOT NULL,
                 total_bytes INTEGER NOT NULL,
+                deduped_bytes INTEGER DEFAULT 0,
                 FOREIGN KEY(device_id) REFERENCES devices(id)
             )",
             [],
@@ -201,6 +202,42 @@ impl RepositoryPort for SqliteRepository {
         Ok(None)
     }
 
+    fn get_snapshot(&self, id: &SnapshotId) -> anyhow::Result<Option<Snapshot>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, device_id, started_at, finished_at, status, total_files, total_bytes, deduped_bytes
+             FROM snapshots WHERE id = ?1"
+        )?;
+
+        let mut snapshot_iter = stmt.query_map([&id.0], |row| {
+            let started_at_str: String = row.get(2)?;
+            let finished_at_str: Option<String> = row.get(3)?;
+            let status_str: String = row.get(4)?;
+
+            Ok(Snapshot {
+                id: SnapshotId(row.get(0)?),
+                device_id: DeviceId(row.get(1)?),
+                started_at: DateTime::parse_from_rfc3339(&started_at_str).unwrap().with_timezone(&Utc),
+                finished_at: finished_at_str.map(|s| DateTime::parse_from_rfc3339(&s).unwrap().with_timezone(&Utc)),
+                status: match status_str.as_str() {
+                    "Pending" => SnapshotStatus::Pending,
+                    "Running" => SnapshotStatus::Running,
+                    "Completed" => SnapshotStatus::Completed,
+                    _ => SnapshotStatus::Failed,
+                },
+                total_files: row.get(5)?,
+                total_bytes: row.get(6)?,
+                deduped_bytes: row.get(7)?,
+            })
+        })?;
+
+        if let Some(s) = snapshot_iter.next() {
+            Ok(Some(s?))
+        } else {
+            Ok(None)
+        }
+    }
+
     fn list_files(&self, device_id: &DeviceId) -> anyhow::Result<Vec<FileEntry>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
@@ -238,8 +275,8 @@ impl RepositoryPort for SqliteRepository {
         let conn = self.conn.lock().unwrap();
         conn.execute(
             "INSERT INTO snapshots
-            (id, device_id, started_at, finished_at, status, total_files, total_bytes)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            (id, device_id, started_at, finished_at, status, total_files, total_bytes, deduped_bytes)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![
                 snapshot.id.0,
                 snapshot.device_id.0,
@@ -247,7 +284,8 @@ impl RepositoryPort for SqliteRepository {
                 snapshot.finished_at.map(|t| t.to_rfc3339()),
                 format!("{:?}", snapshot.status),
                 snapshot.total_files,
-                snapshot.total_bytes
+                snapshot.total_bytes,
+                snapshot.deduped_bytes,
             ],
         )?;
         Ok(())
@@ -260,14 +298,16 @@ impl RepositoryPort for SqliteRepository {
                 finished_at = ?2,
                 status = ?3,
                 total_files = ?4,
-                total_bytes = ?5
+                total_bytes = ?5,
+                deduped_bytes = ?6
             WHERE id = ?1",
             params![
                 snapshot.id.0,
                 snapshot.finished_at.map(|t| t.to_rfc3339()),
                 format!("{:?}", snapshot.status),
                 snapshot.total_files,
-                snapshot.total_bytes
+                snapshot.total_bytes,
+                snapshot.deduped_bytes,
             ],
         )?;
         Ok(())
@@ -285,7 +325,7 @@ impl RepositoryPort for SqliteRepository {
     fn list_snapshots(&self, device_id: &DeviceId) -> anyhow::Result<Vec<Snapshot>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT id, device_id, started_at, finished_at, status, total_files, total_bytes
+            "SELECT id, device_id, started_at, finished_at, status, total_files, total_bytes, deduped_bytes
              FROM snapshots WHERE device_id = ?1 ORDER BY started_at DESC"
         )?;
         let snapshot_iter = stmt.query_map([&device_id.0], |row| {
@@ -306,6 +346,7 @@ impl RepositoryPort for SqliteRepository {
                 },
                 total_files: row.get(5)?,
                 total_bytes: row.get(6)?,
+                deduped_bytes: row.get(7)?,
             })
         })?;
 
@@ -501,5 +542,39 @@ impl RepositoryPort for SqliteRepository {
 
         tx.commit()?;
         Ok(())
+    }
+
+    fn search_files(&self, query: &str) -> anyhow::Result<Vec<FileEntry>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, device_id, path, name, size_bytes, modified_at, mime_type, permissions, hash_sha256, media_info
+             FROM files WHERE name LIKE ?1 OR path LIKE ?1"
+        )?;
+
+        let pattern = format!("%{}%", query);
+        let file_iter = stmt.query_map([pattern], |row| {
+            let modified_at_str: String = row.get(5)?;
+            let media_info_str: Option<String> = row.get(9)?;
+            let media_info = media_info_str.map(|s| serde_json::from_str(&s).unwrap());
+
+            Ok(FileEntry {
+                id: domain::FileId(row.get(0)?),
+                device_id: DeviceId(row.get(1)?),
+                path: row.get(2)?,
+                name: row.get(3)?,
+                size_bytes: row.get(4)?,
+                modified_at: DateTime::parse_from_rfc3339(&modified_at_str).unwrap().with_timezone(&Utc),
+                mime_type: row.get(6)?,
+                permissions: row.get(7)?,
+                hash_sha256: row.get(8)?,
+                media_info,
+            })
+        })?;
+
+        let mut files = Vec::new();
+        for f in file_iter {
+            files.push(f?);
+        }
+        Ok(files)
     }
 }

@@ -104,8 +104,25 @@ impl DevicePort for AdbDeviceAdapter {
         })
     }
 
-    fn capabilities(&self, _id: &DeviceId) -> Result<CapabilityMatrix> {
-        Ok(CapabilityMatrix::new())
+    fn capabilities(&self, id: &DeviceId) -> Result<CapabilityMatrix> {
+        let mut matrix = CapabilityMatrix::new();
+        matrix.set(domain::Capability::ReadFiles, domain::CapabilityStatus::Available);
+
+        // Check SMS access
+        if self.run_adb(&["-s", &id.0, "shell", "content", "query", "--uri", "content://sms", "--limit", "1"]).is_ok() {
+            matrix.set(domain::Capability::ReadSms, domain::CapabilityStatus::Available);
+        } else {
+            matrix.set(domain::Capability::ReadSms, domain::CapabilityStatus::Denied);
+        }
+
+        // Check Contacts access
+        if self.run_adb(&["-s", &id.0, "shell", "content", "query", "--uri", "content://com.android.contacts/data", "--limit", "1"]).is_ok() {
+            matrix.set(domain::Capability::ReadContacts, domain::CapabilityStatus::Available);
+        } else {
+            matrix.set(domain::Capability::ReadContacts, domain::CapabilityStatus::RequiresUserAction);
+        }
+
+        Ok(matrix)
     }
 
     fn read_file(&self, id: &DeviceId, path: &str) -> Result<Box<dyn std::io::Read>> {
@@ -129,6 +146,28 @@ impl DevicePort for AdbDeviceAdapter {
         let _ = fs::remove_file(temp_file); // Cleanup
 
         Ok(Box::new(std::io::Cursor::new(content)))
+    }
+
+    fn push_file(&self, id: &DeviceId, source: &mut dyn std::io::Read, target_path: &str) -> Result<()> {
+        let temp_dir = std::env::temp_dir().join("phone_backup_push");
+        if !temp_dir.exists() {
+            fs::create_dir_all(&temp_dir)?;
+        }
+        let temp_file = temp_dir.join(uuid::Uuid::new_v4().to_string());
+        let mut buffer = Vec::new();
+        source.read_to_end(&mut buffer)?;
+        fs::write(&temp_file, buffer)?;
+
+        let status = Command::new(&self.adb_path)
+            .args(&["-s", &id.0, "push", temp_file.to_str().unwrap(), target_path])
+            .status()?;
+
+        let _ = fs::remove_file(temp_file);
+
+        if !status.success() {
+            anyhow::bail!("Failed to push file to device {}", id.0);
+        }
+        Ok(())
     }
 }
 
@@ -168,6 +207,7 @@ impl ScannerPort for AdbScannerAdapter {
             let mtime_unix = parts[2].parse::<i64>().unwrap_or(0);
 
             let modified_at = Utc.timestamp_opt(mtime_unix, 0).single().unwrap_or_else(Utc::now);
+            let mime_type = mime_guess::from_path(&path).first_or_octet_stream().to_string();
 
             entries.push(FileEntry {
                 id: FileId(path.clone()),
@@ -176,7 +216,7 @@ impl ScannerPort for AdbScannerAdapter {
                 name: path.split('/').last().unwrap_or("").to_string(),
                 size_bytes,
                 modified_at,
-                mime_type: "application/octet-stream".into(),
+                mime_type,
                 permissions: "".into(),
                 hash_sha256: None,
                 media_info: None,
@@ -233,13 +273,48 @@ impl AppProviderPort for AdbAppProvider {
             .output()?;
         let stdout = String::from_utf8_lossy(&output.stdout);
         if let Some(path) = stdout.lines().next().and_then(|l| l.strip_prefix("package:")) {
-            let apk_output = Command::new(&self.adb_path)
-                .args(&["-s", &device_id.0, "shell", "cat", path])
-                .output()?;
-            Ok(Box::new(std::io::Cursor::new(apk_output.stdout)))
+            let temp_dir = std::env::temp_dir().join("phone_backup_apk");
+            if !temp_dir.exists() {
+                fs::create_dir_all(&temp_dir)?;
+            }
+            let temp_file = temp_dir.join(format!("{}.apk", uuid::Uuid::new_v4()));
+
+            let status = Command::new(&self.adb_path)
+                .args(&["-s", &device_id.0, "pull", path, temp_file.to_str().unwrap()])
+                .status()?;
+
+            if !status.success() {
+                anyhow::bail!("Failed to pull APK for package {}", package_name);
+            }
+
+            let content = fs::read(&temp_file)?;
+            let _ = fs::remove_file(temp_file);
+            Ok(Box::new(std::io::Cursor::new(content)))
         } else {
             anyhow::bail!("Package not found")
         }
+    }
+
+    fn install_app(&self, device_id: &DeviceId, apk_data: &mut dyn std::io::Read) -> Result<()> {
+        let temp_dir = std::env::temp_dir().join("phone_backup_install");
+        if !temp_dir.exists() {
+            fs::create_dir_all(&temp_dir)?;
+        }
+        let temp_file = temp_dir.join(format!("{}.apk", uuid::Uuid::new_v4()));
+        let mut buffer = Vec::new();
+        apk_data.read_to_end(&mut buffer)?;
+        fs::write(&temp_file, buffer)?;
+
+        let status = Command::new(&self.adb_path)
+            .args(&["-s", &device_id.0, "install", "-r", temp_file.to_str().unwrap()])
+            .status()?;
+
+        let _ = fs::remove_file(temp_file);
+
+        if !status.success() {
+            anyhow::bail!("Failed to install APK to device {}", device_id.0);
+        }
+        Ok(())
     }
 }
 
@@ -258,34 +333,39 @@ impl AdbDataProvider {
 
 impl DataProviderPort for AdbDataProvider {
     fn list_contacts(&self, device_id: &DeviceId) -> Result<Vec<Contact>> {
-        // Query content provider for contacts
-        // content query --uri content://com.android.contacts/data --projection display_name:data1:data4
-        let output = self.run_adb_shell(device_id, "content query --uri content://com.android.contacts/data --projection display_name:data1:data4")?;
+        let output = self.run_adb_shell(device_id, "content query --uri content://com.android.contacts/data --projection display_name:data1")?;
 
-        let mut contacts = Vec::new();
+        let mut contacts = std::collections::HashMap::new();
         for line in output.lines() {
-            if line.contains("display_name=") {
-                // Sangat disederhanakan: parsing manual output ADB
-                contacts.push(Contact {
-                    name: line.to_string(),
+            if let (Some(name), Some(phone)) = (Self::extract_value(line, "display_name"), Self::extract_value(line, "data1")) {
+                let contact = contacts.entry(name.clone()).or_insert(Contact {
+                    name,
                     phones: vec![],
                     emails: vec![],
                 });
+                if !contact.phones.contains(&phone) {
+                    contact.phones.push(phone);
+                }
             }
         }
-        Ok(contacts)
+        Ok(contacts.into_values().collect())
     }
 
     fn list_sms(&self, device_id: &DeviceId) -> Result<Vec<Sms>> {
         let output = self.run_adb_shell(device_id, "content query --uri content://sms --projection address:body:date:type")?;
         let mut messages = Vec::new();
         for line in output.lines() {
-            if line.contains("body=") {
+            if let (Some(address), Some(body), Some(date_str)) = (
+                Self::extract_value(line, "address"),
+                Self::extract_value(line, "body"),
+                Self::extract_value(line, "date")
+            ) {
+                let timestamp = date_str.parse::<i64>().unwrap_or(0);
                 messages.push(Sms {
-                    address: "Unknown".into(),
-                    body: line.to_string(),
-                    date: Utc::now(),
-                    type_code: 1,
+                    address,
+                    body,
+                    date: Utc.timestamp_opt(timestamp / 1000, 0).single().unwrap_or_else(Utc::now),
+                    type_code: Self::extract_value(line, "type").and_then(|s| s.parse().ok()).unwrap_or(1),
                 });
             }
         }
@@ -296,12 +376,17 @@ impl DataProviderPort for AdbDataProvider {
         let output = self.run_adb_shell(device_id, "content query --uri content://call_log/calls --projection number:date:duration:type")?;
         let mut logs = Vec::new();
         for line in output.lines() {
-            if line.contains("number=") {
+            if let (Some(number), Some(date_str), Some(duration_str)) = (
+                Self::extract_value(line, "number"),
+                Self::extract_value(line, "date"),
+                Self::extract_value(line, "duration")
+            ) {
+                let timestamp = date_str.parse::<i64>().unwrap_or(0);
                 logs.push(CallLog {
-                    number: "Unknown".into(),
-                    date: Utc::now(),
-                    duration_seconds: 0,
-                    type_code: 1,
+                    number,
+                    date: Utc.timestamp_opt(timestamp / 1000, 0).single().unwrap_or_else(Utc::now),
+                    duration_seconds: duration_str.parse().unwrap_or(0),
+                    type_code: Self::extract_value(line, "type").and_then(|s| s.parse().ok()).unwrap_or(1),
                 });
             }
         }
@@ -315,5 +400,20 @@ impl AdbDataProvider {
             .args(&["-s", &device_id.0, "shell", script])
             .output()?;
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    }
+
+    fn extract_value(line: &str, key: &str) -> Option<String> {
+        let key_with_eq = format!("{}=", key);
+        if let Some(start) = line.find(&key_with_eq) {
+            let value_part = &line[start + key_with_eq.len()..];
+            // ADB output uses comma as separator, but values might contain commas if not escaped
+            // This is a simple heuristic: split by comma-space or end of string
+            if let Some(end) = value_part.find(", ") {
+                return Some(value_part[..end].trim().to_string());
+            } else {
+                return Some(value_part.trim().to_string());
+            }
+        }
+        None
     }
 }
