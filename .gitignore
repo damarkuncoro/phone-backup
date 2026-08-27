@@ -1,0 +1,7 @@
+/target
+Cargo.lock
+backups/
+backup.db
+restore_test/
+.DS_Store
+.idea/

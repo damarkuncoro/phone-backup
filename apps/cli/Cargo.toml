@@ -1,0 +1,19 @@
+[package]
+name = "phone-backup"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "phone-backup"
+path = "src/main.rs"
+
+[dependencies]
+domain = { path = "../../core/domain" }
+ports = { path = "../../core/ports" }
+application = { path = "../../core/application" }
+adapter-mock = { path = "../../adapters/mock" }
+adapter-adb = { path = "../../adapters/adb" }
+adapter-filesystem = { path = "../../adapters/filesystem" }
+adapter-database-sqlite = { path = "../../infrastructure/database-sqlite" }
+clap.workspace = true
+anyhow.workspace = true

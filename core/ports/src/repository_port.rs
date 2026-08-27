@@ -1,0 +1,61 @@
+use anyhow::Result;
+use domain::{Device, DeviceId, FileEntry, Snapshot, SnapshotId, BackupSchedule};
+
+pub trait RepositoryPort {
+    /// Save or update device information.
+    fn save_device(&self, device: &Device) -> Result<()>;
+
+    /// Record a file entry in the database.
+    fn save_file(&self, file: &FileEntry) -> Result<()>;
+
+    /// List all known devices in the repository.
+    fn list_devices(&self) -> Result<Vec<Device>>;
+
+    /// Find a device by its ID.
+    fn get_device(&self, id: &DeviceId) -> Result<Option<Device>>;
+
+    /// Find files for a device.
+    fn list_files(&self, device_id: &DeviceId) -> Result<Vec<FileEntry>>;
+
+    /// Create a new snapshot record.
+    fn create_snapshot(&self, snapshot: &Snapshot) -> Result<()>;
+
+    /// Update an existing snapshot.
+    fn update_snapshot(&self, snapshot: &Snapshot) -> Result<()>;
+
+    /// Link a file to a snapshot.
+    fn link_file_to_snapshot(&self, snapshot_id: &SnapshotId, file_id: &domain::FileId) -> Result<()>;
+
+    /// List all snapshots for a device.
+    fn list_snapshots(&self, device_id: &DeviceId) -> Result<Vec<Snapshot>>;
+
+    /// Get the latest completed snapshot for a device.
+    fn get_latest_snapshot(&self, device_id: &DeviceId) -> Result<Option<Snapshot>>;
+
+    /// Get all file entries belonging to a specific snapshot.
+    fn get_snapshot_files(&self, snapshot_id: &SnapshotId) -> Result<Vec<FileEntry>>;
+
+    /// Save app information to the repository.
+    fn save_app(&self, app: &domain::AppInfo) -> Result<()>;
+
+    /// Link an app to a snapshot.
+    fn link_app_to_snapshot(&self, snapshot_id: &SnapshotId, app_id: &domain::AppId) -> Result<()>;
+
+    /// List apps for a snapshot.
+    fn get_snapshot_apps(&self, snapshot_id: &SnapshotId) -> Result<Vec<domain::AppInfo>>;
+
+    /// Record a reference to structured data (JSON/etc) in a snapshot.
+    fn save_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: &str, object_id: &str) -> Result<()>;
+
+    /// Save or update a backup schedule.
+    fn save_schedule(&self, schedule: &BackupSchedule) -> Result<()>;
+
+    /// Get schedule for a device.
+    fn get_schedule(&self, device_id: &DeviceId) -> Result<Option<BackupSchedule>>;
+
+    /// List all enabled schedules.
+    fn list_schedules(&self) -> Result<Vec<BackupSchedule>>;
+
+    /// Delete a snapshot and its metadata (not physical objects).
+    fn delete_snapshot(&self, snapshot_id: &SnapshotId) -> Result<()>;
+}

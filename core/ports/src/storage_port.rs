@@ -1,0 +1,17 @@
+use anyhow::Result;
+use std::io::Read;
+
+/// Port for the physical storage of backup objects.
+pub trait StoragePort {
+    /// Write a blob of data to storage and return its identifier (e.g., path or hash).
+    fn write(&self, id: &str, data: &mut dyn Read) -> Result<()>;
+
+    /// Read a blob of data from storage.
+    fn read(&self, id: &str) -> Result<Box<dyn Read>>;
+
+    /// Check if a blob exists.
+    fn exists(&self, id: &str) -> Result<bool>;
+
+    /// Delete a blob.
+    fn delete(&self, id: &str) -> Result<()>;
+}

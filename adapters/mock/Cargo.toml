@@ -1,0 +1,10 @@
+[package]
+name = "adapter-mock"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+domain = { path = "../../core/domain" }
+ports = { path = "../../core/ports" }
+anyhow.workspace = true
+chrono.workspace = true

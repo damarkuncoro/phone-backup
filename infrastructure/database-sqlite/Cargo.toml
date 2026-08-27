@@ -1,0 +1,12 @@
+[package]
+name = "adapter-database-sqlite"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+domain = { path = "../../core/domain" }
+ports = { path = "../../core/ports" }
+anyhow.workspace = true
+rusqlite.workspace = true
+chrono.workspace = true
+serde_json.workspace = true
