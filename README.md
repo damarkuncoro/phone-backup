@@ -1,50 +1,115 @@
-# phone-backup — Phase 01: Foundation
+# phone-backup 📱
 
-Rust workspace skeleton for the Android backup platform, structured as
-Clean Architecture / Hexagonal Architecture so the backup engine is
-never locked to ADB.
+A high-performance, secure, and professional Android backup platform written in Rust.
 
-## Layout
+Designed as a **Backup Engine**, this tool handles discovery, indexing, snapshots, encryption, deduplication, and restoration. It is built using **Clean Architecture** and **Hexagonal Architecture** principles, making the backup logic independent of the transport layer (ADB, MTP, etc.).
 
+## 🚀 Features
+
+- **Multi-Transport**: Supports real Android devices via **ADB** and simulated environments via **Mock** adapters.
+- **Intelligent Engine**:
+    - **Fast Incremental**: Only copies new or changed files based on size and mtime.
+    - **Deduplication**: Content-addressed storage (SHA-256) ensures identical files are stored only once.
+    - **Zstd Compression**: High-performance compression for text and data files.
+    - **Military-Grade Encryption**: AES-256-GCM authenticated encryption with Argon2 key derivation.
+- **Deep Data Support**:
+    - **Filesystem**: Recursive scanning of internal storage (`/sdcard`).
+    - **Applications**: Metadata tracking and **APK extraction**.
+    - **Structured Data**: Backup of **Contacts**, **SMS**, and **Call Logs** (exported as encrypted JSON).
+    - **Media Intelligence**: Automatic **EXIF metadata** extraction from photos.
+- **Automation & Management**:
+    - **Backup Scheduler**: Automate backups (Hourly, Daily, Weekly).
+    - **Retention Policy**: Automatically cleans up old snapshots to save space.
+    - **Backup Policy**: Fine-grained `include`/`exclude` filtering for folders and file patterns.
+- **Safety First**: Pre-backup disk space verification on the host PC.
+
+## 🛠 Project Structure
+
+```text
+phone-backup/
+├── apps/
+│   └── cli/                # Command-line interface (Composition Root)
+├── core/
+│   ├── domain/             # Entities (Device, Snapshot, FileEntry, etc.)
+│   ├── application/        # Use cases (BackupService)
+│   └── ports/              # Interfaces (Seams for dependency inversion)
+├── adapters/
+│   ├── adb/                # Real Android ADB implementation
+│   ├── mock/               # Simulation for testing and development
+│   └── filesystem/         # Local repository storage
+└── infrastructure/
+    └── database-sqlite/    # Persistent index and metadata storage
 ```
-crates/
-├── domain/              core entities: Device, Capability, CapabilityMatrix, DomainError
-│                         zero dependency on anything below
-├── ports/                DevicePort trait — the seam application depends on
-│                         and adapters implement (dependency inversion)
-├── application/          BackupService: use cases orchestrated through ports only
-├── adapter-mock/         MockDeviceAdapter — fake DevicePort impl, stands in
-│                         for AdbDeviceAdapter until Phase 02
-├── adapter-filesystem/   placeholder, wired for Phase 04 (Scanner) / Phase 08 (Storage)
-└── cli/                  composition root — the ONLY crate that wires a concrete
-                          adapter into BackupService
-```
 
-Dependency direction is one-way: `cli -> application -> ports <- adapter-*`,
-with `domain` underneath everything. `application` never imports an
-`adapter-*` crate directly — swap `MockDeviceAdapter` for a future
-`AdbDeviceAdapter` / `MtpDeviceAdapter` / iOS adapter by changing one
-line in `cli/src/main.rs`.
+## 🚦 Getting Started
 
-## Try it
+### Prerequisites
+
+- **Rust**: Latest stable version.
+- **ADB**: Android Debug Bridge installed and available in your `PATH`.
+
+### Installation
 
 ```bash
-cargo build
-cargo test
-
-cargo run --bin phone-backup -- devices
-cargo run --bin phone-backup -- device-info A1B2C3D4
+git clone https://github.com/yourusername/phone-backup.git
+cd phone-backup
+cargo build --release
 ```
 
-## What's stubbed vs. real here
+## 📖 Usage
 
-- `domain`, `ports`, `application`, `adapter-mock`, `cli`: fully working,
-  with a seeded fake Pixel 8 device.
-- `adapter-filesystem`: empty on purpose — real content lands with the
-  Scanner (Phase 04) and Storage backend (Phase 08).
+### Device Management
 
-## Next (Phase 02 — Device Discovery)
+```bash
+# List all connected devices
+phone-backup --adapter adb devices
 
-Add `adapter-adb` implementing `ports::DevicePort` against real `adb`
-(via shelling out or an ADB protocol crate), and swap it in at the
-`cli` composition root. No other crate should need to change.
+# Show detailed device info and storage status
+phone-backup --adapter adb device-info <DEVICE_ID>
+```
+
+### Backup Operations
+
+```bash
+# Perform a full/incremental backup
+phone-backup --adapter adb backup <DEVICE_ID>
+
+# Backup with encryption
+phone-backup --adapter adb backup <DEVICE_ID> --password "your-secret"
+
+# Backup specific folders only
+phone-backup --adapter adb backup <DEVICE_ID> --include /sdcard/DCIM --include /sdcard/WhatsApp
+```
+
+### Restoration & Verification
+
+```bash
+# List all snapshots for a device
+phone-backup snapshots <DEVICE_ID>
+
+# Restore a snapshot to your computer
+phone-backup restore <SNAPSHOT_ID> --target ./my_recovered_data --password "your-secret"
+
+# Verify repository integrity
+phone-backup verify --password "your-secret"
+```
+
+### Automation (Scheduler)
+
+```bash
+# Add a daily backup schedule
+phone-backup schedule add <DEVICE_ID> --frequency daily
+
+# Run all due backups (add this to your cron/task scheduler)
+phone-backup schedule run
+```
+
+## 🛡 Security
+
+- No raw data is ever stored without encryption if a password is provided.
+- Passwords are never stored; they are used only for key derivation at runtime.
+- Deduplication occurs at the encrypted blob level to ensure privacy.
+
+## 📄 License
+
+MIT
