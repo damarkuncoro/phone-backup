@@ -1,99 +1,55 @@
-use anyhow::Result;
-use chrono::{DateTime, Utc};
-use domain::{DeviceId, FileEntry, FileId};
-use ports::{ScannerPort, StoragePort};
-use std::fs::{self, File};
-use std::io::{self, Read};
-use std::path::{Path, PathBuf};
-use walkdir::WalkDir;
+pub mod scanner;
+pub mod storage;
 
-pub struct FilesystemScanner {
-    root_path: String,
-}
+pub use scanner::FilesystemScanner;
+pub use storage::LocalStorage;
 
-impl FilesystemScanner {
-    pub fn new(root_path: impl Into<String>) -> Self {
-        Self {
-            root_path: root_path.into(),
-        }
-    }
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use domain::DeviceId;
+    use ports::{ScannerPort, StoragePort};
+    use std::io::Read;
 
-impl ScannerPort for FilesystemScanner {
-    fn scan(&self, device_id: &DeviceId) -> Result<Vec<FileEntry>> {
-        let mut entries = Vec::new();
-        let root = Path::new(&self.root_path);
+    #[test]
+    fn test_local_storage_lifecycle() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let storage = LocalStorage::new(temp_dir.path()).unwrap();
 
-        for entry in WalkDir::new(root).into_iter().filter_map(|e| e.ok()) {
-            if entry.file_type().is_file() {
-                let path = entry.path();
-                let metadata = entry.metadata()?;
-                let relative_path = path
-                    .strip_prefix(root)?
-                    .to_string_lossy()
-                    .into_owned();
+        let object_id = "objects/ab/cd/test.txt";
+        let content = b"hello filesystem storage";
 
-                let modified: DateTime<Utc> = metadata.modified()?.into();
+        // Write
+        storage
+            .write(object_id, &mut std::io::Cursor::new(content))
+            .unwrap();
 
-                entries.push(FileEntry {
-                    id: FileId(relative_path.clone()), // Placeholder ID
-                    device_id: device_id.clone(),
-                    path: relative_path,
-                    name: entry.file_name().to_string_lossy().into_owned(),
-                    size_bytes: metadata.len(),
-                    modified_at: modified,
-                    mime_type: "application/octet-stream".into(), // Needs real detection
-                    permissions: format!("{:?}", metadata.permissions()),
-                    hash_sha256: None,
-                    media_info: None,
-                });
-            }
-        }
+        // Exists
+        assert!(storage.exists(object_id).unwrap());
 
-        Ok(entries)
-    }
-}
+        // Read
+        let mut reader = storage.read(object_id).unwrap();
+        let mut read_buf = Vec::new();
+        reader.read_to_end(&mut read_buf).unwrap();
+        assert_eq!(read_buf, content);
 
-pub struct LocalStorage {
-    base_dir: PathBuf,
-}
-
-impl LocalStorage {
-    pub fn new(base_dir: impl Into<PathBuf>) -> Result<Self> {
-        let base_dir = base_dir.into();
-        if !base_dir.exists() {
-            fs::create_dir_all(&base_dir)?;
-        }
-        Ok(Self { base_dir })
-    }
-}
-
-impl StoragePort for LocalStorage {
-    fn write(&self, id: &str, data: &mut dyn Read) -> Result<()> {
-        let path = self.base_dir.join(id);
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        let mut file = File::create(path)?;
-        io::copy(data, &mut file)?;
-        Ok(())
+        // Delete
+        storage.delete(object_id).unwrap();
+        assert!(!storage.exists(object_id).unwrap());
     }
 
-    fn read(&self, id: &str) -> Result<Box<dyn Read>> {
-        let path = self.base_dir.join(id);
-        let file = File::open(path)?;
-        Ok(Box::new(file))
-    }
+    #[test]
+    fn test_filesystem_scanner() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let file_path = temp_dir.path().join("document.pdf");
+        std::fs::write(&file_path, b"pdf content").unwrap();
 
-    fn exists(&self, id: &str) -> Result<bool> {
-        Ok(self.base_dir.join(id).exists())
-    }
+        let scanner = FilesystemScanner::new(temp_dir.path().to_str().unwrap());
+        let device_id = DeviceId::new("DEV_TEST");
+        let entries = scanner.scan(&device_id).unwrap();
 
-    fn delete(&self, id: &str) -> Result<()> {
-        let path = self.base_dir.join(id);
-        if path.exists() {
-            fs::remove_file(path)?;
-        }
-        Ok(())
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].name, "document.pdf");
+        assert_eq!(entries[0].mime_type, "application/pdf");
     }
 }

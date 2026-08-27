@@ -1,6 +1,7 @@
 use anyhow::Result;
 use application::BackupService;
 
+#[allow(dead_code)]
 pub trait CliCommand<D, S, R, T, A, DP>
 where
     D: ports::DevicePort,

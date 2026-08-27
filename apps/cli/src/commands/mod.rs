@@ -5,6 +5,7 @@ pub mod restore;
 pub mod schedule;
 pub mod stats;
 
+#[allow(unused_imports)]
 pub use command_trait::CliCommand;
 
 use crate::cli::Commands;

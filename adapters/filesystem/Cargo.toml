@@ -12,3 +12,7 @@ ports = { path = "../../core/ports", package = "phone-backup-ports", version = "
 anyhow.workspace = true
 chrono.workspace = true
 walkdir.workspace = true
+mime_guess.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
