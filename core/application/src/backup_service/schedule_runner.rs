@@ -1,6 +1,8 @@
 use anyhow::Result;
 use chrono::Utc;
-use domain::{BackupSchedule, DeviceId, RetentionPolicy, ScheduleFrequency, SnapshotStatus};
+use domain::{
+    BackupSchedule, DeviceId, KeepDailyStrategy, RetentionPolicy, RetentionStrategy, ScheduleFrequency,
+};
 use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort};
 
 use super::BackupService;
@@ -15,23 +17,25 @@ impl<
     > BackupService<D, S, R, T, A, DP>
 {
     pub fn apply_retention_policy(&self, device_id: &DeviceId, policy: RetentionPolicy) -> Result<u32> {
-        let snapshots = self.repository.list_snapshots(device_id)?;
-        let mut completed_snapshots: Vec<_> = snapshots
-            .into_iter()
-            .filter(|s| s.status == SnapshotStatus::Completed)
-            .collect();
+        let strategy = KeepDailyStrategy {
+            keep_days: policy.keep_daily,
+        };
+        self.apply_retention_strategy(device_id, &strategy)
+    }
 
-        completed_snapshots.sort_by(|a, b| b.started_at.cmp(&a.started_at));
+    pub fn apply_retention_strategy(
+        &self,
+        device_id: &DeviceId,
+        strategy: &dyn RetentionStrategy,
+    ) -> Result<u32> {
+        let snapshots = self.repository.list_snapshots(device_id)?;
+        let to_delete = strategy.select_snapshots_to_delete(&snapshots);
 
         let mut deleted_count = 0;
-        let limit = policy.keep_daily as usize;
-
-        if completed_snapshots.len() > limit {
-            for s in completed_snapshots.iter().skip(limit) {
-                println!("Auto-cleanup: Deleting old snapshot {} (Retention)", s.id.0);
-                self.repository.delete_snapshot(&s.id)?;
-                deleted_count += 1;
-            }
+        for s_id in &to_delete {
+            println!("Auto-cleanup: Deleting old snapshot {} (Retention Strategy)", s_id.0);
+            self.repository.delete_snapshot(s_id)?;
+            deleted_count += 1;
         }
 
         Ok(deleted_count)

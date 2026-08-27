@@ -1,8 +1,11 @@
 pub mod backup;
+pub mod command_trait;
 pub mod device;
 pub mod restore;
 pub mod schedule;
 pub mod stats;
+
+pub use command_trait::CliCommand;
 
 use crate::cli::Commands;
 use anyhow::Result;

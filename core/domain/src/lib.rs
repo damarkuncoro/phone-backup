@@ -25,5 +25,5 @@ pub use data::{Contact, Sms, CallLog, StructuredData};
 pub use media::MediaInfo;
 pub use schedule::{BackupSchedule, ScheduleFrequency};
 pub use policy::BackupPolicy;
-pub use retention::RetentionPolicy;
+pub use retention::{KeepCountStrategy, KeepDailyStrategy, RetentionPolicy, RetentionStrategy};
 pub use error::DomainError;

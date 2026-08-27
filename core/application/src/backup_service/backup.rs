@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::Utc;
-use domain::{BackupPolicy, DeviceId, FileEntry, RetentionPolicy, Snapshot, SnapshotStatus};
+use domain::{BackupPolicy, DeviceId, FileEntry, Snapshot, SnapshotStatus};
 use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort};
 use std::io::Read;
 
@@ -81,25 +81,15 @@ impl<
 
         self.check_available_disk_space(total_required)?;
 
-        use indicatif::{ProgressBar, ProgressStyle};
-        let pb = ProgressBar::new(files.len() as u64);
-        pb.set_style(
-            ProgressStyle::default_bar()
-                .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")?
-                .progress_chars("#>-"),
-        );
-
         let mut total_bytes = snapshot.total_bytes;
         let mut total_files = snapshot.total_files;
         let mut deduped_bytes = snapshot.deduped_bytes;
 
         for mut file in files {
             if already_backed_up.contains(&file.path) {
-                pb.inc(1);
                 continue;
             }
 
-            pb.set_message(format!("Processing {}", file.name));
             let mut skip_content = false;
 
             if let Some(prev) = previous_files.get(&file.path) {
@@ -147,7 +137,6 @@ impl<
                     }
                     Err(e) => {
                         eprintln!("Warning: Failed to read file {}: {}", file.path, e);
-                        pb.inc(1);
                         continue;
                     }
                 }
@@ -161,9 +150,7 @@ impl<
 
             total_bytes += file.size_bytes;
             total_files += 1;
-            pb.inc(1);
         }
-        pb.finish_with_message("File backup finished.");
 
         if let Ok(apps) = self.app_provider.list_apps(id) {
             for app in apps {
@@ -181,7 +168,8 @@ impl<
         snapshot.deduped_bytes = deduped_bytes;
         self.repository.update_snapshot(&snapshot)?;
 
-        let _ = self.apply_retention_policy(id, RetentionPolicy::default());
+        let default_strategy = domain::KeepCountStrategy { keep_limit: 10 };
+        let _ = self.apply_retention_strategy(id, &default_strategy);
 
         Ok(snapshot)
     }

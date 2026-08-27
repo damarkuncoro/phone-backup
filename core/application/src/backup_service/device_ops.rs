@@ -66,22 +66,11 @@ impl<
         }
 
         if let Ok(files) = self.scanner_adapter.scan(source_id) {
-            use indicatif::{ProgressBar, ProgressStyle};
-            let pb = ProgressBar::new(files.len() as u64);
-            pb.set_style(
-                ProgressStyle::default_bar()
-                    .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")?
-                    .progress_chars("#>-"),
-            );
-
             for file in files {
-                pb.set_message(format!("Transferring {}", file.name));
                 if let Ok(mut content) = self.device_adapter.read_file(source_id, &file.path) {
                     let _ = self.device_adapter.push_file(target_id, &mut *content, &file.path);
                 }
-                pb.inc(1);
             }
-            pb.finish_with_message("Files migrated.");
         }
 
         println!("✨ Migration completed!");

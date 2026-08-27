@@ -2,16 +2,18 @@
 //! `adapters` implement. This is the Dependency Inversion seam —
 //! `application` never imports `adapter-*` crates directly.
 
-mod device_port;
-mod scanner_port;
-mod repository_port;
-mod storage_port;
 mod app_provider_port;
 mod data_provider_port;
+mod device_port;
+mod progress_port;
+mod repository_port;
+mod scanner_port;
+mod storage_port;
 
-pub use device_port::DevicePort;
-pub use scanner_port::ScannerPort;
-pub use repository_port::RepositoryPort;
-pub use storage_port::StoragePort;
 pub use app_provider_port::AppProviderPort;
 pub use data_provider_port::DataProviderPort;
+pub use device_port::DevicePort;
+pub use progress_port::{NoopProgressObserver, ProgressObserver};
+pub use repository_port::RepositoryPort;
+pub use scanner_port::ScannerPort;
+pub use storage_port::StoragePort;

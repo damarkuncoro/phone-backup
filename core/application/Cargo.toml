@@ -21,7 +21,6 @@ kamadak-exif.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sysinfo.workspace = true
-indicatif.workspace = true
 rayon.workspace = true
 
 [dev-dependencies]
