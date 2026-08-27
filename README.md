@@ -2,114 +2,125 @@
 
 A high-performance, secure, and professional Android backup platform written in Rust.
 
-Designed as a **Backup Engine**, this tool handles discovery, indexing, snapshots, encryption, deduplication, and restoration. It is built using **Clean Architecture** and **Hexagonal Architecture** principles, making the backup logic independent of the transport layer (ADB, MTP, etc.).
+**phone-backup** is more than just a file copying tool; it's a comprehensive backup engine designed with **Clean Architecture** and **Hexagonal Architecture** principles. It handles device discovery, intelligent indexing, versioned snapshots, military-grade encryption, and storage-efficient deduplication.
+
+---
 
 ## 🚀 Features
 
-- **Multi-Transport**: Supports real Android devices via **ADB** and simulated environments via **Mock** adapters.
-- **Intelligent Engine**:
-    - **Fast Incremental**: Only copies new or changed files based on size and mtime.
-    - **Deduplication**: Content-addressed storage (SHA-256) ensures identical files are stored only once.
-    - **Zstd Compression**: High-performance compression for text and data files.
-    - **Military-Grade Encryption**: AES-256-GCM authenticated encryption with Argon2 key derivation.
-- **Deep Data Support**:
-    - **Filesystem**: Recursive scanning of internal storage (`/sdcard`).
-    - **Applications**: Metadata tracking and **APK extraction**.
-    - **Structured Data**: Backup of **Contacts**, **SMS**, and **Call Logs** (exported as encrypted JSON).
-    - **Media Intelligence**: Automatic **EXIF metadata** extraction from photos.
-- **Automation & Management**:
-    - **Backup Scheduler**: Automate backups (Hourly, Daily, Weekly).
-    - **Retention Policy**: Automatically cleans up old snapshots to save space.
-    - **Backup Policy**: Fine-grained `include`/`exclude` filtering for folders and file patterns.
-- **Safety First**: Pre-backup disk space verification on the host PC.
+### 🧠 Intelligent Engine
+- **Fast Incremental Backup**: Scans device state and only transfers new or modified files based on size and mtime.
+- **Content-Addressed Storage (Deduplication)**: Uses SHA-256 hashing to ensure identical files (across different folders, snapshots, or even devices) are stored only once.
+- **Zstd Compression**: High-performance compression for compressible data (logs, json, text).
+- **Military-Grade Security**: AES-256-GCM authenticated encryption with keys derived using the Argon2 memory-hard function.
+
+### 📱 Deep Android Support
+- **Multi-Transport**: Native support for **ADB** (real devices) and **Mock** adapters (testing).
+- **App Management**: Tracks installed applications and performs **APK extraction** for backup.
+- **Structured Data**: Backs up **Contacts**, **SMS**, and **Call Logs** into secure JSON blobs.
+- **Media Intelligence**: Automatically extracts **EXIF metadata** (Resolution, Camera Model, GPS location) from photos during backup.
+
+### 🛠 Management & Safety
+- **Backup Scheduler**: Built-in logic for Hourly, Daily, and Weekly automated backups.
+- **Retention Policies**: Automatically prunes old snapshots while keeping important milestones.
+- **Selective Backup**: Fine-grained `include` and `exclude` path filtering.
+- **Smart Safety Check**: Pre-calculates required backup size and verifies available disk space on the host computer before starting.
+
+---
 
 ## 🛠 Project Structure
+
+The project follows a strict Hexagonal Architecture to ensure business logic is decoupled from external tools like ADB or SQLite.
 
 ```text
 phone-backup/
 ├── apps/
 │   └── cli/                # Command-line interface (Composition Root)
 ├── core/
-│   ├── domain/             # Entities (Device, Snapshot, FileEntry, etc.)
-│   ├── application/        # Use cases (BackupService)
-│   └── ports/              # Interfaces (Seams for dependency inversion)
+│   ├── domain/             # Core Entities (Device, Snapshot, File, App, etc.)
+│   ├── application/        # Use Cases & Orchestration (BackupService)
+│   └── ports/              # Trait definitions (Dependency Inversion seams)
 ├── adapters/
-│   ├── adb/                # Real Android ADB implementation
-│   ├── mock/               # Simulation for testing and development
-│   └── filesystem/         # Local repository storage
+│   ├── adb/                # Real Android ADB communication
+│   ├── mock/               # Simulation for dev/test
+│   └── filesystem/         # Physical storage management
 └── infrastructure/
-    └── database-sqlite/    # Persistent index and metadata storage
+    └── database-sqlite/    # Persistent index & metadata repository
 ```
+
+---
 
 ## 🚦 Getting Started
 
 ### Prerequisites
-
-- **Rust**: Latest stable version.
-- **ADB**: Android Debug Bridge installed and available in your `PATH`.
+- **Rust**: Latest stable toolchain.
+- **ADB**: Android Debug Bridge installed and in your `PATH`.
+- **Android Device**: Developer Options enabled with USB Debugging on.
 
 ### Installation
-
 ```bash
-git clone https://github.com/yourusername/phone-backup.git
+git clone https://github.com/damarkuncoro/phone-backup.git
 cd phone-backup
 cargo build --release
 ```
 
-## 📖 Usage
+---
 
-### Device Management
+## 📖 Usage Guide
 
+### 1. Device Discovery
+List all connected devices through the ADB adapter:
 ```bash
-# List all connected devices
 phone-backup --adapter adb devices
+```
 
-# Show detailed device info and storage status
+Inspect a specific device's storage and hardware info:
+```bash
 phone-backup --adapter adb device-info <DEVICE_ID>
 ```
 
-### Backup Operations
-
+### 2. Backup Operations
+Perform a full backup (first run) or incremental backup (subsequent runs):
 ```bash
-# Perform a full/incremental backup
 phone-backup --adapter adb backup <DEVICE_ID>
+```
 
-# Backup with encryption
+Backup with encryption (recommended):
+```bash
 phone-backup --adapter adb backup <DEVICE_ID> --password "your-secret"
+```
 
-# Backup specific folders only
+Selective folder backup:
+```bash
 phone-backup --adapter adb backup <DEVICE_ID> --include /sdcard/DCIM --include /sdcard/WhatsApp
 ```
 
-### Restoration & Verification
-
+### 3. Restore & Maintenance
+List all available snapshots for a device:
 ```bash
-# List all snapshots for a device
 phone-backup snapshots <DEVICE_ID>
+```
 
-# Restore a snapshot to your computer
+Restore a snapshot to your computer:
+```bash
 phone-backup restore <SNAPSHOT_ID> --target ./my_recovered_data --password "your-secret"
+```
 
-# Verify repository integrity
+Verify repository integrity:
+```bash
 phone-backup verify --password "your-secret"
 ```
 
-### Automation (Scheduler)
+---
 
-```bash
-# Add a daily backup schedule
-phone-backup schedule add <DEVICE_ID> --frequency daily
-
-# Run all due backups (add this to your cron/task scheduler)
-phone-backup schedule run
-```
-
-## 🛡 Security
-
-- No raw data is ever stored without encryption if a password is provided.
-- Passwords are never stored; they are used only for key derivation at runtime.
-- Deduplication occurs at the encrypted blob level to ensure privacy.
+## 🛡 Security Architecture
+- **Zero Raw Storage**: No data is stored in plain text if a password is provided.
+- **Key Derivation**: Uses Argon2id to protect against brute-force attacks.
+- **Deduplication Privacy**: Deduplication occurs at the encrypted blob level to prevent metadata leakage.
+- **Integrity**: Every object is verified using authenticated encryption (GCM tag).
 
 ## 📄 License
-
 MIT
+
+---
+*Developed with ❤️ in Rust for the Android Community.*
