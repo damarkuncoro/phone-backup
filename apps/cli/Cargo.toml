@@ -2,18 +2,21 @@
 name = "phone-backup"
 version.workspace = true
 edition.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [[bin]]
 name = "phone-backup"
 path = "src/main.rs"
 
 [dependencies]
-domain = { path = "../../core/domain" }
-ports = { path = "../../core/ports" }
-application = { path = "../../core/application" }
-adapter-mock = { path = "../../adapters/mock" }
-adapter-adb = { path = "../../adapters/adb" }
-adapter-filesystem = { path = "../../adapters/filesystem" }
-adapter-database-sqlite = { path = "../../infrastructure/database-sqlite" }
+domain = { path = "../../core/domain", package = "phone-backup-domain", version = "0.1.0" }
+ports = { path = "../../core/ports", package = "phone-backup-ports", version = "0.1.0" }
+application = { path = "../../core/application", package = "phone-backup-application", version = "0.1.0" }
+adapter-mock = { path = "../../adapters/mock", package = "phone-backup-adapter-mock", version = "0.1.0" }
+adapter-adb = { path = "../../adapters/adb", package = "phone-backup-adapter-adb", version = "0.1.0" }
+adapter-filesystem = { path = "../../adapters/filesystem", package = "phone-backup-adapter-filesystem", version = "0.1.0" }
+adapter-database-sqlite = { path = "../../infrastructure/database-sqlite", package = "phone-backup-adapter-database-sqlite", version = "0.1.0" }
 clap.workspace = true
 anyhow.workspace = true

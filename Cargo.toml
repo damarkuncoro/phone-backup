@@ -15,6 +15,13 @@ members = [
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+authors = ["Damar Kuncoro <damarkuncoro@gmail.com>"]
+description = "A secure Android backup platform with encryption, deduplication, and scheduling."
+repository = "https://github.com/damarkuncoro/phone-backup"
+homepage = "https://github.com/damarkuncoro/phone-backup"
+readme = "README.md"
+keywords = ["android", "backup", "adb", "encryption", "deduplication"]
+categories = ["command-line-utilities", "backup"]
 
 [workspace.dependencies]
 anyhow = "1"

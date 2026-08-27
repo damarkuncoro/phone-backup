@@ -1,7 +1,10 @@
 [package]
-name = "domain"
+name = "phone-backup-domain"
 version.workspace = true
 edition.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
 serde.workspace = true

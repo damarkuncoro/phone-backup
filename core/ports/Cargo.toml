@@ -1,8 +1,11 @@
 [package]
-name = "ports"
+name = "phone-backup-ports"
 version.workspace = true
 edition.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
-domain = { path = "../domain" }
+domain = { path = "../domain", package = "phone-backup-domain", version = "0.1.0" }
 anyhow.workspace = true

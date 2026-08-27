@@ -1,11 +1,14 @@
 [package]
-name = "adapter-database-sqlite"
+name = "phone-backup-adapter-database-sqlite"
 version.workspace = true
 edition.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [dependencies]
-domain = { path = "../../core/domain" }
-ports = { path = "../../core/ports" }
+domain = { path = "../../core/domain", package = "phone-backup-domain", version = "0.1.0" }
+ports = { path = "../../core/ports", package = "phone-backup-ports", version = "0.1.0" }
 anyhow.workspace = true
 rusqlite.workspace = true
 chrono.workspace = true
