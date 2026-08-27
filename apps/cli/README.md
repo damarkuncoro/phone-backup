@@ -6,8 +6,8 @@ The primary user interface for the phone-backup platform.
 
 This crate is the **Composition Root** of the application. Its responsibilities include:
 
-1.  **CLI Parsing**: Defining the command-line interface using `clap`.
-2.  **Dependency Injection**: Constructing the concrete adapters (e.g., `AdbDeviceAdapter`, `SqliteRepository`) and wiring them into the `BackupService`.
+1.  **CLI Parsing**: Defining the command-line interface using `clap`, with support for environment variables.
+2.  **Dependency Injection**: Constructing the concrete adapters (e.g., `AdbDeviceAdapter`, `CloudStorage`) and wiring them into the `BackupService`.
 3.  **Command Execution**: Mapping user commands to `BackupService` use cases.
 4.  **Formatting**: Presenting backup reports, photo galleries, and statistics in a human-readable format.
 

@@ -4,11 +4,11 @@ This crate defines the **Ports** (traits) that serve as the boundaries between t
 
 ## 🔌 Available Ports
 
-- **DevicePort**: Discovering and communicating with hardware (ADB, Mock).
+- **DevicePort**: Discovering and communicating with hardware (ADB, Mock). Supports bidirectional transfers (`read_file`/`push_file`).
 - **ScannerPort**: Scanning the device filesystem for files.
-- **RepositoryPort**: Persisting metadata and indexing snapshots (SQLite).
-- **StoragePort**: Physical storage of binary data blobs (Filesystem, Cloud).
-- **AppProviderPort**: Handling APK extraction and installation.
+- **RepositoryPort**: Persisting metadata and indexing snapshots (SQLite). Now includes search and interrupted snapshot tracking.
+- **StoragePort**: Physical storage of binary data blobs (Filesystem, OpenDAL/S3).
+- **AppProviderPort**: Handling APK extraction and remote installation.
 - **DataProviderPort**: Querying structured data like SMS, Contacts, and Call Logs.
 
 ## 🏗 Why Ports?

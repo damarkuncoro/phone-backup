@@ -10,6 +10,7 @@ A high-performance, secure, and professional Android backup platform written in 
 
 ### 🧠 Intelligent Engine
 - **Fast Incremental Backup**: Scans device state and only transfers new or modified files based on size and mtime.
+- **Failure Recovery (Resume)**: Automatically detects interrupted backups and resumes from the last successful file.
 - **Content-Addressed Storage (Deduplication)**: Ensures identical files (across different folders, snapshots, or even devices) are stored only once.
 - **Zstd Compression**: High-performance compression for logs, JSON, and text.
 - **Military-Grade Security**: AES-256-GCM authenticated encryption with keys derived using Argon2.
@@ -108,6 +109,19 @@ phone-backup search "resume.pdf"
 
 # View storage efficiency report
 phone-backup stats
+```
+
+---
+
+## 🧪 Testing
+
+The project includes a comprehensive testing suite to ensure data integrity:
+- **Unit Tests**: Coverage for encryption, compression, and policy logic.
+- **Integration Tests**: End-to-end backup/restore simulations using mock hardware.
+
+Run all tests with:
+```bash
+cargo test
 ```
 
 ---

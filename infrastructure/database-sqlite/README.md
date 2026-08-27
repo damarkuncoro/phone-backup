@@ -8,12 +8,12 @@ This crate manages the persistent metadata for the entire backup system, includi
 
 - **Devices**: Tracks all phones ever backed up.
 - **Files**: A global catalog of all unique files discovered across all devices.
-- **Snapshots**: History of backup runs, their status, and performance metrics.
+- **Snapshots**: History of backup runs, their status (including `Interrupted`), and deduplication performance metrics.
 - **Links**: Relational tables linking specific files and apps to specific snapshots.
 - **Schedules**: Persistent configuration for automated backup tasks.
 
 ## ⚡ Performance
 
 - **Deduplication Lookup**: Efficiently finds existing file hashes to avoid redundant uploads.
-- **Global Search**: Supports fast `LIKE` queries across paths and filenames.
+- **Global Search**: Supports fast `LIKE` queries across paths and filenames via the `search_files` port.
 - **Relational Integrity**: Uses Foreign Key constraints to ensure the repository remains consistent during deletions (Retention cleanup).

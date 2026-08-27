@@ -5,7 +5,7 @@ This crate contains the core domain models and business entities for the **phone
 ## 🧱 Core Entities
 
 - **Device**: Represents an Android device (id, model, manufacturer, storage stats).
-- **Snapshot**: A versioned point-in-time backup of a device's state.
+- **Snapshot**: A versioned point-in-time backup. Supports states: `Pending`, `Running`, `Completed`, `Failed`, and `Interrupted` (for resume support).
 - **FileEntry**: Metadata for a single file on the device, including path, size, and hash.
 - **AppInfo**: Information about an installed Android application (package name, version).
 - **MediaInfo**: Extracted metadata from media files (EXIF, GPS, resolution).

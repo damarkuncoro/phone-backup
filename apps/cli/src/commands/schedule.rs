@@ -1,0 +1,45 @@
+use crate::cli::ScheduleCommands;
+use anyhow::Result;
+use application::BackupService;
+use domain::ScheduleFrequency;
+
+pub fn handle_schedule<D, S, R, T, A, DP>(
+    service: &BackupService<D, S, R, T, A, DP>,
+    command: ScheduleCommands,
+) -> Result<()>
+where
+    D: ports::DevicePort,
+    S: ports::ScannerPort,
+    R: ports::RepositoryPort,
+    T: ports::StoragePort,
+    A: ports::AppProviderPort,
+    DP: ports::DataProviderPort,
+{
+    match command {
+        ScheduleCommands::Add { id, frequency } => {
+            let freq = match frequency.to_lowercase().as_str() {
+                "hourly" => ScheduleFrequency::Hourly,
+                "weekly" => ScheduleFrequency::Weekly,
+                _ => ScheduleFrequency::Daily,
+            };
+            service.add_schedule(domain::DeviceId(id), freq)?;
+            println!("Schedule added.");
+        }
+        ScheduleCommands::List => {
+            let schedules = service.list_schedules()?;
+            println!("{:<15} {:<10} {:<20}", "DEVICE ID", "FREQ", "LAST RUN");
+            println!("{}", "-".repeat(45));
+            for s in schedules {
+                let last_run = s
+                    .last_run_at
+                    .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
+                    .unwrap_or("Never".into());
+                println!("{:<15} {:<10?} {:<20}", s.device_id.0, s.frequency, last_run);
+            }
+        }
+        ScheduleCommands::Run { password } => {
+            service.run_pending_backups(password.as_deref())?;
+        }
+    }
+    Ok(())
+}

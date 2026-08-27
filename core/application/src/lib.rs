@@ -6,5 +6,7 @@ mod security;
 mod media_analysis;
 mod compression;
 mod hashing;
+pub mod object_store;
 
-pub use backup_service::BackupService;
+pub use backup_service::{BackupService, StorageStats, VerificationReport};
+pub use object_store::ObjectStoreKey;
