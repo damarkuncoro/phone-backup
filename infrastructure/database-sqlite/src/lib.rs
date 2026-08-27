@@ -223,6 +223,7 @@ impl RepositoryPort for SqliteRepository {
                     "Pending" => SnapshotStatus::Pending,
                     "Running" => SnapshotStatus::Running,
                     "Completed" => SnapshotStatus::Completed,
+                    "Interrupted" => SnapshotStatus::Interrupted,
                     _ => SnapshotStatus::Failed,
                 },
                 total_files: row.get(5)?,
@@ -342,6 +343,7 @@ impl RepositoryPort for SqliteRepository {
                     "Pending" => SnapshotStatus::Pending,
                     "Running" => SnapshotStatus::Running,
                     "Completed" => SnapshotStatus::Completed,
+                    "Interrupted" => SnapshotStatus::Interrupted,
                     _ => SnapshotStatus::Failed,
                 },
                 total_files: row.get(5)?,
@@ -360,6 +362,11 @@ impl RepositoryPort for SqliteRepository {
     fn get_latest_snapshot(&self, device_id: &DeviceId) -> anyhow::Result<Option<Snapshot>> {
         let snapshots = self.list_snapshots(device_id)?;
         Ok(snapshots.into_iter().find(|s| s.status == SnapshotStatus::Completed))
+    }
+
+    fn get_incomplete_snapshot(&self, device_id: &DeviceId) -> anyhow::Result<Option<Snapshot>> {
+        let snapshots = self.list_snapshots(device_id)?;
+        Ok(snapshots.into_iter().find(|s| s.status == SnapshotStatus::Running || s.status == SnapshotStatus::Interrupted))
     }
 
     fn get_snapshot_files(&self, snapshot_id: &SnapshotId) -> anyhow::Result<Vec<FileEntry>> {

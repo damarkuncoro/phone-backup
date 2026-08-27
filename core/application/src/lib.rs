@@ -2,5 +2,9 @@
 //! ports. No concrete adapter, no I/O detail, no SQL, no ADB.
 
 mod backup_service;
+mod security;
+mod media_analysis;
+mod compression;
+mod hashing;
 
 pub use backup_service::BackupService;

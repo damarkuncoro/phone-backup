@@ -17,6 +17,7 @@ application = { path = "../../core/application", package = "phone-backup-applica
 adapter-mock = { path = "../../adapters/mock", package = "phone-backup-adapter-mock", version = "0.1.0" }
 adapter-adb = { path = "../../adapters/adb", package = "phone-backup-adapter-adb", version = "0.1.0" }
 adapter-filesystem = { path = "../../adapters/filesystem", package = "phone-backup-adapter-filesystem", version = "0.1.0" }
+adapter-opendal = { path = "../../adapters/opendal", package = "phone-backup-adapter-opendal", version = "0.1.0" }
 adapter-database-sqlite = { path = "../../infrastructure/database-sqlite", package = "phone-backup-adapter-database-sqlite", version = "0.1.0" }
 clap.workspace = true
 anyhow.workspace = true

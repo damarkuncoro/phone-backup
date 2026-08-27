@@ -21,6 +21,24 @@ struct Cli {
     #[arg(short, long, default_value = "mock")]
     adapter: String,
 
+    #[arg(long, default_value = "local")]
+    storage: String,
+
+    #[arg(long, env = "S3_BUCKET")]
+    s3_bucket: Option<String>,
+
+    #[arg(long, env = "S3_REGION")]
+    s3_region: Option<String>,
+
+    #[arg(long, env = "S3_ENDPOINT")]
+    s3_endpoint: Option<String>,
+
+    #[arg(long, env = "S3_ACCESS_KEY")]
+    s3_access_key: Option<String>,
+
+    #[arg(long, env = "S3_SECRET_KEY")]
+    s3_secret_key: Option<String>,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -141,30 +159,53 @@ fn main() -> Result<()> {
     // Initialize repository (metadata)
     let repository = SqliteRepository::new("backup.db")?;
 
-    match cli.adapter.as_str() {
-        "adb" => {
-            let storage = LocalStorage::new("backups")?;
-            let service = BackupService::new(
-                AdbDeviceAdapter::new(),
-                AdbScannerAdapter::new(),
-                repository,
-                storage,
-                AdbAppProvider::new(),
-                AdbDataProvider::new(),
-            );
-            execute_command(cli.command, service)
+    // Initialize storage
+    let storage_type = cli.storage.as_str();
+
+    macro_rules! run_with_storage {
+        ($storage:expr) => {
+            match cli.adapter.as_str() {
+                "adb" => {
+                    let service = BackupService::new(
+                        AdbDeviceAdapter::new(),
+                        AdbScannerAdapter::new(),
+                        repository,
+                        $storage,
+                        AdbAppProvider::new(),
+                        AdbDataProvider::new(),
+                    );
+                    execute_command(cli.command, service)
+                }
+                _ => {
+                    let service = BackupService::new(
+                        MockDeviceAdapter::default(),
+                        MockScannerAdapter::default(),
+                        repository,
+                        $storage,
+                        MockAppProvider,
+                        MockDataProvider,
+                    );
+                    execute_command(cli.command, service)
+                }
+            }
+        };
+    }
+
+    match storage_type {
+        "s3" => {
+            use adapter_opendal::CloudStorage;
+            let bucket = cli.s3_bucket.as_deref().unwrap_or("");
+            let region = cli.s3_region.as_deref().unwrap_or("us-east-1");
+            let endpoint = cli.s3_endpoint.as_deref().unwrap_or("");
+            let access = cli.s3_access_key.as_deref().unwrap_or("");
+            let secret = cli.s3_secret_key.as_deref().unwrap_or("");
+
+            let storage = CloudStorage::new_s3(bucket, region, endpoint, access, secret)?;
+            run_with_storage!(storage)
         }
         _ => {
             let storage = LocalStorage::new("backups")?;
-            let service = BackupService::new(
-                MockDeviceAdapter::default(),
-                MockScannerAdapter::default(),
-                repository,
-                storage,
-                MockAppProvider,
-                MockDataProvider,
-            );
-            execute_command(cli.command, service)
+            run_with_storage!(storage)
         }
     }
 }

@@ -23,3 +23,9 @@ serde_json.workspace = true
 sysinfo.workspace = true
 indicatif.workspace = true
 rayon.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
+adapter-mock = { path = "../../adapters/mock", package = "phone-backup-adapter-mock" }
+adapter-filesystem = { path = "../../adapters/filesystem", package = "phone-backup-adapter-filesystem" }
+adapter-database-sqlite = { path = "../../infrastructure/database-sqlite", package = "phone-backup-adapter-database-sqlite" }

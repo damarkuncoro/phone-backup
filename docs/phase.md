@@ -50,7 +50,7 @@ Saya akan fokus dulu pada **Android**, karena aksesnya jauh lebih terbuka. iPhon
 
 ---
 
-# PHASE 01 — Project Foundation
+# PHASE 01 — Project Foundation [DONE]
 
 Tujuan:
 
@@ -116,7 +116,7 @@ Dengan demikian nanti kita bisa mengganti ADB tanpa mengubah business logic.
 
 ---
 
-# PHASE 02 — Device Discovery
+# PHASE 02 — Device Discovery [DONE]
 
 Tujuan:
 
@@ -168,7 +168,7 @@ DevicePort
 
 ---
 
-# PHASE 03 — Permission & Capability
+# PHASE 03 — Permission & Capability [DONE]
 
 Ini fase penting.
 
@@ -226,7 +226,7 @@ REQUIRES_USER_ACTION
 
 ---
 
-# PHASE 04 — File Scanner
+# PHASE 04 — File Scanner [DONE]
 
 Sekarang kita mulai membaca filesystem.
 
@@ -275,7 +275,7 @@ mime: image/jpeg
 
 ---
 
-# PHASE 05 — File Index Database
+# PHASE 05 — File Index Database [DONE]
 
 Kita membutuhkan database lokal.
 
@@ -329,7 +329,7 @@ Database ini menjadi **inventory HP**.
 
 ---
 
-# PHASE 06 — Backup Snapshot
+# PHASE 06 — Backup Snapshot [DONE]
 
 Sekarang konsep penting diperkenalkan:
 
@@ -364,7 +364,7 @@ UNCHANGED 78,272 files
 
 ---
 
-# PHASE 07 — Backup Engine
+# PHASE 07 — Backup Engine [DONE]
 
 Buat engine:
 
@@ -419,7 +419,7 @@ ETA: 02:31
 
 ---
 
-# PHASE 08 — Storage Backend
+# PHASE 08 — Storage Backend [DONE]
 
 Jangan mengunci backup ke satu media.
 
@@ -461,7 +461,7 @@ phone-backup backup --repository nas01
 
 ---
 
-# PHASE 09 — Deduplication
+# PHASE 09 — Deduplication [DONE]
 
 Misalnya ada:
 
@@ -510,7 +510,7 @@ Ini dapat menghemat storage secara signifikan.
 
 ---
 
-# PHASE 10 — Compression
+# PHASE 10 — Compression [DONE]
 
 Tidak semua file perlu dikompres.
 
@@ -553,7 +553,7 @@ Saya lebih memilih **Zstandard** daripada ZIP untuk internal backup engine karen
 
 ---
 
-# PHASE 11 — Encryption
+# PHASE 11 — Encryption [DONE]
 
 Backup harus bisa diamankan.
 
@@ -608,7 +608,7 @@ backup/
 
 ---
 
-# PHASE 12 — Manifest
+# PHASE 12 — Manifest [DONE]
 
 Manifest adalah jantung backup.
 
@@ -649,7 +649,7 @@ path → object
 
 ---
 
-# PHASE 13 — Verification
+# PHASE 13 — Verification [DONE]
 
 Backup yang selesai copy belum tentu valid.
 
@@ -691,7 +691,7 @@ maka:
 
 ---
 
-# PHASE 14 — Incremental Backup
+# PHASE 14 — Incremental Backup [DONE]
 
 Ini salah satu fitur terpenting.
 
@@ -740,7 +740,7 @@ NEW  MOD   SAME
 
 ---
 
-# PHASE 15 — Restore Engine
+# PHASE 15 — Restore Engine [DONE]
 
 Backup tanpa restore belum lengkap.
 
@@ -783,7 +783,7 @@ phone-backup restore 003 --device A1B2C3D4
 
 ---
 
-# PHASE 16 — Selective Restore
+# PHASE 16 — Selective Restore [DONE]
 
 Tidak selalu ingin restore semuanya.
 
@@ -808,7 +808,7 @@ phone-backup restore 003 \
 
 ---
 
-# PHASE 17 — Application Backup
+# PHASE 17 — Application Backup [DONE]
 
 Ini lebih kompleks.
 
@@ -852,7 +852,7 @@ bukan requirement.
 
 ---
 
-# PHASE 18 — Contacts / SMS / Call History
+# PHASE 18 — Contacts / SMS / Call History [DONE]
 
 Pisahkan dari filesystem.
 
@@ -888,7 +888,7 @@ sesuai capability perangkat.
 
 ---
 
-# PHASE 19 — Media Intelligence
+# PHASE 19 — Media Intelligence [DONE]
 
 Untuk foto/video kita bisa membuat metadata tambahan:
 
@@ -916,7 +916,7 @@ Jangan menjadikan AI sebagai dependency utama.
 
 ---
 
-# PHASE 20 — Backup Scheduler
+# PHASE 20 — Backup Scheduler [DONE]
 
 Setelah engine stabil, tambahkan otomatisasi.
 
@@ -946,7 +946,7 @@ phone-backup schedule add \
 
 ---
 
-# PHASE 21 — Backup Policy
+# PHASE 21 — Backup Policy [DONE]
 
 User bisa menentukan:
 
@@ -985,7 +985,7 @@ exclude:
 
 ---
 
-# PHASE 22 — Retention
+# PHASE 22 — Retention [DONE]
 
 Kalau backup dilakukan setiap hari, storage akan penuh.
 
@@ -1008,7 +1008,7 @@ Tetapi karena menggunakan deduplication, snapshot lama hanya menyimpan reference
 
 ---
 
-# PHASE 23 — Backup Integrity & Recovery
+# PHASE 23 — Backup Integrity & Recovery [DONE]
 
 Buat:
 
@@ -1074,7 +1074,7 @@ Dashboard:
 
 ---
 
-# PHASE 25 — Multi Device
+# PHASE 25 — Multi Device [DONE]
 
 Kemudian dukung banyak HP.
 
@@ -1101,7 +1101,7 @@ Setiap device memiliki manifest sendiri.
 
 ---
 
-# PHASE 26 — Remote Backup
+# PHASE 26 — Remote Backup [DONE]
 
 Kemudian:
 
@@ -1239,7 +1239,7 @@ Test penting:
 
 ---
 
-# PHASE 30 — Failure Recovery
+# PHASE 30 — Failure Recovery [DONE]
 
 Ini sangat penting.
 
@@ -1277,7 +1277,7 @@ VERIFIED
 
 ---
 
-# PHASE 31 — CLI Final
+# PHASE 31 — CLI Final [DONE]
 
 Saya akan membuat CLI seperti:
 
@@ -1317,7 +1317,7 @@ phone-backup schedule list
 
 ---
 
-# PHASE 32 — Packaging
+# PHASE 32 — Packaging [DONE]
 
 Target:
 
@@ -1349,7 +1349,7 @@ apt install phone-backup
 
 ---
 
-# PHASE 33 — Observability
+# PHASE 33 — Observability [DONE]
 
 Tambahkan:
 

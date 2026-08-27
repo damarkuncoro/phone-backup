@@ -79,8 +79,17 @@ phone-backup --adapter adb devices
 
 ### 2. Backup & Migration
 ```bash
-# Backup with Encryption
-phone-backup --adapter adb backup <DEVICE_ID> --password "your-secret"
+# Backup to Local Storage
+phone-backup --adapter adb backup <DEVICE_ID>
+
+# Backup to Cloud (S3/R2/MinIO)
+phone-backup --storage s3 \
+  --s3-bucket my-backup \
+  --s3-region auto \
+  --s3-endpoint https://<id>.r2.cloudflarestorage.com \
+  --s3-access-key <key> \
+  --s3-secret-key <secret> \
+  backup <DEVICE_ID>
 
 # Direct Device-to-Device Cloning
 phone-backup --adapter adb clone <SOURCE_ID> <TARGET_ID>

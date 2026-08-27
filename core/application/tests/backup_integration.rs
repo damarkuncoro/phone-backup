@@ -1,0 +1,65 @@
+use phone_backup_application::BackupService;
+use adapter_mock::{MockDeviceAdapter, MockScannerAdapter, MockAppProvider, MockDataProvider};
+use adapter_filesystem::LocalStorage;
+use adapter_database_sqlite::SqliteRepository;
+use tempfile::TempDir;
+use std::fs;
+
+#[test]
+fn test_full_backup_restore_lifecycle() {
+    // 1. Setup temporary directories for test
+    let tmp_repo_dir = TempDir::new().unwrap();
+    let tmp_storage_dir = TempDir::new().unwrap();
+    let tmp_restore_dir = TempDir::new().unwrap();
+
+    let db_path = tmp_repo_dir.path().join("test_backup.db");
+    let storage_path = tmp_storage_dir.path().to_str().unwrap();
+    let restore_path = tmp_restore_dir.path().to_str().unwrap();
+
+    // 2. Initialize Components
+    let repository = SqliteRepository::new(db_path.to_str().unwrap()).unwrap();
+    let storage = LocalStorage::new(storage_path).unwrap();
+    let device_adapter = MockDeviceAdapter::default();
+    let scanner_adapter = MockScannerAdapter::default();
+    let app_provider = MockAppProvider;
+    let data_provider = MockDataProvider;
+
+    let service = BackupService::new(
+        device_adapter,
+        scanner_adapter,
+        repository,
+        storage,
+        app_provider,
+        data_provider,
+    );
+
+    // 3. Perform Discovery
+    let devices = service.list_devices().unwrap();
+    assert_eq!(devices.len(), 1);
+    let device_id = devices[0].id.clone();
+
+    // 4. Perform Backup (Encrypted)
+    let password = "test-password";
+    let snapshot = service.perform_backup(&device_id, Some(password), None).expect("Backup failed");
+
+    assert!(snapshot.total_files > 0);
+    assert!(snapshot.total_bytes > 0);
+
+    // 5. Verify Integrity
+    let report = service.verify_repository(Some(password)).unwrap();
+    assert!(report.is_healthy());
+    assert_eq!(report.verified_files, snapshot.total_files);
+
+    // 6. Perform Restore
+    service.perform_restore(&snapshot.id, restore_path, Some(password), None).expect("Restore failed");
+
+    // 7. Validate Restored Content
+    // MockScannerAdapter seeds "Documents/notes.txt" with "this is mock file content"
+    let restored_file = tmp_restore_dir.path().join("Documents/notes.txt");
+    assert!(restored_file.exists());
+
+    let restored_content = fs::read_to_string(restored_file).unwrap();
+    assert_eq!(restored_content, "this is mock file content");
+
+    println!("✅ Integration test passed: Backup and Restore verified.");
+}

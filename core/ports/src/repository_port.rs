@@ -35,6 +35,9 @@ pub trait RepositoryPort {
     /// Get the latest completed snapshot for a device.
     fn get_latest_snapshot(&self, device_id: &DeviceId) -> Result<Option<Snapshot>>;
 
+    /// Get the latest incomplete (Running/Interrupted) snapshot for a device.
+    fn get_incomplete_snapshot(&self, device_id: &DeviceId) -> Result<Option<Snapshot>>;
+
     /// Get all file entries belonging to a specific snapshot.
     fn get_snapshot_files(&self, snapshot_id: &SnapshotId) -> Result<Vec<FileEntry>>;
 

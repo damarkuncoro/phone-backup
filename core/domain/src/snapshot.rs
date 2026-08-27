@@ -11,6 +11,7 @@ pub enum SnapshotStatus {
     Running,
     Completed,
     Failed,
+    Interrupted,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

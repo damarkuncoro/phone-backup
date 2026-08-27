@@ -4,6 +4,11 @@ use ports::{DevicePort, ScannerPort, RepositoryPort, StoragePort, AppProviderPor
 use chrono::Utc;
 use std::io::Read;
 
+use crate::security::EncryptionEngine;
+use crate::media_analysis::MediaAnalyzer;
+use crate::compression::CompressionEngine;
+use crate::hashing::calculate_hash;
+
 /// The BackupService orchestrates use cases.
 pub struct BackupService<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppProviderPort, DP: DataProviderPort> {
     device_adapter: D,
@@ -46,15 +51,13 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
         self.app_provider.list_apps(id)
     }
 
-    /// Perform a full or incremental backup of a device (Phase 07-21 + Storage Check)
+    /// Perform a full or incremental backup of a device (Phase 07-21 + Storage Check + Resume)
     pub fn perform_backup(&self, id: &DeviceId, password: Option<&str>, policy: Option<BackupPolicy>) -> Result<Snapshot> {
         let policy = policy.unwrap_or_default();
 
-        // 1. Get device info and save it
         let device = self.device_adapter.info(id)?;
         self.repository.save_device(&device)?;
 
-        // 2. Load previous snapshot files for incremental comparison
         let latest_snapshot = self.repository.get_latest_snapshot(id)?;
         let mut previous_files = std::collections::HashMap::new();
         if let Some(ref snapshot) = latest_snapshot {
@@ -63,21 +66,29 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
             }
         }
 
-        // 3. Create a new snapshot
-        let mut snapshot = Snapshot::new(id.clone());
+        let mut snapshot = if let Some(incomplete) = self.repository.get_incomplete_snapshot(id)? {
+            println!("🔄 Resuming interrupted snapshot: {}", incomplete.id.0);
+            incomplete
+        } else {
+            Snapshot::new(id.clone())
+        };
+
+        let already_backed_up: std::collections::HashSet<String> = self.repository
+            .get_snapshot_files(&snapshot.id)?
+            .into_iter()
+            .map(|f| f.path)
+            .collect();
+
         snapshot.status = SnapshotStatus::Running;
-        self.repository.create_snapshot(&snapshot)?;
+        self.repository.create_snapshot(&snapshot).or_else(|_| self.repository.update_snapshot(&snapshot))?;
 
-        // 4. Scan files
         let all_files = self.scanner_adapter.scan(id)?;
-
-        // Apply Policy Filter
         let files: Vec<FileEntry> = all_files.into_iter()
             .filter(|f| policy.should_include(&f.path))
             .collect();
 
-        // 5. Smart Storage Check: Calculate filtered size
         let total_required: u64 = files.iter()
+            .filter(|f| !already_backed_up.contains(&f.path))
             .filter(|f| {
                 if let Some(prev) = previous_files.get(&f.path) {
                     !(prev.size_bytes == f.size_bytes && prev.modified_at == f.modified_at)
@@ -90,22 +101,25 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
 
         self.check_available_disk_space(total_required)?;
 
-        // 6. Record files, link to snapshot, and write to storage
         use indicatif::{ProgressBar, ProgressStyle};
         let pb = ProgressBar::new(files.len() as u64);
         pb.set_style(ProgressStyle::default_bar()
             .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")?
             .progress_chars("#>-"));
 
-        let mut total_bytes = 0;
-        let mut total_files = 0;
-        let mut deduped_bytes = 0;
+        let mut total_bytes = snapshot.total_bytes;
+        let mut total_files = snapshot.total_files;
+        let mut deduped_bytes = snapshot.deduped_bytes;
 
         for mut file in files {
+            if already_backed_up.contains(&file.path) {
+                pb.inc(1);
+                continue;
+            }
+
             pb.set_message(format!("Processing {}", file.name));
             let mut skip_content = false;
 
-            // Incremental check
             if let Some(prev) = previous_files.get(&file.path) {
                 if prev.size_bytes == file.size_bytes &&
                    prev.modified_at == file.modified_at &&
@@ -121,16 +135,16 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
                 match self.device_adapter.read_file(id, &file.path) {
                     Ok(mut content_reader) => {
                         let mut content_buf = Vec::new();
-                        content_reader.read_to_end(&mut content_buf)?;
+                        if let Err(e) = content_reader.read_to_end(&mut content_buf) {
+                            self.mark_interrupted(&mut snapshot, total_files, total_bytes, deduped_bytes)?;
+                            return Err(anyhow::anyhow!("Read error during backup: {}", e));
+                        }
 
-                        let hash = self.calculate_hash(&content_buf);
+                        let hash = calculate_hash(&content_buf);
                         file.hash_sha256 = Some(hash.clone());
+                        file.media_info = MediaAnalyzer::extract_info(&content_buf, &file.mime_type);
 
-                        // Media Intelligence (Phase 19)
-                        file.media_info = self.extract_media_info(&content_buf, &file.mime_type);
-
-                        // Deduplication & Compression & Encryption
-                        let mut object_id = if self.should_compress(&file.mime_type) {
+                        let mut object_id = if CompressionEngine::should_compress(&file.mime_type) {
                             format!("{}.zst", hash)
                         } else {
                             hash.clone()
@@ -144,29 +158,33 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
 
                         if !self.storage.exists(&object_path)? {
                             let mut data_to_write = content_buf;
-
-                            if self.should_compress(&file.mime_type) {
-                                data_to_write = self.compress_data(&data_to_write)?;
+                            if CompressionEngine::should_compress(&file.mime_type) {
+                                data_to_write = CompressionEngine::compress(&data_to_write)?;
                             }
-
                             if let Some(pwd) = password {
-                                data_to_write = self.encrypt_data(&data_to_write, pwd)?;
+                                data_to_write = EncryptionEngine::encrypt(&data_to_write, pwd)?;
                             }
-
-                            self.storage.write(&object_path, &mut std::io::Cursor::new(data_to_write))?;
+                            if let Err(e) = self.storage.write(&object_path, &mut std::io::Cursor::new(data_to_write)) {
+                                self.mark_interrupted(&mut snapshot, total_files, total_bytes, deduped_bytes)?;
+                                return Err(anyhow::anyhow!("Storage write error: {}", e));
+                            }
                         } else {
                             deduped_bytes += file.size_bytes;
                         }
                     }
                     Err(e) => {
                         eprintln!("Warning: Failed to read file {}: {}", file.path, e);
+                        pb.inc(1);
                         continue;
                     }
                 }
             }
 
-            self.repository.save_file(&file)?;
-            self.repository.link_file_to_snapshot(&snapshot.id, &file.id)?;
+            if let Err(e) = self.repository.save_file(&file) {
+                self.mark_interrupted(&mut snapshot, total_files, total_bytes, deduped_bytes)?;
+                return Err(anyhow::anyhow!("Database error: {}", e));
+            }
+            let _ = self.repository.link_file_to_snapshot(&snapshot.id, &file.id);
 
             total_bytes += file.size_bytes;
             total_files += 1;
@@ -174,7 +192,6 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
         }
         pb.finish_with_message("File backup finished.");
 
-        // 8. Backup Apps
         if let Ok(apps) = self.app_provider.list_apps(id) {
             for app in apps {
                 let _ = self.repository.save_app(&app);
@@ -182,10 +199,8 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
             }
         }
 
-        // 9. Backup Structured Data
         let _ = self.backup_structured_data(id, &snapshot.id, password);
 
-        // 10. Update snapshot status
         snapshot.status = SnapshotStatus::Completed;
         snapshot.finished_at = Some(Utc::now());
         snapshot.total_files = total_files;
@@ -193,10 +208,18 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
         snapshot.deduped_bytes = deduped_bytes;
         self.repository.update_snapshot(&snapshot)?;
 
-        // 11. Apply Retention
         let _ = self.apply_retention_policy(id, domain::RetentionPolicy::default());
 
         Ok(snapshot)
+    }
+
+    fn mark_interrupted(&self, snapshot: &mut Snapshot, files: u64, bytes: u64, dedup: u64) -> Result<()> {
+        snapshot.status = SnapshotStatus::Interrupted;
+        snapshot.total_files = files;
+        snapshot.total_bytes = bytes;
+        snapshot.deduped_bytes = dedup;
+        self.repository.update_snapshot(snapshot)?;
+        Ok(())
     }
 
     fn check_available_disk_space(&self, required_bytes: u64) -> Result<()> {
@@ -204,7 +227,6 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
         let mut disks = Disks::new();
         disks.refresh_list();
 
-        // We'll check the main disk for now.
         if let Some(disk) = disks.iter().next() {
             let available = disk.available_space();
             if available < required_bytes {
@@ -220,119 +242,6 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
             );
         }
         Ok(())
-    }
-
-    fn calculate_hash(&self, data: &[u8]) -> String {
-        use sha2::{Sha256, Digest};
-        let mut hasher = Sha256::new();
-        hasher.update(data);
-        format!("{:x}", hasher.finalize())
-    }
-
-    fn extract_media_info(&self, data: &[u8], mime_type: &str) -> Option<domain::MediaInfo> {
-        if mime_type.starts_with("image/") {
-            let mut reader = std::io::Cursor::new(data);
-            if let Ok(exif_data) = exif::Reader::new().read_from_container(&mut reader) {
-                let mut info = domain::MediaInfo::default();
-
-                if let Some(field) = exif_data.get_field(exif::Tag::Make, exif::In::PRIMARY) {
-                    info.camera_make = Some(field.display_value().to_string());
-                }
-                if let Some(field) = exif_data.get_field(exif::Tag::Model, exif::In::PRIMARY) {
-                    info.camera_model = Some(field.display_value().to_string());
-                }
-                if let Some(field) = exif_data.get_field(exif::Tag::PixelXDimension, exif::In::PRIMARY) {
-                    info.width = field.value.get_uint(0);
-                }
-                if let Some(field) = exif_data.get_field(exif::Tag::PixelYDimension, exif::In::PRIMARY) {
-                    info.height = field.value.get_uint(0);
-                }
-
-                // Extract Timestamp (Phase 19)
-                if let Some(field) = exif_data.get_field(exif::Tag::DateTimeOriginal, exif::In::PRIMARY) {
-                    let date_str = field.display_value().to_string();
-                    // Exif format: "YYYY:MM:DD HH:MM:SS"
-                    if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(&date_str, "%Y:%m:%d %H:%M:%S") {
-                        info.taken_at = Some(chrono::DateTime::<Utc>::from_naive_utc_and_offset(dt, Utc));
-                    }
-                }
-
-                // Extract GPS (Phase 19)
-                if let (Some(lat_field), Some(lat_ref), Some(lon_field), Some(lon_ref)) = (
-                    exif_data.get_field(exif::Tag::GPSLatitude, exif::In::PRIMARY),
-                    exif_data.get_field(exif::Tag::GPSLatitudeRef, exif::In::PRIMARY),
-                    exif_data.get_field(exif::Tag::GPSLongitude, exif::In::PRIMARY),
-                    exif_data.get_field(exif::Tag::GPSLongitudeRef, exif::In::PRIMARY),
-                ) {
-                    let lat = self.parse_gps_coordinate(lat_field, lat_ref.display_value().to_string().contains('S'));
-                    let lon = self.parse_gps_coordinate(lon_field, lon_ref.display_value().to_string().contains('W'));
-                    info.latitude = lat;
-                    info.longitude = lon;
-                }
-
-                return Some(info);
-            }
-        }
-        None
-    }
-
-    fn parse_gps_coordinate(&self, field: &exif::Field, is_negative: bool) -> Option<f64> {
-        if let exif::Value::Rational(ref values) = field.value {
-            if values.len() >= 3 {
-                let d = values[0].to_f64();
-                let m = values[1].to_f64();
-                let s = values[2].to_f64();
-                let mut coord = d + (m / 60.0) + (s / 3600.0);
-                if is_negative { coord = -coord; }
-                return Some(coord);
-            }
-        }
-        None
-    }
-
-    fn should_compress(&self, mime_type: &str) -> bool {
-        match mime_type {
-            "text/plain" | "application/json" | "application/xml" | "text/csv" => true,
-            m if m.starts_with("text/") => true,
-            _ => false,
-        }
-    }
-
-    fn compress_data(&self, data: &[u8]) -> Result<Vec<u8>> {
-        let mut encoder = zstd::Encoder::new(Vec::new(), 3)?;
-        std::io::copy(&mut std::io::Cursor::new(data), &mut encoder)?;
-        Ok(encoder.finish()?)
-    }
-
-    fn encrypt_data(&self, data: &[u8], password: &str) -> Result<Vec<u8>> {
-        use aes_gcm::{
-            aead::{Aead, KeyInit, Payload},
-            Aes256Gcm, Nonce,
-        };
-        use argon2::Argon2;
-        use rand::{RngCore, thread_rng};
-
-        // 1. Derive key from password
-        let salt = b"static_salt_for_demo"; // In real app, use random salt and store it
-        let mut key = [0u8; 32];
-        Argon2::default()
-            .hash_password_into(password.as_bytes(), salt, &mut key)
-            .map_err(|e| anyhow::anyhow!("KDF error: {}", e))?;
-
-        // 2. Encrypt
-        let cipher = Aes256Gcm::new_from_slice(&key)?;
-        let mut nonce_bytes = [0u8; 12];
-        thread_rng().fill_bytes(&mut nonce_bytes);
-        let nonce = Nonce::from_slice(&nonce_bytes);
-
-        let ciphertext = cipher
-            .encrypt(nonce, Payload { msg: data, aad: b"" })
-            .map_err(|e| anyhow::anyhow!("Encryption error: {}", e))?;
-
-        // 3. Prepend nonce to ciphertext
-        let mut result = nonce_bytes.to_vec();
-        result.extend(ciphertext);
-        Ok(result)
     }
 
     pub fn list_snapshots(&self, id: &DeviceId) -> Result<Vec<Snapshot>> {
@@ -357,7 +266,6 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
             .filter(|s| s.status == SnapshotStatus::Completed)
             .collect();
 
-        // Sort by date descending (latest first) - list_snapshots already does this, but let's be sure
         completed_snapshots.sort_by(|a, b| b.started_at.cmp(&a.started_at));
 
         let mut deleted_count = 0;
@@ -394,7 +302,6 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
 
         for schedule in schedules {
             if schedule.is_due() {
-                // Check if device is connected
                 if connected_devices.iter().any(|d| d.id == schedule.device_id) {
                     println!("Running scheduled backup for device {}...", schedule.device_id);
                     match self.perform_backup(&schedule.device_id, password, None) {
@@ -421,7 +328,6 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
         let target_base = Path::new(target_dir);
 
         for file in files {
-            // Apply filter if provided
             if let Some(f) = filter {
                 if !file.path.contains(f) && !file.name.contains(f) {
                     continue;
@@ -430,8 +336,7 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
 
             let hash = file.hash_sha256.as_ref().ok_or_else(|| anyhow::anyhow!("File {} has no hash", file.path))?;
 
-            // Reconstruct object path (Must match perform_backup logic)
-            let mut object_id = if self.should_compress(&file.mime_type) {
+            let mut object_id = if CompressionEngine::should_compress(&file.mime_type) {
                 format!("{}.zst", hash)
             } else {
                 hash.clone()
@@ -443,23 +348,19 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
 
             let object_path = format!("objects/{}/{}/{}", &hash[0..2], &hash[2..4], object_id);
 
-            // Read from storage
             let mut reader = self.storage.read(&object_path)?;
             let mut data = Vec::new();
             reader.read_to_end(&mut data)?;
 
-            // Decrypt if needed
             if object_id.ends_with(".enc") {
                 let pwd = password.ok_or_else(|| anyhow::anyhow!("Password required for encrypted backup"))?;
-                data = self.decrypt_data(&data, pwd)?;
+                data = EncryptionEngine::decrypt(&data, pwd)?;
             }
 
-            // Decompress if needed
             if object_id.contains(".zst") {
-                data = self.decompress_data(&data)?;
+                data = CompressionEngine::decompress(&data)?;
             }
 
-            // Write to target
             let restore_path = target_base.join(&file.path);
             if let Some(parent) = restore_path.parent() {
                 fs::create_dir_all(parent)?;
@@ -470,46 +371,6 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
         Ok(())
     }
 
-    fn decompress_data(&self, data: &[u8]) -> Result<Vec<u8>> {
-        let mut decoder = zstd::Decoder::new(std::io::Cursor::new(data))?;
-        let mut result = Vec::new();
-        std::io::copy(&mut decoder, &mut result)?;
-        Ok(result)
-    }
-
-    fn decrypt_data(&self, data: &[u8], password: &str) -> Result<Vec<u8>> {
-        use aes_gcm::{
-            aead::{Aead, KeyInit, Payload},
-            Aes256Gcm, Nonce,
-        };
-        use argon2::Argon2;
-
-        if data.len() < 12 {
-            anyhow::bail!("Invalid encrypted data: too short");
-        }
-
-        // 1. Derive key
-        let salt = b"static_salt_for_demo";
-        let mut key = [0u8; 32];
-        Argon2::default()
-            .hash_password_into(password.as_bytes(), salt, &mut key)
-            .map_err(|e| anyhow::anyhow!("KDF error: {}", e))?;
-
-        // 2. Split nonce and ciphertext
-        let nonce_bytes = &data[0..12];
-        let ciphertext = &data[12..];
-        let nonce = Nonce::from_slice(nonce_bytes);
-
-        // 3. Decrypt
-        let cipher = Aes256Gcm::new_from_slice(&key)?;
-        let plaintext = cipher
-            .decrypt(nonce, Payload { msg: ciphertext, aad: b"" })
-            .map_err(|e| anyhow::anyhow!("Decryption error: {}", e))?;
-
-        Ok(plaintext)
-    }
-
-    /// Verify the integrity of the repository (Phase 13)
     pub fn verify_repository(&self, password: Option<&str>) -> Result<VerificationReport> {
         let devices = self.repository.list_devices()?;
         let mut report = VerificationReport::default();
@@ -526,7 +387,7 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
                     }
                 };
 
-                let mut object_id = if self.should_compress(&file.mime_type) {
+                let mut object_id = if CompressionEngine::should_compress(&file.mime_type) {
                     format!("{}.zst", hash)
                 } else {
                     hash.clone()
@@ -570,12 +431,9 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
         Ok(stats)
     }
 
-    /// Direct Device-to-Device transfer (Phase 22+)
     pub fn migrate_device(&self, source_id: &DeviceId, target_id: &DeviceId) -> Result<()> {
         println!("🚀 Starting migration: {} -> {}", source_id, target_id);
 
-        // 1. Migrate Applications
-        println!("📦 Migrating applications...");
         if let Ok(apps) = self.app_provider.list_apps(source_id) {
             for app in apps {
                 println!("   Installing {}...", app.app_name);
@@ -585,8 +443,6 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
             }
         }
 
-        // 2. Migrate Files
-        println!("📂 Migrating files...");
         if let Ok(files) = self.scanner_adapter.scan(source_id) {
             use indicatif::{ProgressBar, ProgressStyle};
             let pb = ProgressBar::new(files.len() as u64);
@@ -609,15 +465,12 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
     }
 
     fn backup_structured_data(&self, device_id: &DeviceId, snapshot_id: &SnapshotId, password: Option<&str>) -> Result<()> {
-        // Backup Contacts
         let contacts = self.data_provider.list_contacts(device_id)?;
         self.store_structured_data(snapshot_id, "contacts", &contacts, password)?;
 
-        // Backup SMS
         let sms = self.data_provider.list_sms(device_id)?;
         self.store_structured_data(snapshot_id, "sms", &sms, password)?;
 
-        // Backup Call Logs
         let logs = self.data_provider.list_call_logs(device_id)?;
         self.store_structured_data(snapshot_id, "call_logs", &logs, password)?;
 
@@ -626,7 +479,7 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
 
     fn store_structured_data<V: serde::Serialize>(&self, snapshot_id: &SnapshotId, data_type: &str, data: &V, password: Option<&str>) -> Result<()> {
         let json = serde_json::to_vec(data)?;
-        let hash = self.calculate_hash(&json);
+        let hash = calculate_hash(&json);
 
         let mut object_id = format!("{}.json", hash);
         if password.is_some() {
@@ -638,7 +491,7 @@ impl<D: DevicePort, S: ScannerPort, R: RepositoryPort, T: StoragePort, A: AppPro
         if !self.storage.exists(&object_path)? {
             let mut data_to_write = json;
             if let Some(pwd) = password {
-                data_to_write = self.encrypt_data(&data_to_write, pwd)?;
+                data_to_write = EncryptionEngine::encrypt(&data_to_write, pwd)?;
             }
             self.storage.write(&object_path, &mut std::io::Cursor::new(data_to_write))?;
         }

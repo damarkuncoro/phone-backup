@@ -1,0 +1,12 @@
+[package]
+name = "phone-backup-adapter-opendal"
+version.workspace = true
+edition.workspace = true
+description = "A StoragePort implementation using OpenDAL for multi-cloud support."
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+ports = { path = "../../core/ports", package = "phone-backup-ports", version = "0.1.0" }
+opendal.workspace = true
+anyhow.workspace = true
