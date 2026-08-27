@@ -20,13 +20,14 @@ where
     let device_id = DeviceId::new(id);
     println!("Starting backup for device {}...", id);
 
-    let mut policy = domain::BackupPolicy::default();
+    let mut builder = domain::BackupPolicy::builder();
     if let Some(inc) = include {
-        policy.include_paths = inc;
+        builder = builder.include_many(inc);
     }
     if let Some(exc) = exclude {
-        policy.exclude_patterns.extend(exc);
+        builder = builder.exclude_many(exc);
     }
+    let policy = builder.build();
 
     let snapshot = service.perform_backup(&device_id, password, Some(policy))?;
     println!("\nBackup completed successfully!");

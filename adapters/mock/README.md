@@ -2,6 +2,15 @@
 
 A simulation adapter suite for the phone-backup platform.
 
+## 🧱 Submodules
+
+The crate is structured into isolated mock adapters for SRP compliance:
+
+- **`device`**: `MockDeviceAdapter` (`DevicePort`)
+- **`scanner`**: `MockScannerAdapter` (`ScannerPort`)
+- **`app`**: `MockAppProvider` (`AppProviderPort`)
+- **`data`**: `MockDataProvider` (`DataProviderPort`)
+
 ## 🧪 Purpose
 
 The Mock Adapter allows developers to test the full backup pipeline without requiring a physical Android device or the ADB toolchain. It provides:

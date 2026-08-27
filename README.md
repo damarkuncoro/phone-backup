@@ -2,7 +2,7 @@
 
 A high-performance, secure, and professional Android backup platform written in Rust.
 
-**phone-backup** is more than just a file copying tool; it's a comprehensive backup engine designed with **Clean Architecture** and **Hexagonal Architecture** principles. It handles device discovery, intelligent indexing, versioned snapshots, military-grade encryption, and storage-efficient deduplication.
+**phone-backup** is a comprehensive backup engine designed with **Clean Architecture**, **Hexagonal Architecture**, and **SOLID Design Patterns** (Builder, Factory, Strategy). It handles device discovery, intelligent indexing, versioned snapshots, military-grade encryption, and storage-efficient deduplication.
 
 ---
 
@@ -11,44 +11,51 @@ A high-performance, secure, and professional Android backup platform written in 
 ### 🧠 Intelligent Engine
 - **Fast Incremental Backup**: Scans device state and only transfers new or modified files based on size and mtime.
 - **Failure Recovery (Resume)**: Automatically detects interrupted backups and resumes from the last successful file.
-- **Content-Addressed Storage (Deduplication)**: Ensures identical files (across different folders, snapshots, or even devices) are stored only once.
+- **Content-Addressed Storage (Deduplication)**: Ensures identical files (across different folders, snapshots, or even devices) are stored only once using SHA-256 keying.
 - **Zstd Compression**: High-performance compression for logs, JSON, and text.
 - **Military-Grade Security**: AES-256-GCM authenticated encryption with keys derived using Argon2.
 
 ### 📱 Deep Android Support
-- **Native ADB Integration**: Reliable communication with real Android devices.
+- **Native ADB Integration**: Reliable communication with real Android devices via `AdbClient`.
 - **Direct Migration (Cloning)**: Transfer apps and files directly from HP A to HP B with a single command.
 - **App Management**: Tracks installed applications and performs automatic **APK extraction**.
 - **Structured Data**: Backs up **Contacts**, **SMS**, and **Call Logs** into secure JSON blobs.
 - **Media Intelligence**: Extracts **EXIF metadata** (Resolution, Camera, GPS) from photos.
 
 ### 🛠 Management & UX
-- **Interactive UI**: Beautiful progress bars (via `indicatif`) for long-running operations.
+- **Interactive UI**: Progress bars (via `indicatif`) for long-running operations.
 - **Global Search**: Search for any file across all devices and snapshots in the repository.
 - **Retention Policies**: Automatically prunes old snapshots to save space.
 - **Storage Statistics**: Detailed reports on deduplication efficiency and physical disk usage.
 
 ---
 
-## 🏗 Architecture
+## 🏗 Architecture & Design Patterns
 
-The project follows a strict Hexagonal Architecture to ensure business logic is decoupled from external tools.
+The project follows strict **Clean Architecture** and **Hexagonal Architecture** with modular design patterns:
 
 ```text
 phone-backup/
 ├── apps/
-│   └── cli/                # Composition Root (Wiring adapters)
+│   └── cli/                # Composition Root (Cli, Commands, StorageFactory)
 ├── core/
-│   ├── domain/             # Core Entities (Device, Snapshot, File, App)
-│   ├── application/        # Use Cases & Orchestration (BackupService)
-│   └── ports/              # Interface definitions (Dependency Inversion)
+│   ├── domain/             # Core Entities (Device, Snapshot, File, BackupPolicyBuilder)
+│   ├── application/        # Use Cases & Orchestration (BackupService submodules & ObjectStoreKey)
+│   └── ports/              # Interface definitions (StoragePort, DevicePort, RepositoryPort)
 ├── adapters/
-│   ├── adb/                # Real Android ADB communication
-│   ├── mock/               # Simulation for dev/test
+│   ├── adb/                # Real Android ADB communication (AdbClient, Device, Scanner, App, Data)
+│   ├── mock/               # Simulation adapters for dev/test (Device, Scanner, App, Data)
 │   └── filesystem/         # Local object storage
 └── infrastructure/
-    └── database-sqlite/    # Persistent index (SQLite)
+    └── database-sqlite/    # Persistent SQLite catalog (Schema, Device, File, Snapshot, App, Mappers)
 ```
+
+### 🧩 Applied Design Patterns
+- **Builder Pattern**: Used in `BackupPolicy::builder()` (`core/domain/src/policy.rs`) for fluent, step-by-step policy construction (`.include(...)`, `.exclude(...)`).
+- **Factory Pattern**: Used in `StorageFactory::create_storage(&cli)` (`apps/cli/src/factory.rs`) for creating `Box<dyn StoragePort>` dynamically (`"local"` vs `"s3"`).
+- **Adapter / Hexagonal Pattern**: Decouples application logic from external I/O using trait ports (`DevicePort`, `ScannerPort`, `RepositoryPort`, `StoragePort`, `AppProviderPort`, `DataProviderPort`).
+- **Content-Addressable Storage (ObjectStoreKey)**: Centralizes 2-level content-addressable storage paths (`objects/ab/cd/...`) in `core/application/src/object_store.rs`.
+- **Row Mapper Pattern**: Centralizes database row parsing into domain models in `infrastructure/database-sqlite/src/mappers.rs`.
 
 ---
 
@@ -60,12 +67,11 @@ phone-backup/
 
 ### Installation
 ```bash
-# Install via Cargo
-cargo install phone-backup
-
-# Or build from source
+# Clone source repository
 git clone https://github.com/damarkuncoro/phone-backup.git
 cd phone-backup
+
+# Build release binary
 cargo build --release
 ```
 
@@ -75,16 +81,16 @@ cargo build --release
 
 ### 1. Device Discovery
 ```bash
-phone-backup --adapter adb devices
+cargo run -- --adapter adb devices
 ```
 
 ### 2. Backup & Migration
 ```bash
 # Backup to Local Storage
-phone-backup --adapter adb backup <DEVICE_ID>
+cargo run -- --adapter adb backup <DEVICE_ID>
 
-# Backup to Cloud (S3/R2/MinIO)
-phone-backup --storage s3 \
+# Backup to Cloud (S3/R2/MinIO) using StorageFactory
+cargo run -- --storage s3 \
   --s3-bucket my-backup \
   --s3-region auto \
   --s3-endpoint https://<id>.r2.cloudflarestorage.com \
@@ -93,33 +99,29 @@ phone-backup --storage s3 \
   backup <DEVICE_ID>
 
 # Direct Device-to-Device Cloning
-phone-backup --adapter adb clone <SOURCE_ID> <TARGET_ID>
+cargo run -- --adapter adb clone <SOURCE_ID> <TARGET_ID>
 ```
 
 ### 3. Restore & Analysis
 ```bash
 # Selective Restore (Filter by keyword)
-phone-backup restore <SNAPSHOT_ID> --target ./restore --filter "WhatsApp"
+cargo run -- restore <SNAPSHOT_ID> --target ./restore --filter "WhatsApp"
 
 # View Photo Gallery with GPS/Camera info
-phone-backup photos <DEVICE_ID>
+cargo run -- photos <DEVICE_ID>
 
 # Search for a file anywhere in the repository
-phone-backup search "resume.pdf"
+cargo run -- search "resume.pdf"
 
 # View storage efficiency report
-phone-backup stats
+cargo run -- stats
 ```
 
 ---
 
 ## 🧪 Testing
 
-The project includes a comprehensive testing suite to ensure data integrity:
-- **Unit Tests**: Coverage for encryption, compression, and policy logic.
-- **Integration Tests**: End-to-end backup/restore simulations using mock hardware.
-
-Run all tests with:
+Run all unit and integration tests across all workspace crates:
 ```bash
 cargo test
 ```
@@ -128,8 +130,8 @@ cargo test
 
 ## 🛡 Security & Privacy
 - **Zero-Knowledge Storage**: No plain-text data is stored if encryption is enabled.
-- **Authenticated Encryption**: GCM tags ensure data hasn't been tampered with.
-- **Metadata Protection**: File catalogs are stored in a local SQLite database, protected by system permissions.
+- **Authenticated Encryption**: AES-256-GCM tags ensure data integrity.
+- **Metadata Protection**: File catalogs are stored in a local SQLite database with strict permissions.
 
 ## 📄 License
 MIT
