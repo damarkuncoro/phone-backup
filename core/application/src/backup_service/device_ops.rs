@@ -28,7 +28,7 @@ impl<
     }
 
     pub fn scan_device(&self, id: &DeviceId) -> Result<Vec<FileEntry>> {
-        self.scanner_adapter.scan(id)
+        self.scanner_adapter.scan(id, vec![])
     }
 
     pub fn list_apps(&self, id: &DeviceId) -> Result<Vec<AppInfo>> {
@@ -67,7 +67,7 @@ impl<
             }
         }
 
-        if let Ok(files) = self.scanner_adapter.scan(source_id) {
+        if let Ok(files) = self.scanner_adapter.scan(source_id, vec![]) {
             for file in files {
                 if let Ok(mut content) = self.device_adapter.read_file(source_id, &file.path) {
                     let _ = self.device_adapter.push_file(target_id, &mut *content, &file.path);

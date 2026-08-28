@@ -23,11 +23,17 @@ impl Default for AdbScannerAdapter {
 }
 
 impl ScannerPort for AdbScannerAdapter {
-    fn scan(&self, device_id: &DeviceId) -> Result<Vec<FileEntry>> {
-        // Batasi ke folder DCIM dan Pictures untuk kecepatan dan stabilitas uji coba
-        let script = "find /storage/emulated/0/DCIM /storage/emulated/0/Pictures -type f -exec stat -c '%n|%s|%Y' {} + 2>/dev/null";
+    fn scan(&self, device_id: &DeviceId, roots: Vec<String>) -> Result<Vec<FileEntry>> {
+        let scan_roots = if roots.is_empty() {
+            vec!["/storage/emulated/0/DCIM".to_string(), "/storage/emulated/0/Pictures".to_string()]
+        } else {
+            roots
+        };
 
-        let stdout = self.client.shell(&device_id.0, script)?;
+        let roots_str = scan_roots.join(" ");
+        let script = format!("find {} -type f -exec stat -c '%n|%s|%Y' {{}} + 2>/dev/null", roots_str);
+
+        let stdout = self.client.shell(&device_id.0, &script)?;
         let mut entries = Vec::new();
 
         for line in stdout.lines() {

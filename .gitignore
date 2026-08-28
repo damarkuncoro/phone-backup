@@ -1,7 +1,8 @@
 /target
 Cargo.lock
-workspace/backups/
-workspace/backup.db
-workspace/samples/
 .DS_Store
 .idea/
+
+# Abaikan seluruh folder data lokal dan hasil backup
+workspace/
+backup.db

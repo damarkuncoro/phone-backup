@@ -7,7 +7,7 @@ use ports::ScannerPort;
 pub struct MockScannerAdapter;
 
 impl ScannerPort for MockScannerAdapter {
-    fn scan(&self, device_id: &DeviceId) -> Result<Vec<FileEntry>> {
+    fn scan(&self, device_id: &DeviceId, _roots: Vec<String>) -> Result<Vec<FileEntry>> {
         let stable_time = chrono::DateTime::parse_from_rfc3339("2026-08-27T00:00:00Z")
             .unwrap()
             .with_timezone(&Utc);

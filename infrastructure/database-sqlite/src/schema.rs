@@ -1,6 +1,6 @@
 use rusqlite::Connection;
 
-pub fn init_db(conn: &Connection) -> anyhow::Result<()> {
+pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
     conn.execute(
         "CREATE TABLE IF NOT EXISTS devices (
             id TEXT PRIMARY KEY,

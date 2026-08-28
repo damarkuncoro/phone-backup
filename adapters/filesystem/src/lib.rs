@@ -46,7 +46,7 @@ mod tests {
 
         let scanner = FilesystemScanner::new(temp_dir.path().to_str().unwrap());
         let device_id = DeviceId::new("DEV_TEST");
-        let entries = scanner.scan(&device_id).unwrap();
+        let entries = scanner.scan(&device_id, vec![]).unwrap();
 
         assert_eq!(entries.len(), 1);
         assert_eq!(entries[0].name, "document.pdf");

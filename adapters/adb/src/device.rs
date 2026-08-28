@@ -154,8 +154,9 @@ impl DevicePort for AdbDeviceAdapter {
     }
 
     fn read_file(&self, id: &DeviceId, path: &str) -> Result<Box<dyn std::io::Read>> {
-        let content = self.client.pull_file(&id.0, path)?;
-        Ok(Box::new(std::io::Cursor::new(content)))
+        let child = self.client.exec_out(&id.0, &format!("cat \"{}\"", path))?;
+        let stdout = child.stdout.ok_or_else(|| anyhow::anyhow!("Failed to open adb stdout"))?;
+        Ok(Box::new(stdout))
     }
 
     fn push_file(&self, id: &DeviceId, source: &mut dyn std::io::Read, target_path: &str) -> Result<()> {

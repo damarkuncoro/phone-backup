@@ -2,11 +2,8 @@ use anyhow::Result;
 use chrono::Utc;
 use domain::{BackupPolicy, DeviceId, FileEntry, Snapshot, SnapshotStatus, EncryptionMode};
 use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort};
-use std::io::Read;
 
-use crate::compression::CompressionEngine;
 use crate::hashing::calculate_hash;
-use crate::media_analysis::MediaAnalyzer;
 use crate::object_store::ObjectStoreKey;
 use crate::security::EncryptionEngine;
 use tracing::{info, warn, instrument};
@@ -62,7 +59,7 @@ impl<
             .create_snapshot(&snapshot)
             .or_else(|_| self.repository.update_snapshot(&snapshot))?;
 
-        let all_files = self.scanner_adapter.scan(id)?;
+        let all_files = self.scanner_adapter.scan(id, policy.include_paths.clone())?;
         let files: Vec<FileEntry> = all_files
             .into_iter()
             .filter(|f| policy.should_include(&f.path))
@@ -97,10 +94,18 @@ impl<
         let total_files_atomic = AtomicU64::new(snapshot.total_files);
         let deduped_bytes_atomic = AtomicU64::new(snapshot.deduped_bytes);
 
+        let processor = crate::backup_service::processor::FileProcessor {
+            service: self,
+            encryption: &encryption,
+            total_bytes: &total_bytes_atomic,
+            total_files: &total_files_atomic,
+            deduped_bytes: &deduped_bytes_atomic,
+        };
+
         // We need a thread-safe way to update the snapshot if interrupted
         let snapshot_mutex = Mutex::new(snapshot);
 
-        let result: Result<()> = files.into_par_iter().try_for_each(|mut file| {
+        let result: Result<()> = files.into_par_iter().try_for_each(|file| {
             if already_backed_up.contains(&file.path) {
                 pb.inc(1);
                 return Ok(());
@@ -108,84 +113,35 @@ impl<
 
             pb.set_message(format!("Processing {}", file.name));
             let mut skip_content = false;
+            let mut file_to_process = file;
 
-            if let Some(prev) = previous_files.get(&file.path) {
-                if prev.size_bytes == file.size_bytes
-                    && prev.modified_at == file.modified_at
+            if let Some(prev) = previous_files.get(&file_to_process.path) {
+                if prev.size_bytes == file_to_process.size_bytes
+                    && prev.modified_at == file_to_process.modified_at
                     && prev.hash_sha256.is_some()
                 {
-                    file.hash_sha256 = prev.hash_sha256.clone();
+                    file_to_process.hash_sha256 = prev.hash_sha256.clone();
                     skip_content = true;
-                    deduped_bytes_atomic.fetch_add(file.size_bytes, Ordering::Relaxed);
+                    deduped_bytes_atomic.fetch_add(file_to_process.size_bytes, Ordering::Relaxed);
                 }
             }
 
-            if !skip_content {
-                match self.device_adapter.read_file(id, &file.path) {
-                    Ok(mut content_reader) => {
-                        let mut content_buf = Vec::new();
-                        if let Err(e) = content_reader.read_to_end(&mut content_buf) {
-                            let mut snap = snapshot_mutex.lock().unwrap();
-                            self.mark_interrupted(&mut snap,
-                                total_files_atomic.load(Ordering::Relaxed),
-                                total_bytes_atomic.load(Ordering::Relaxed),
-                                deduped_bytes_atomic.load(Ordering::Relaxed))?;
-                            return Err(anyhow::anyhow!("Read error during backup: {}", e));
-                        }
-
-                        let hash = calculate_hash(&content_buf);
-                        file.hash_sha256 = Some(hash.clone());
-                        file.media_info = MediaAnalyzer::extract_info(&content_buf, &file.mime_type);
-
-                        let object_id = ObjectStoreKey::compute_object_id(&hash, Some(&file.mime_type), encryption.is_encrypted());
-                        let object_path = ObjectStoreKey::compute_object_path(&hash, &object_id);
-
-                        if !self.storage.exists(&object_path)? {
-                            let mut data_to_write = content_buf;
-                            if CompressionEngine::should_compress(&file.mime_type) {
-                                data_to_write = CompressionEngine::compress(&data_to_write)?;
-                            }
-
-                            data_to_write = match &encryption {
-                                EncryptionMode::Password(pwd) => EncryptionEngine::encrypt(&data_to_write, pwd)?,
-                                EncryptionMode::PublicKey(pk) => EncryptionEngine::encrypt_with_key(&data_to_write, pk)?,
-                                EncryptionMode::None => data_to_write,
-                            };
-
-                            if let Err(e) = self.storage.write(&object_path, &mut std::io::Cursor::new(data_to_write)) {
-                                let mut snap = snapshot_mutex.lock().unwrap();
-                                self.mark_interrupted(&mut snap,
-                                    total_files_atomic.load(Ordering::Relaxed),
-                                    total_bytes_atomic.load(Ordering::Relaxed),
-                                    deduped_bytes_atomic.load(Ordering::Relaxed))?;
-                                return Err(anyhow::anyhow!("Storage write error: {}", e));
-                            }
-                        } else {
-                            deduped_bytes_atomic.fetch_add(file.size_bytes, Ordering::Relaxed);
-                        }
-                    }
-                    Err(e) => {
-                        warn!("Warning: Failed to read file {}: {}", file.path, e);
-                        pb.inc(1);
-                        return Ok(());
-                    }
+            match processor.process_file(id, file_to_process, skip_content) {
+                Ok(processed_file) => {
+                    let snap = snapshot_mutex.lock().unwrap();
+                    let _ = self.repository.link_file_to_snapshot(&snap.id, &processed_file.id);
+                    pb.inc(1);
+                    Ok(())
+                }
+                Err(e) => {
+                    let snap = snapshot_mutex.lock().unwrap();
+                    self.mark_interrupted(&mut snap.clone(),
+                        total_files_atomic.load(Ordering::Relaxed),
+                        total_bytes_atomic.load(Ordering::Relaxed),
+                        deduped_bytes_atomic.load(Ordering::Relaxed))?;
+                    Err(anyhow::anyhow!("File processing error: {}", e))
                 }
             }
-
-            if let Err(e) = self.repository.save_file(&file) {
-                let mut snap = snapshot_mutex.lock().unwrap();
-                self.mark_interrupted(&mut snap,
-                    total_files_atomic.load(Ordering::Relaxed),
-                    total_bytes_atomic.load(Ordering::Relaxed),
-                    deduped_bytes_atomic.load(Ordering::Relaxed))?;
-                return Err(anyhow::anyhow!("Database error: {}", e));
-            }
-            let _ = self.repository.link_file_to_snapshot(&snapshot_mutex.lock().unwrap().id, &file.id);
-
-            total_bytes_atomic.fetch_add(file.size_bytes, Ordering::Relaxed);
-            total_files_atomic.fetch_add(1, Ordering::Relaxed);
-            pb.inc(1);
-            Ok(())
         });
 
         result?;

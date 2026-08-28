@@ -7,5 +7,7 @@ pub trait ScannerPort: Send + Sync {
     ///
     /// Depending on capabilities, this may scan internal storage,
     /// SD cards, or specific media folders.
-    fn scan(&self, device_id: &DeviceId) -> Result<Vec<FileEntry>>;
+    ///
+    /// If `roots` is provided, only scan those specific directory paths.
+    fn scan(&self, device_id: &DeviceId, roots: Vec<String>) -> Result<Vec<FileEntry>>;
 }

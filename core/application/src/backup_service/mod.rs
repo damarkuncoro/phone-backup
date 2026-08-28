@@ -1,5 +1,6 @@
 pub mod backup;
 pub mod device_ops;
+pub mod processor;
 pub mod restore;
 pub mod schedule_runner;
 pub mod verify;

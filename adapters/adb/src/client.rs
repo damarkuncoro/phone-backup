@@ -37,6 +37,14 @@ impl AdbClient {
         Ok(String::from_utf8_lossy(&output.stdout).to_string())
     }
 
+    pub fn exec_out(&self, device_id: &str, command: &str) -> Result<std::process::Child> {
+        let child = Command::new(&self.adb_path)
+            .args(&["-s", device_id, "exec-out", command])
+            .stdout(std::process::Stdio::piped())
+            .spawn()?;
+        Ok(child)
+    }
+
     pub fn pull_file(&self, device_id: &str, remote_path: &str) -> Result<Vec<u8>> {
         let temp_dir = std::env::temp_dir().join("phone_backup_pull");
         if !temp_dir.exists() {
