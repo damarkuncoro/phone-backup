@@ -1,7 +1,7 @@
 use anyhow::Result;
 use domain::{Device, DeviceId, FileEntry, Snapshot, SnapshotId, BackupSchedule};
 
-pub trait RepositoryPort {
+pub trait RepositoryPort: Send + Sync {
     /// Save or update device information.
     fn save_device(&self, device: &Device) -> Result<()>;
 

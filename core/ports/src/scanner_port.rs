@@ -2,7 +2,7 @@ use anyhow::Result;
 use domain::{DeviceId, FileEntry};
 
 /// Port for scanning a device's filesystem.
-pub trait ScannerPort {
+pub trait ScannerPort: Send + Sync {
     /// Recursively scan the device's storage for files.
     ///
     /// Depending on capabilities, this may scan internal storage,

@@ -28,6 +28,8 @@ The "Brain" of the system. Implements use cases via the `BackupService`.
     - `media_analysis`: EXIF/GPS extraction logic.
     - `hashing`: SHA-256 integrity.
 - **Key Use Case**: `perform_backup` with failure recovery (resume) support.
+- **Observability**: Uses `tracing` for structured logging and performance instrumentation.
+- **Error Handling**: Uses `thiserror` for granular, domain-specific error reporting.
 
 ### 3. Ports (`core/ports`)
 Interface definitions that the application layer uses to talk to the outside world.

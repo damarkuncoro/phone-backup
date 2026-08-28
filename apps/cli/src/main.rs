@@ -21,10 +21,13 @@ use commands::execute_command;
 use factory::StorageFactory;
 
 fn main() -> Result<()> {
+    // Initialize structured logging
+    tracing_subscriber::fmt::init();
+
     let cli = Cli::parse();
 
     // Initialize repository (metadata)
-    let repository = SqliteRepository::new("backup.db")?;
+    let repository = SqliteRepository::new("workspace/backup.db")?;
 
     // Initialize storage using Factory Pattern
     let storage = StorageFactory::create_storage(&cli)?;

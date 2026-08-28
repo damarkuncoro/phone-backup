@@ -49,3 +49,5 @@ opendal = { version = "0.48", features = ["services-s3", "layers-blocking"] }
 tempfile = "3"
 age = { version = "0.10", features = ["armor"] }
 secrecy = "0.8"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

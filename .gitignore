@@ -1,7 +1,7 @@
 /target
 Cargo.lock
-backups/
-backup.db
-restore_test/
+workspace/backups/
+workspace/backup.db
+workspace/samples/
 .DS_Store
 .idea/

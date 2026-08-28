@@ -36,18 +36,14 @@ The project follows strict **Clean Architecture** and **Hexagonal Architecture**
 
 ```text
 phone-backup/
-├── apps/
-│   └── cli/                # Composition Root (Cli, Commands, StorageFactory)
-├── core/
-│   ├── domain/             # Core Entities (Device, Snapshot, File, BackupPolicyBuilder)
-│   ├── application/        # Use Cases & Orchestration (BackupService submodules & ObjectStoreKey)
-│   └── ports/              # Interface definitions (StoragePort, DevicePort, RepositoryPort)
-├── adapters/
-│   ├── adb/                # Real Android ADB communication (AdbClient, Device, Scanner, App, Data)
-│   ├── mock/               # Simulation adapters for dev/test (Device, Scanner, App, Data)
-│   └── filesystem/         # Local object storage
-└── infrastructure/
-    └── database-sqlite/    # Persistent SQLite catalog (Schema, Device, File, Snapshot, App, Mappers)
+├── apps/               # UI implementations (CLI)
+├── core/               # Domain & Application logic (Hexagonal Core)
+├── adapters/           # Technical implementations (ADB, S3, Filesystem)
+├── infrastructure/     # Database implementations (SQLite)
+├── docs/               # Detailed documentation & roadmap
+├── workspace/          # Local data (Database, Objects, Samples)
+├── Cargo.toml          # Workspace root
+└── README.md
 ```
 
 ### 🧩 Applied Design Patterns

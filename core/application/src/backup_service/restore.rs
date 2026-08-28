@@ -8,6 +8,7 @@ use std::path::Path;
 use crate::compression::CompressionEngine;
 use crate::object_store::ObjectStoreKey;
 use crate::security::EncryptionEngine;
+use tracing::instrument;
 
 use super::BackupService;
 
@@ -20,6 +21,7 @@ impl<
         DP: DataProviderPort,
     > BackupService<D, S, R, T, A, DP>
 {
+    #[instrument(skip(self, encryption, filter))]
     pub fn perform_restore(
         &self,
         snapshot_id: &SnapshotId,

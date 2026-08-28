@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::io::Read;
 
 /// Port for the physical storage of backup objects.
-pub trait StoragePort {
+pub trait StoragePort: Send + Sync {
     /// Write a blob of data to storage and return its identifier (e.g., path or hash).
     fn write(&self, id: &str, data: &mut dyn Read) -> Result<()>;
 

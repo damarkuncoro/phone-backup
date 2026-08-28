@@ -1,7 +1,7 @@
 use anyhow::Result;
 use domain::{AppInfo, DeviceId};
 
-pub trait AppProviderPort {
+pub trait AppProviderPort: Send + Sync {
     /// List all installed applications on the device.
     fn list_apps(&self, device_id: &DeviceId) -> Result<Vec<AppInfo>>;
 

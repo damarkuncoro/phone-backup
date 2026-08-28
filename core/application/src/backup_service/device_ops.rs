@@ -2,6 +2,8 @@ use anyhow::Result;
 use domain::{AppInfo, CapabilityMatrix, Device, DeviceId, FileEntry, Snapshot, SnapshotId};
 use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort};
 
+use tracing::info;
+
 use super::BackupService;
 
 impl<
@@ -54,11 +56,11 @@ impl<
     }
 
     pub fn migrate_device(&self, source_id: &DeviceId, target_id: &DeviceId) -> Result<()> {
-        println!("🚀 Starting migration: {} -> {}", source_id, target_id);
+        info!("🚀 Starting migration: {} -> {}", source_id, target_id);
 
         if let Ok(apps) = self.app_provider.list_apps(source_id) {
             for app in apps {
-                println!("   Installing {}...", app.app_name);
+                info!("   Installing {}...", app.app_name);
                 if let Ok(mut apk) = self.app_provider.get_apk(source_id, &app.package_name) {
                     let _ = self.app_provider.install_app(target_id, &mut *apk);
                 }
@@ -73,7 +75,7 @@ impl<
             }
         }
 
-        println!("✨ Migration completed!");
+        info!("✨ Migration completed!");
         Ok(())
     }
 }

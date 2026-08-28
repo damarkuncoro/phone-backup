@@ -20,7 +20,7 @@ impl StorageFactory {
                 Ok(Box::new(storage))
             }
             _ => {
-                let storage = LocalStorage::new("backups")?;
+                let storage = LocalStorage::new("workspace/backups")?;
                 Ok(Box::new(storage))
             }
         }

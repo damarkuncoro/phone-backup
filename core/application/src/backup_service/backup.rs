@@ -9,6 +9,7 @@ use crate::hashing::calculate_hash;
 use crate::media_analysis::MediaAnalyzer;
 use crate::object_store::ObjectStoreKey;
 use crate::security::EncryptionEngine;
+use tracing::{info, warn, instrument};
 
 use super::BackupService;
 
@@ -22,6 +23,7 @@ impl<
     > BackupService<D, S, R, T, A, DP>
 {
     /// Perform a full or incremental backup of a device (Phase 07-21 + Storage Check + Resume + Asymmetric Crypto)
+    #[instrument(skip(self, policy))]
     pub fn perform_backup(
         &self,
         id: &DeviceId,
@@ -42,7 +44,7 @@ impl<
         }
 
         let mut snapshot = if let Some(incomplete) = self.repository.get_incomplete_snapshot(id)? {
-            println!("🔄 Resuming interrupted snapshot: {}", incomplete.id.0);
+            info!("🔄 Resuming interrupted snapshot: {}", incomplete.id.0);
             incomplete
         } else {
             Snapshot::new(id.clone())
@@ -81,15 +83,30 @@ impl<
 
         self.check_available_disk_space(total_required)?;
 
-        let mut total_bytes = snapshot.total_bytes;
-        let mut total_files = snapshot.total_files;
-        let mut deduped_bytes = snapshot.deduped_bytes;
+        use indicatif::{ProgressBar, ProgressStyle};
+        use rayon::prelude::*;
+        use std::sync::atomic::{AtomicU64, Ordering};
+        use std::sync::Mutex;
 
-        for mut file in files {
+        let pb = ProgressBar::new(files.len() as u64);
+        pb.set_style(ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")?
+            .progress_chars("#>-"));
+
+        let total_bytes_atomic = AtomicU64::new(snapshot.total_bytes);
+        let total_files_atomic = AtomicU64::new(snapshot.total_files);
+        let deduped_bytes_atomic = AtomicU64::new(snapshot.deduped_bytes);
+
+        // We need a thread-safe way to update the snapshot if interrupted
+        let snapshot_mutex = Mutex::new(snapshot);
+
+        let result: Result<()> = files.into_par_iter().try_for_each(|mut file| {
             if already_backed_up.contains(&file.path) {
-                continue;
+                pb.inc(1);
+                return Ok(());
             }
 
+            pb.set_message(format!("Processing {}", file.name));
             let mut skip_content = false;
 
             if let Some(prev) = previous_files.get(&file.path) {
@@ -99,7 +116,7 @@ impl<
                 {
                     file.hash_sha256 = prev.hash_sha256.clone();
                     skip_content = true;
-                    deduped_bytes += file.size_bytes;
+                    deduped_bytes_atomic.fetch_add(file.size_bytes, Ordering::Relaxed);
                 }
             }
 
@@ -108,7 +125,11 @@ impl<
                     Ok(mut content_reader) => {
                         let mut content_buf = Vec::new();
                         if let Err(e) = content_reader.read_to_end(&mut content_buf) {
-                            self.mark_interrupted(&mut snapshot, total_files, total_bytes, deduped_bytes)?;
+                            let mut snap = snapshot_mutex.lock().unwrap();
+                            self.mark_interrupted(&mut snap,
+                                total_files_atomic.load(Ordering::Relaxed),
+                                total_bytes_atomic.load(Ordering::Relaxed),
+                                deduped_bytes_atomic.load(Ordering::Relaxed))?;
                             return Err(anyhow::anyhow!("Read error during backup: {}", e));
                         }
 
@@ -125,7 +146,6 @@ impl<
                                 data_to_write = CompressionEngine::compress(&data_to_write)?;
                             }
 
-                            // Apply Encryption
                             data_to_write = match &encryption {
                                 EncryptionMode::Password(pwd) => EncryptionEngine::encrypt(&data_to_write, pwd)?,
                                 EncryptionMode::PublicKey(pk) => EncryptionEngine::encrypt_with_key(&data_to_write, pk)?,
@@ -133,29 +153,46 @@ impl<
                             };
 
                             if let Err(e) = self.storage.write(&object_path, &mut std::io::Cursor::new(data_to_write)) {
-                                self.mark_interrupted(&mut snapshot, total_files, total_bytes, deduped_bytes)?;
+                                let mut snap = snapshot_mutex.lock().unwrap();
+                                self.mark_interrupted(&mut snap,
+                                    total_files_atomic.load(Ordering::Relaxed),
+                                    total_bytes_atomic.load(Ordering::Relaxed),
+                                    deduped_bytes_atomic.load(Ordering::Relaxed))?;
                                 return Err(anyhow::anyhow!("Storage write error: {}", e));
                             }
                         } else {
-                            deduped_bytes += file.size_bytes;
+                            deduped_bytes_atomic.fetch_add(file.size_bytes, Ordering::Relaxed);
                         }
                     }
                     Err(e) => {
-                        eprintln!("Warning: Failed to read file {}: {}", file.path, e);
-                        continue;
+                        warn!("Warning: Failed to read file {}: {}", file.path, e);
+                        pb.inc(1);
+                        return Ok(());
                     }
                 }
             }
 
             if let Err(e) = self.repository.save_file(&file) {
-                self.mark_interrupted(&mut snapshot, total_files, total_bytes, deduped_bytes)?;
+                let mut snap = snapshot_mutex.lock().unwrap();
+                self.mark_interrupted(&mut snap,
+                    total_files_atomic.load(Ordering::Relaxed),
+                    total_bytes_atomic.load(Ordering::Relaxed),
+                    deduped_bytes_atomic.load(Ordering::Relaxed))?;
                 return Err(anyhow::anyhow!("Database error: {}", e));
             }
-            let _ = self.repository.link_file_to_snapshot(&snapshot.id, &file.id);
+            let _ = self.repository.link_file_to_snapshot(&snapshot_mutex.lock().unwrap().id, &file.id);
 
-            total_bytes += file.size_bytes;
-            total_files += 1;
-        }
+            total_bytes_atomic.fetch_add(file.size_bytes, Ordering::Relaxed);
+            total_files_atomic.fetch_add(1, Ordering::Relaxed);
+            pb.inc(1);
+            Ok(())
+        });
+
+        result?;
+
+        pb.finish_with_message("File backup finished.");
+
+        let mut snapshot = snapshot_mutex.into_inner().unwrap();
 
         if let Ok(apps) = self.app_provider.list_apps(id) {
             for app in apps {
@@ -168,9 +205,9 @@ impl<
 
         snapshot.status = SnapshotStatus::Completed;
         snapshot.finished_at = Some(Utc::now());
-        snapshot.total_files = total_files;
-        snapshot.total_bytes = total_bytes;
-        snapshot.deduped_bytes = deduped_bytes;
+        snapshot.total_files = total_files_atomic.load(Ordering::Relaxed);
+        snapshot.total_bytes = total_bytes_atomic.load(Ordering::Relaxed);
+        snapshot.deduped_bytes = deduped_bytes_atomic.load(Ordering::Relaxed);
         self.repository.update_snapshot(&snapshot)?;
 
         let default_strategy = domain::KeepCountStrategy { keep_limit: 10 };
@@ -208,7 +245,7 @@ impl<
                     available / 1024 / 1024 / 1024
                 );
             }
-            println!(
+            info!(
                 "Storage check: OK (Available: {} GB, Required max: {} GB)",
                 available / 1024 / 1024 / 1024,
                 required_bytes / 1024 / 1024 / 1024

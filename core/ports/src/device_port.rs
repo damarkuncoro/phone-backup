@@ -9,7 +9,7 @@ use domain::{CapabilityMatrix, Device, DeviceId};
 /// `application::BackupService` depends only on this trait, never on
 /// a concrete adapter — swapping ADB for MTP (or adding an iOS
 /// adapter later) never touches business logic.
-pub trait DevicePort {
+pub trait DevicePort: Send + Sync {
     /// Enumerate devices currently reachable through this adapter.
     fn discover(&self) -> Result<Vec<Device>>;
 

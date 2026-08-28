@@ -21,3 +21,5 @@ adapter-opendal = { path = "../../adapters/opendal", package = "phone-backup-ada
 adapter-database-sqlite = { path = "../../infrastructure/database-sqlite", package = "phone-backup-adapter-database-sqlite", version = "0.2.0" }
 clap.workspace = true
 anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

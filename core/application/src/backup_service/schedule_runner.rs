@@ -5,6 +5,8 @@ use domain::{
 };
 use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort};
 
+use tracing::{info, error};
+
 use super::BackupService;
 
 impl<
@@ -33,7 +35,7 @@ impl<
 
         let mut deleted_count = 0;
         for s_id in &to_delete {
-            println!("Auto-cleanup: Deleting old snapshot {} (Retention Strategy)", s_id.0);
+            info!("Auto-cleanup: Deleting old snapshot {} (Retention Strategy)", s_id.0);
             self.repository.delete_snapshot(s_id)?;
             deleted_count += 1;
         }
@@ -62,7 +64,7 @@ impl<
         for schedule in schedules {
             if schedule.is_due() {
                 if connected_devices.iter().any(|d| d.id == schedule.device_id) {
-                    println!("Running scheduled backup for device {}...", schedule.device_id);
+                    info!("Running scheduled backup for device {}...", schedule.device_id);
                     match self.perform_backup(&schedule.device_id, encryption.clone(), None) {
                         Ok(_) => {
                             let mut updated_schedule = schedule;
@@ -70,7 +72,7 @@ impl<
                             self.repository.save_schedule(&updated_schedule)?;
                         }
                         Err(e) => {
-                            eprintln!("Scheduled backup failed for {}: {}", schedule.device_id, e);
+                            error!("Scheduled backup failed for {}: {}", schedule.device_id, e);
                         }
                     }
                 }
