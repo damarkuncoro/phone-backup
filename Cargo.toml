@@ -47,3 +47,5 @@ indicatif = "0.17"
 rayon = "1.10"
 opendal = { version = "0.48", features = ["services-s3", "layers-blocking"] }
 tempfile = "3"
+age = { version = "0.10", features = ["armor"] }
+secrecy = "0.8"

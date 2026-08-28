@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::Utc;
-use domain::{BackupPolicy, DeviceId, FileEntry, Snapshot, SnapshotStatus};
+use domain::{BackupPolicy, DeviceId, FileEntry, Snapshot, SnapshotStatus, EncryptionMode};
 use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort};
 use std::io::Read;
 
@@ -21,11 +21,11 @@ impl<
         DP: DataProviderPort,
     > BackupService<D, S, R, T, A, DP>
 {
-    /// Perform a full or incremental backup of a device (Phase 07-21 + Storage Check + Resume)
+    /// Perform a full or incremental backup of a device (Phase 07-21 + Storage Check + Resume + Asymmetric Crypto)
     pub fn perform_backup(
         &self,
         id: &DeviceId,
-        password: Option<&str>,
+        encryption: EncryptionMode,
         policy: Option<BackupPolicy>,
     ) -> Result<Snapshot> {
         let policy = policy.unwrap_or_default();
@@ -116,7 +116,7 @@ impl<
                         file.hash_sha256 = Some(hash.clone());
                         file.media_info = MediaAnalyzer::extract_info(&content_buf, &file.mime_type);
 
-                        let object_id = ObjectStoreKey::compute_object_id(&hash, Some(&file.mime_type), password.is_some());
+                        let object_id = ObjectStoreKey::compute_object_id(&hash, Some(&file.mime_type), encryption.is_encrypted());
                         let object_path = ObjectStoreKey::compute_object_path(&hash, &object_id);
 
                         if !self.storage.exists(&object_path)? {
@@ -124,9 +124,14 @@ impl<
                             if CompressionEngine::should_compress(&file.mime_type) {
                                 data_to_write = CompressionEngine::compress(&data_to_write)?;
                             }
-                            if let Some(pwd) = password {
-                                data_to_write = EncryptionEngine::encrypt(&data_to_write, pwd)?;
-                            }
+
+                            // Apply Encryption
+                            data_to_write = match &encryption {
+                                EncryptionMode::Password(pwd) => EncryptionEngine::encrypt(&data_to_write, pwd)?,
+                                EncryptionMode::PublicKey(pk) => EncryptionEngine::encrypt_with_key(&data_to_write, pk)?,
+                                EncryptionMode::None => data_to_write,
+                            };
+
                             if let Err(e) = self.storage.write(&object_path, &mut std::io::Cursor::new(data_to_write)) {
                                 self.mark_interrupted(&mut snapshot, total_files, total_bytes, deduped_bytes)?;
                                 return Err(anyhow::anyhow!("Storage write error: {}", e));
@@ -159,7 +164,7 @@ impl<
             }
         }
 
-        let _ = self.backup_structured_data(id, &snapshot.id, password);
+        let _ = self.backup_structured_data(id, &snapshot.id, &encryption);
 
         snapshot.status = SnapshotStatus::Completed;
         snapshot.finished_at = Some(Utc::now());
@@ -216,16 +221,16 @@ impl<
         &self,
         device_id: &DeviceId,
         snapshot_id: &domain::SnapshotId,
-        password: Option<&str>,
+        encryption: &EncryptionMode,
     ) -> Result<()> {
         let contacts = self.data_provider.list_contacts(device_id)?;
-        self.store_structured_data(snapshot_id, "contacts", &contacts, password)?;
+        self.store_structured_data(snapshot_id, "contacts", &contacts, encryption)?;
 
         let sms = self.data_provider.list_sms(device_id)?;
-        self.store_structured_data(snapshot_id, "sms", &sms, password)?;
+        self.store_structured_data(snapshot_id, "sms", &sms, encryption)?;
 
         let logs = self.data_provider.list_call_logs(device_id)?;
-        self.store_structured_data(snapshot_id, "call_logs", &logs, password)?;
+        self.store_structured_data(snapshot_id, "call_logs", &logs, encryption)?;
 
         Ok(())
     }
@@ -235,13 +240,13 @@ impl<
         snapshot_id: &domain::SnapshotId,
         data_type: &str,
         data: &V,
-        password: Option<&str>,
+        encryption: &EncryptionMode,
     ) -> Result<()> {
         let json = serde_json::to_vec(data)?;
         let hash = calculate_hash(&json);
 
         let mut object_id = format!("{}.json", hash);
-        if password.is_some() {
+        if encryption.is_encrypted() {
             object_id = format!("{}.enc", object_id);
         }
 
@@ -249,9 +254,13 @@ impl<
 
         if !self.storage.exists(&object_path)? {
             let mut data_to_write = json;
-            if let Some(pwd) = password {
-                data_to_write = EncryptionEngine::encrypt(&data_to_write, pwd)?;
-            }
+
+            data_to_write = match encryption {
+                EncryptionMode::Password(pwd) => EncryptionEngine::encrypt(&data_to_write, pwd)?,
+                EncryptionMode::PublicKey(pk) => EncryptionEngine::encrypt_with_key(&data_to_write, pk)?,
+                EncryptionMode::None => data_to_write,
+            };
+
             self.storage.write(&object_path, &mut std::io::Cursor::new(data_to_write))?;
         }
 

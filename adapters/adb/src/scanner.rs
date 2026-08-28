@@ -24,7 +24,8 @@ impl Default for AdbScannerAdapter {
 
 impl ScannerPort for AdbScannerAdapter {
     fn scan(&self, device_id: &DeviceId) -> Result<Vec<FileEntry>> {
-        let script = "find /sdcard/ -type f -maxdepth 4 2>/dev/null | xargs stat -c '%n|%s|%Y' 2>/dev/null";
+        // Batasi ke folder DCIM dan Pictures untuk kecepatan dan stabilitas uji coba
+        let script = "find /storage/emulated/0/DCIM /storage/emulated/0/Pictures -type f -exec stat -c '%n|%s|%Y' {} + 2>/dev/null";
 
         let stdout = self.client.shell(&device_id.0, script)?;
         let mut entries = Vec::new();

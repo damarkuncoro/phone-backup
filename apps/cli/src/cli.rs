@@ -24,12 +24,22 @@ pub struct Cli {
     #[arg(long, env = "S3_SECRET_KEY")]
     pub s3_secret_key: Option<String>,
 
+    /// Public key for asymmetric encryption
+    #[arg(long, env = "PB_PUBKEY")]
+    pub pubkey: Option<String>,
+
+    /// Private key for asymmetric decryption
+    #[arg(long, env = "PB_PRIVKEY")]
+    pub privkey: Option<String>,
+
     #[command(subcommand)]
     pub command: Commands,
 }
 
 #[derive(Subcommand)]
 pub enum Commands {
+    /// Generate a new key pair for asymmetric encryption
+    Keygen,
     /// List connected devices
     Devices,
     /// Show detailed info + capability matrix for one device

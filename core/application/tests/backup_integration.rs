@@ -40,18 +40,19 @@ fn test_full_backup_restore_lifecycle() {
 
     // 4. Perform Backup (Encrypted)
     let password = "test-password";
-    let snapshot = service.perform_backup(&device_id, Some(password), None).expect("Backup failed");
+    let encryption = domain::EncryptionMode::Password(password.to_string());
+    let snapshot = service.perform_backup(&device_id, encryption.clone(), None).expect("Backup failed");
 
     assert!(snapshot.total_files > 0);
     assert!(snapshot.total_bytes > 0);
 
     // 5. Verify Integrity
-    let report = service.verify_repository(Some(password)).unwrap();
+    let report = service.verify_repository(encryption.clone()).unwrap();
     assert!(report.is_healthy());
     assert_eq!(report.verified_files, snapshot.total_files);
 
     // 6. Perform Restore
-    service.perform_restore(&snapshot.id, restore_path, Some(password), None).expect("Restore failed");
+    service.perform_restore(&snapshot.id, restore_path, encryption, None).expect("Restore failed");
 
     // 7. Validate Restored Content
     // MockScannerAdapter seeds "Documents/notes.txt" with "this is mock file content"
@@ -62,4 +63,46 @@ fn test_full_backup_restore_lifecycle() {
     assert_eq!(restored_content, "this is mock file content");
 
     println!("✅ Integration test passed: Backup and Restore verified.");
+}
+
+#[test]
+fn test_asymmetric_backup_restore_lifecycle() {
+    let tmp_repo_dir = TempDir::new().unwrap();
+    let tmp_storage_dir = TempDir::new().unwrap();
+    let tmp_restore_dir = TempDir::new().unwrap();
+
+    let db_path = tmp_repo_dir.path().join("test_asym.db");
+    let storage_path = tmp_storage_dir.path().to_str().unwrap();
+    let restore_path = tmp_restore_dir.path().to_str().unwrap();
+
+    let repository = SqliteRepository::new(db_path.to_str().unwrap()).unwrap();
+    let storage = LocalStorage::new(storage_path).unwrap();
+    let service = BackupService::new(
+        MockDeviceAdapter::default(),
+        MockScannerAdapter::default(),
+        repository,
+        storage,
+        MockAppProvider,
+        MockDataProvider,
+    );
+
+    let devices = service.list_devices().unwrap();
+    let device_id = devices[0].id.clone();
+
+    // 1. Generate Keypair
+    let (secret, public) = phone_backup_application::security::EncryptionEngine::generate_keypair();
+    let encryption = domain::EncryptionMode::PublicKey(public);
+    let decryption = domain::EncryptionMode::PublicKey(secret);
+
+    // 2. Backup with Public Key
+    let snapshot = service.perform_backup(&device_id, encryption, None).expect("Asym backup failed");
+
+    // 3. Restore with Secret Key
+    service.perform_restore(&snapshot.id, restore_path, decryption, None).expect("Asym restore failed");
+
+    let restored_file = tmp_restore_dir.path().join("Documents/notes.txt");
+    assert!(restored_file.exists());
+    assert_eq!(fs::read_to_string(restored_file).unwrap(), "this is mock file content");
+
+    println!("✅ Asymmetric Integration test passed.");
 }

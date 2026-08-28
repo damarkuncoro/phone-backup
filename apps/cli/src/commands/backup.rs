@@ -5,7 +5,7 @@ use domain::{DeviceId, SnapshotId};
 pub fn run_backup<D, S, R, T, A, DP>(
     service: &BackupService<D, S, R, T, A, DP>,
     id: &str,
-    password: Option<&str>,
+    encryption: domain::EncryptionMode,
     include: Option<Vec<String>>,
     exclude: Option<Vec<String>>,
 ) -> Result<()>
@@ -29,7 +29,7 @@ where
     }
     let policy = builder.build();
 
-    let snapshot = service.perform_backup(&device_id, password, Some(policy))?;
+    let snapshot = service.perform_backup(&device_id, encryption, Some(policy))?;
     println!("\nBackup completed successfully!");
     println!("Snapshot ID: {}", snapshot.id.0);
     println!("Files:       {}", snapshot.total_files);

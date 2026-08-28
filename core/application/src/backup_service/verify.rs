@@ -44,7 +44,7 @@ impl<
         DP: DataProviderPort,
     > BackupService<D, S, R, T, A, DP>
 {
-    pub fn verify_repository(&self, password: Option<&str>) -> Result<VerificationReport> {
+    pub fn verify_repository(&self, encryption: domain::EncryptionMode) -> Result<VerificationReport> {
         let devices = self.repository.list_devices()?;
         let mut report = VerificationReport::default();
 
@@ -60,7 +60,7 @@ impl<
                     }
                 };
 
-                let object_id = ObjectStoreKey::compute_object_id(&hash, Some(&file.mime_type), password.is_some());
+                let object_id = ObjectStoreKey::compute_object_id(&hash, Some(&file.mime_type), encryption.is_encrypted());
                 let object_path = ObjectStoreKey::compute_object_path(&hash, &object_id);
 
                 if !self.storage.exists(&object_path)? {

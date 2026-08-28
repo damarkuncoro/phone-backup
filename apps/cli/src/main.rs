@@ -39,7 +39,7 @@ fn main() -> Result<()> {
                 AdbAppProvider::new(),
                 AdbDataProvider::new(),
             );
-            execute_command(cli.command, service)
+            execute_command(cli, service)
         }
         _ => {
             let service = BackupService::new(
@@ -50,7 +50,7 @@ fn main() -> Result<()> {
                 MockAppProvider,
                 MockDataProvider,
             );
-            execute_command(cli.command, service)
+            execute_command(cli, service)
         }
     }
 }

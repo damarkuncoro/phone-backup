@@ -1,7 +1,7 @@
 use anyhow::Result;
 use chrono::Utc;
 use domain::{
-    BackupSchedule, DeviceId, KeepDailyStrategy, RetentionPolicy, RetentionStrategy, ScheduleFrequency,
+    BackupSchedule, DeviceId, KeepDailyStrategy, RetentionPolicy, RetentionStrategy, ScheduleFrequency, EncryptionMode,
 };
 use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort};
 
@@ -55,7 +55,7 @@ impl<
         self.repository.list_schedules()
     }
 
-    pub fn run_pending_backups(&self, password: Option<&str>) -> Result<()> {
+    pub fn run_pending_backups(&self, encryption: EncryptionMode) -> Result<()> {
         let schedules = self.repository.list_schedules()?;
         let connected_devices = self.device_adapter.discover()?;
 
@@ -63,7 +63,7 @@ impl<
             if schedule.is_due() {
                 if connected_devices.iter().any(|d| d.id == schedule.device_id) {
                     println!("Running scheduled backup for device {}...", schedule.device_id);
-                    match self.perform_backup(&schedule.device_id, password, None) {
+                    match self.perform_backup(&schedule.device_id, encryption.clone(), None) {
                         Ok(_) => {
                             let mut updated_schedule = schedule;
                             updated_schedule.last_run_at = Some(Utc::now());

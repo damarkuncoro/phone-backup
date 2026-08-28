@@ -1,11 +1,12 @@
 use crate::cli::ScheduleCommands;
 use anyhow::Result;
 use application::BackupService;
-use domain::ScheduleFrequency;
+use domain::{ScheduleFrequency, EncryptionMode};
 
 pub fn handle_schedule<D, S, R, T, A, DP>(
     service: &BackupService<D, S, R, T, A, DP>,
     command: ScheduleCommands,
+    encryption: EncryptionMode,
 ) -> Result<()>
 where
     D: ports::DevicePort,
@@ -38,7 +39,12 @@ where
             }
         }
         ScheduleCommands::Run { password } => {
-            service.run_pending_backups(password.as_deref())?;
+            let enc = if let Some(pwd) = password {
+                EncryptionMode::Password(pwd)
+            } else {
+                encryption
+            };
+            service.run_pending_backups(enc)?;
         }
     }
     Ok(())
