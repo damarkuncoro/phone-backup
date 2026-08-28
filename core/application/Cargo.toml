@@ -7,8 +7,8 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-domain = { path = "../domain", package = "phone-backup-domain", version = "0.1.0" }
-ports = { path = "../ports", package = "phone-backup-ports", version = "0.1.0" }
+domain = { path = "../domain", package = "phone-backup-domain", version = "0.2.0" }
+ports = { path = "../ports", package = "phone-backup-ports", version = "0.2.0" }
 anyhow.workspace = true
 chrono.workspace = true
 sha2.workspace = true
