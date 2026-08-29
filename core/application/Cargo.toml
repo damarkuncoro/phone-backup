@@ -7,8 +7,8 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-domain = { path = "../domain", package = "phone-backup-domain", version = "0.3.1" }
-ports = { path = "../ports", package = "phone-backup-ports", version = "0.3.1" }
+domain = { workspace = true, package = "phone-backup-domain" }
+ports = { workspace = true, package = "phone-backup-ports" }
 anyhow.workspace = true
 chrono.workspace = true
 sha2.workspace = true
@@ -30,6 +30,6 @@ fastcdc.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
-adapter-mock = { path = "../../adapters/mock", package = "phone-backup-adapter-mock" }
-adapter-filesystem = { path = "../../adapters/filesystem", package = "phone-backup-adapter-filesystem" }
-adapter-database-sqlite = { path = "../../infrastructure/database-sqlite", package = "phone-backup-adapter-database-sqlite" }
+adapter-mock = { workspace = true, package = "phone-backup-adapter-mock" }
+adapter-filesystem = { workspace = true, package = "phone-backup-adapter-filesystem" }
+adapter-database-sqlite = { workspace = true, package = "phone-backup-adapter-database-sqlite" }

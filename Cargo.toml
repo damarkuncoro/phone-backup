@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "apps/cli",
+    "apps/gui/src-tauri",
     "core/domain",
     "core/application",
     "core/ports",
@@ -53,3 +54,14 @@ fastcdc = "3.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-appender = "0.2"
+
+# Internal Workspace Dependencies
+phone-backup-domain = { path = "core/domain", version = "0.3.1" }
+phone-backup-ports = { path = "core/ports", version = "0.3.1" }
+phone-backup-application = { path = "core/application", version = "0.3.1" }
+phone-backup-adapter-mock = { path = "adapters/mock", version = "0.3.1" }
+phone-backup-adapter-adb = { path = "adapters/adb", version = "0.3.1" }
+phone-backup-adapter-filesystem = { path = "adapters/filesystem", version = "0.3.1" }
+phone-backup-adapter-opendal = { path = "adapters/opendal", version = "0.3.1" }
+phone-backup-adapter-database-sqlite = { path = "infrastructure/database-sqlite", version = "0.3.1" }
+phone-backup-gui = { path = "apps/gui/src-tauri", version = "0.3.1" }

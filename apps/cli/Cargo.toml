@@ -11,14 +11,15 @@ name = "phone-backup"
 path = "src/main.rs"
 
 [dependencies]
-domain = { path = "../../core/domain", package = "phone-backup-domain", version = "0.3.1" }
-ports = { path = "../../core/ports", package = "phone-backup-ports", version = "0.3.1" }
-application = { path = "../../core/application", package = "phone-backup-application", version = "0.3.1" }
-adapter-mock = { path = "../../adapters/mock", package = "phone-backup-adapter-mock", version = "0.3.1" }
-adapter-adb = { path = "../../adapters/adb", package = "phone-backup-adapter-adb", version = "0.3.1" }
-adapter-filesystem = { path = "../../adapters/filesystem", package = "phone-backup-adapter-filesystem", version = "0.3.1" }
-adapter-opendal = { path = "../../adapters/opendal", package = "phone-backup-adapter-opendal", version = "0.3.1" }
-adapter-database-sqlite = { path = "../../infrastructure/database-sqlite", package = "phone-backup-adapter-database-sqlite", version = "0.3.1" }
+domain = { workspace = true, package = "phone-backup-domain" }
+ports = { workspace = true, package = "phone-backup-ports" }
+application = { workspace = true, package = "phone-backup-application" }
+adapter-mock = { workspace = true, package = "phone-backup-adapter-mock" }
+adapter-adb = { workspace = true, package = "phone-backup-adapter-adb" }
+adapter-filesystem = { workspace = true, package = "phone-backup-adapter-filesystem" }
+adapter-opendal = { workspace = true, package = "phone-backup-adapter-opendal" }
+adapter-database-sqlite = { workspace = true, package = "phone-backup-adapter-database-sqlite" }
+
 clap.workspace = true
 anyhow.workspace = true
 tracing.workspace = true
