@@ -11,14 +11,14 @@ name = "phone-backup"
 path = "src/main.rs"
 
 [dependencies]
-domain = { workspace = true, package = "phone-backup-domain" }
-ports = { workspace = true, package = "phone-backup-ports" }
-application = { workspace = true, package = "phone-backup-application" }
-adapter-mock = { workspace = true, package = "phone-backup-adapter-mock" }
-adapter-adb = { workspace = true, package = "phone-backup-adapter-adb" }
-adapter-filesystem = { workspace = true, package = "phone-backup-adapter-filesystem" }
-adapter-opendal = { workspace = true, package = "phone-backup-adapter-opendal" }
-adapter-database-sqlite = { workspace = true, package = "phone-backup-adapter-database-sqlite" }
+domain.workspace = true
+ports.workspace = true
+application.workspace = true
+adapter-mock.workspace = true
+adapter-adb.workspace = true
+adapter-filesystem.workspace = true
+adapter-opendal.workspace = true
+adapter-database-sqlite.workspace = true
 
 clap.workspace = true
 anyhow.workspace = true
