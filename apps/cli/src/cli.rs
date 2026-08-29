@@ -104,6 +104,10 @@ pub enum Commands {
     },
     /// Show repository statistics
     Stats,
+    /// Clean up orphaned objects in the repository
+    Gc,
+    /// Run system diagnostic to troubleshoot issues
+    Doctor,
     /// Search for files in the repository
     Search {
         /// Query pattern

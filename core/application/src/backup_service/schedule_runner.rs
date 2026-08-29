@@ -5,7 +5,7 @@ use domain::{
 };
 use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort};
 
-use tracing::{info, error};
+use tracing::{error, info, instrument};
 
 use super::BackupService;
 
@@ -18,6 +18,7 @@ impl<
         DP: DataProviderPort,
     > BackupService<D, S, R, T, A, DP>
 {
+    #[instrument(skip(self))]
     pub fn apply_retention_policy(&self, device_id: &DeviceId, policy: RetentionPolicy) -> Result<u32> {
         let strategy = KeepDailyStrategy {
             keep_days: policy.keep_daily,
@@ -25,6 +26,7 @@ impl<
         self.apply_retention_strategy(device_id, &strategy)
     }
 
+    #[instrument(skip(self, strategy))]
     pub fn apply_retention_strategy(
         &self,
         device_id: &DeviceId,
@@ -43,6 +45,7 @@ impl<
         Ok(deleted_count)
     }
 
+    #[instrument(skip(self))]
     pub fn add_schedule(&self, device_id: DeviceId, frequency: ScheduleFrequency) -> Result<()> {
         let schedule = BackupSchedule {
             device_id,
@@ -53,10 +56,12 @@ impl<
         self.repository.save_schedule(&schedule)
     }
 
+    #[instrument(skip(self))]
     pub fn list_schedules(&self) -> Result<Vec<BackupSchedule>> {
         self.repository.list_schedules()
     }
 
+    #[instrument(skip(self, encryption))]
     pub fn run_pending_backups(&self, encryption: EncryptionMode) -> Result<()> {
         let schedules = self.repository.list_schedules()?;
         let connected_devices = self.device_adapter.discover()?;

@@ -94,9 +94,11 @@ impl<
         let total_files_atomic = AtomicU64::new(snapshot.total_files);
         let deduped_bytes_atomic = AtomicU64::new(snapshot.deduped_bytes);
 
+        let object_manager = crate::object_manager::ObjectManager::new(&self.storage, &encryption);
+
         let processor = crate::backup_service::processor::FileProcessor {
             service: self,
-            encryption: &encryption,
+            object_manager,
             total_bytes: &total_bytes_atomic,
             total_files: &total_files_atomic,
             deduped_bytes: &deduped_bytes_atomic,

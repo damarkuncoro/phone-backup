@@ -13,7 +13,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 license = "MIT"
 authors = ["Damar Kuncoro <damarkuncoro@gmail.com>"]
@@ -49,5 +49,7 @@ opendal = { version = "0.48", features = ["services-s3", "layers-blocking"] }
 tempfile = "3"
 age = { version = "0.10", features = ["armor"] }
 secrecy = "0.8"
+fastcdc = "3.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"

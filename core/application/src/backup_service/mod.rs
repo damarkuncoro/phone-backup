@@ -21,7 +21,7 @@ pub struct BackupService<
     pub(crate) device_adapter: D,
     pub(crate) scanner_adapter: S,
     pub(crate) repository: R,
-    pub(crate) storage: T,
+    pub storage: T,
     pub(crate) app_provider: A,
     pub(crate) data_provider: DP,
 }

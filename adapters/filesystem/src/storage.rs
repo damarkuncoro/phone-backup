@@ -46,4 +46,16 @@ impl StoragePort for LocalStorage {
         }
         Ok(())
     }
+
+    fn list(&self) -> Result<Vec<String>> {
+        use walkdir::WalkDir;
+        let mut results = Vec::new();
+        for entry in WalkDir::new(&self.base_dir).into_iter().filter_map(|e| e.ok()) {
+            if entry.file_type().is_file() {
+                let rel_path = entry.path().strip_prefix(&self.base_dir)?;
+                results.push(rel_path.to_string_lossy().into_owned());
+            }
+        }
+        Ok(results)
+    }
 }

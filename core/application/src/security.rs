@@ -6,6 +6,7 @@ use aes_gcm::{
 use argon2::Argon2;
 use rand::{RngCore, thread_rng};
 
+use secrecy::ExposeSecret;
 use std::io::{Read, Write};
 
 pub struct EncryptionEngine;
@@ -17,7 +18,6 @@ impl EncryptionEngine {
         let secret = age::x25519::Identity::generate();
         let public = secret.to_public();
         // age-x25519 uses secrecy, to_string() returns SecretString
-        use secrecy::ExposeSecret;
         (secret.to_string().expose_secret().to_string(), public.to_string())
     }
 

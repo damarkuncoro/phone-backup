@@ -95,6 +95,19 @@ pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
     )?;
 
     conn.execute(
+        "CREATE TABLE IF NOT EXISTS file_chunks (
+            file_id TEXT NOT NULL,
+            chunk_hash TEXT NOT NULL,
+            chunk_offset INTEGER NOT NULL,
+            chunk_length INTEGER NOT NULL,
+            sequence INTEGER NOT NULL,
+            PRIMARY KEY(file_id, sequence),
+            FOREIGN KEY(file_id) REFERENCES files(id)
+        )",
+        [],
+    )?;
+
+    conn.execute(
         "CREATE TABLE IF NOT EXISTS schedules (
             device_id TEXT PRIMARY KEY,
             frequency TEXT NOT NULL,

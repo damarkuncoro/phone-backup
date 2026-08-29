@@ -1,6 +1,7 @@
 pub mod backup;
 pub mod command_trait;
 pub mod device;
+pub mod doctor;
 pub mod restore;
 pub mod schedule;
 pub mod stats;
@@ -93,6 +94,12 @@ where
             restore::run_verify(&service, enc)?
         }
         Commands::Stats => stats::run_stats(&service)?,
+        Commands::Gc => {
+            println!("🧹 Running Garbage Collection...");
+            let deleted = service.garbage_collect()?;
+            println!("✅ Done. Removed {} orphaned objects.", deleted);
+        }
+        Commands::Doctor => doctor::run_doctor(&service)?,
         Commands::Search { query } => stats::run_search(&service, &query)?,
         Commands::Clone { source, target } => stats::run_clone(&service, &source, &target)?,
         Commands::Photos { id } => device::list_photos(&service, &id)?,

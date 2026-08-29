@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phone Backup GUI</title>
+  <style>
+    body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #f0f2f5; }
+    .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
+    h1 { color: #1a73e8; }
+    button { background: #1a73e8; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>📱 Phone Backup</h1>
+    <p>Professional backup engine integrated with Tauri.</p>
+    <button id="btn">Check Engine</button>
+    <p id="msg"></p>
+  </div>
+  <script>
+    const { invoke } = window.__TAURI__.core;
+    document.getElementById('btn').onclick = async () => {
+      const response = await invoke('greet', { name: 'User' });
+      document.getElementById('msg').textContent = response;
+    }
+  </script>
+</body>
+</html>

@@ -2,14 +2,9 @@ use anyhow::Result;
 use domain::{SnapshotId, EncryptionMode};
 use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort};
 use std::fs;
-use std::io::Read;
 use std::path::Path;
-
-use crate::compression::CompressionEngine;
-use crate::object_store::ObjectStoreKey;
-use crate::security::EncryptionEngine;
+use crate::object_manager::ObjectManager;
 use tracing::instrument;
-
 use super::BackupService;
 
 impl<
@@ -31,6 +26,7 @@ impl<
     ) -> Result<()> {
         let files = self.repository.get_snapshot_files(snapshot_id)?;
         let target_base = Path::new(target_dir);
+        let object_manager = ObjectManager::new(&self.storage, &encryption);
 
         for file in files {
             if let Some(f) = filter {
@@ -39,29 +35,21 @@ impl<
                 }
             }
 
-            let hash = file
-                .hash_sha256
-                .as_ref()
-                .ok_or_else(|| anyhow::anyhow!("File {} has no hash", file.path))?;
+            let chunks = self.repository.get_file_chunks(&file.id)?;
+            let data = if !chunks.is_empty() {
+                let mut full_data = Vec::with_capacity(file.size_bytes as usize);
+                for (chunk_hash, _offset, _length) in chunks {
+                    let chunk_data = object_manager.get_object(&chunk_hash, None, false)?;
+                    full_data.extend(chunk_data);
+                }
+                full_data
+            } else {
+                let hash = file.hash_sha256.as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("File {} has no hash", file.path))?;
 
-            let object_id = ObjectStoreKey::compute_object_id(hash, Some(&file.mime_type), encryption.is_encrypted());
-            let object_path = ObjectStoreKey::compute_object_path(hash, &object_id);
-
-            let mut reader = self.storage.read(&object_path)?;
-            let mut data = Vec::new();
-            reader.read_to_end(&mut data)?;
-
-            if object_id.ends_with(".enc") {
-                data = match &encryption {
-                    EncryptionMode::Password(pwd) => EncryptionEngine::decrypt(&data, pwd)?,
-                    EncryptionMode::PublicKey(sk) => EncryptionEngine::decrypt_with_key(&data, sk)?,
-                    EncryptionMode::None => anyhow::bail!("Data is encrypted but no decryption key/password provided"),
-                };
-            }
-
-            if object_id.contains(".zst") {
-                data = CompressionEngine::decompress(&data)?;
-            }
+                let is_compressed = crate::compression::CompressionEngine::should_compress(&file.mime_type);
+                object_manager.get_object(hash, Some(&file.mime_type), is_compressed)?
+            };
 
             let relative_path = file.path.strip_prefix('/').unwrap_or(&file.path);
             let restore_path = target_base.join(relative_path);

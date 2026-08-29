@@ -21,8 +21,17 @@ use commands::execute_command;
 use factory::StorageFactory;
 
 fn main() -> Result<()> {
-    // Initialize structured logging
-    tracing_subscriber::fmt::init();
+    // Initialize structured logging to terminal and file
+    let file_appender = tracing_appender::rolling::daily("workspace/logs", "phone-backup.log");
+    let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+
+    use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+
+    tracing_subscriber::registry()
+        .with(EnvFilter::from_default_env().add_directive(tracing::Level::INFO.into()))
+        .with(fmt::layer().with_writer(std::io::stderr))
+        .with(fmt::layer().with_ansi(false).with_writer(non_blocking))
+        .init();
 
     let cli = Cli::parse();
 

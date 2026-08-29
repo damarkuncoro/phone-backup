@@ -2,56 +2,49 @@
 
 A high-performance, secure, and professional Android backup platform written in Rust.
 
-**phone-backup** is a comprehensive backup engine designed with **Clean Architecture**, **Hexagonal Architecture**, and **SOLID Design Patterns** (Builder, Factory, Strategy). It handles device discovery, intelligent indexing, versioned snapshots, military-grade encryption, and storage-efficient deduplication.
+**phone-backup** is a comprehensive backup engine designed with **Clean Architecture**, **Hexagonal Architecture**, and **SOLID Design Principles**. It handles device discovery, intelligent indexing, versioned snapshots, military-grade encryption, and storage-efficient deduplication.
 
 ---
 
 ## 🚀 Features
 
 ### 🧠 Intelligent Engine
+- **Block-level Deduplication**: Uses Content-Defined Chunking (FastCDC) to deduplicate large files at the block level, saving massive storage for frequently modified large files.
 - **Fast Incremental Backup**: Scans device state and only transfers new or modified files based on size and mtime.
+- **Streaming I/O**: Direct data transfer from ADB (`exec-out`) to the backup engine without temporary files, maximizing performance and reducing disk wear.
+- **Parallel Processing**: Utilizes `Rayon` for multi-threaded hashing, compression, and encryption.
 - **Failure Recovery (Resume)**: Automatically detects interrupted backups and resumes from the last successful file.
-- **Content-Addressed Storage (Deduplication)**: Ensures identical files (across different folders, snapshots, or even devices) are stored only once using SHA-256 keying.
-- **Zstd Compression**: High-performance compression for logs, JSON, and text.
-- **Military-Grade Security**: AES-256-GCM authenticated encryption with keys derived using Argon2.
+- **Content-Addressed Storage (CAS)**: Ensures identical files/blocks are stored only once using SHA-256 keying.
+- **Zstd Compression**: High-performance compression for text-based data.
+
+### 🛡 Security & Privacy
+- **Asymmetric Encryption**: Support for **age (X25519)** public-key encryption. Perform password-less backups while keeping the secret key safe elsewhere.
+- **Zero-Knowledge Storage**: No plain-text data is stored if encryption is enabled.
+- **Authenticated Encryption**: AES-256-GCM or age-authenticated blobs ensure data integrity.
+- **Metadata Protection**: File catalogs are stored in a local SQLite database in the `workspace/` directory.
 
 ### 📱 Deep Android Support
-- **Native ADB Integration**: Reliable communication with real Android devices via `AdbClient`.
-- **Direct Migration (Cloning)**: Transfer apps and files directly from HP A to HP B with a single command.
+- **Native ADB Integration**: Reliable communication with real Android devices via a custom `AdbClient`.
+- **Direct Migration (Cloning)**: Transfer apps and files directly from Device A to Device B.
 - **App Management**: Tracks installed applications and performs automatic **APK extraction**.
-- **Structured Data**: Backs up **Contacts**, **SMS**, and **Call Logs** into secure JSON blobs.
-- **Media Intelligence**: Extracts **EXIF metadata** (Resolution, Camera, GPS) from photos.
-
-### 🛠 Management & UX
-- **Interactive UI**: Progress bars (via `indicatif`) for long-running operations.
-- **Global Search**: Search for any file across all devices and snapshots in the repository.
-- **Retention Policies**: Automatically prunes old snapshots to save space.
-- **Storage Statistics**: Detailed reports on deduplication efficiency and physical disk usage.
+- **Structured Data**: Backs up **Contacts**, **SMS**, and **Call Logs** into secure JSON objects.
+- **Media Intelligence**: Extracts **EXIF metadata** from photos.
 
 ---
 
-## 🏗 Architecture & Design Patterns
+## 🏗 Architecture
 
-The project follows strict **Clean Architecture** and **Hexagonal Architecture** with modular design patterns:
+The project follows strict **Clean Architecture** and **Hexagonal Architecture**:
 
 ```text
 phone-backup/
-├── apps/               # UI implementations (CLI)
-├── core/               # Domain & Application logic (Hexagonal Core)
-├── adapters/           # Technical implementations (ADB, S3, Filesystem)
+├── apps/               # UI implementations (CLI, GUI-Tauri)
+├── core/               # Domain & Application logic (Pure Rust)
+├── adapters/           # Technical adapters (ADB, Cloud S3, Filesystem)
 ├── infrastructure/     # Database implementations (SQLite)
-├── docs/               # Detailed documentation & roadmap
-├── workspace/          # Local data (Database, Objects, Samples)
-├── Cargo.toml          # Workspace root
-└── README.md
+├── docs/               # Detailed documentation & roadmaps
+└── workspace/          # Local storage (Database, Objects, Logs)
 ```
-
-### 🧩 Applied Design Patterns
-- **Builder Pattern**: Used in `BackupPolicy::builder()` (`core/domain/src/policy.rs`) for fluent, step-by-step policy construction (`.include(...)`, `.exclude(...)`).
-- **Factory Pattern**: Used in `StorageFactory::create_storage(&cli)` (`apps/cli/src/factory.rs`) for creating `Box<dyn StoragePort>` dynamically (`"local"` vs `"s3"`).
-- **Adapter / Hexagonal Pattern**: Decouples application logic from external I/O using trait ports (`DevicePort`, `ScannerPort`, `RepositoryPort`, `StoragePort`, `AppProviderPort`, `DataProviderPort`).
-- **Content-Addressable Storage (ObjectStoreKey)**: Centralizes 2-level content-addressable storage paths (`objects/ab/cd/...`) in `core/application/src/object_store.rs`.
-- **Row Mapper Pattern**: Centralizes database row parsing into domain models in `infrastructure/database-sqlite/src/mappers.rs`.
 
 ---
 
@@ -63,11 +56,8 @@ phone-backup/
 
 ### Installation
 ```bash
-# Clone source repository
 git clone https://github.com/damarkuncoro/phone-backup.git
 cd phone-backup
-
-# Build release binary
 cargo build --release
 ```
 
@@ -75,62 +65,55 @@ cargo build --release
 
 ## 📖 Usage Guide
 
-### 1. Device Discovery
+### 1. System Health Check
+Run diagnostic to ensure ADB and workspace are ready:
 ```bash
-cargo run -- --adapter adb devices
+./target/release/phone-backup doctor
 ```
 
-### 2. Backup & Migration
+### 2. Backup using Public Key (Asymmetric)
 ```bash
-# Backup to Local Storage
-cargo run -- --adapter adb backup <DEVICE_ID>
+# Generate a keypair first (stored in age format)
+# Then backup using the public key
+./target/release/phone-backup --adapter adb --pubkey "age1..." backup <DEVICE_ID>
+```
 
-# Backup to Cloud (S3/R2/MinIO) using StorageFactory
-cargo run -- --storage s3 \
+### 3. Backup to Cloud (S3/R2/MinIO)
+```bash
+./target/release/phone-backup --storage s3 \
   --s3-bucket my-backup \
-  --s3-region auto \
   --s3-endpoint https://<id>.r2.cloudflarestorage.com \
   --s3-access-key <key> \
   --s3-secret-key <secret> \
   backup <DEVICE_ID>
-
-# Direct Device-to-Device Cloning
-cargo run -- --adapter adb clone <SOURCE_ID> <TARGET_ID>
 ```
 
-### 3. Restore & Analysis
+### 4. Restore & Management
 ```bash
-# Selective Restore (Filter by keyword)
-cargo run -- restore <SNAPSHOT_ID> --target ./restore --filter "WhatsApp"
+# Restore snapshot using Secret Key
+./target/release/phone-backup --privkey "AGE-SECRET-KEY-1..." restore <SNAPSHOT_ID> --target ./restore
 
-# View Photo Gallery with GPS/Camera info
-cargo run -- photos <DEVICE_ID>
+# View snapshots for a device
+./target/release/phone-backup snapshots <DEVICE_ID>
 
 # Search for a file anywhere in the repository
-cargo run -- search "resume.pdf"
-
-# View storage efficiency report
-cargo run -- stats
+./target/release/phone-backup search "resume.pdf"
 ```
 
 ---
 
-## 🧪 Testing
-
-Run all unit and integration tests across all workspace crates:
+## 🧪 Testing & Quality
+Run the full test suite and quality checks:
 ```bash
 cargo test
+cargo clippy
+cargo fmt --check
 ```
 
 ---
-
-## 🛡 Security & Privacy
-- **Zero-Knowledge Storage**: No plain-text data is stored if encryption is enabled.
-- **Authenticated Encryption**: AES-256-GCM tags ensure data integrity.
-- **Metadata Protection**: File catalogs are stored in a local SQLite database with strict permissions.
 
 ## 📄 License
 MIT
 
 ---
-*Developed with ❤️ in Rust for the Android Community.*
+*Developed with ❤️ for the Android Community.*

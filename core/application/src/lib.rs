@@ -6,6 +6,8 @@ pub mod security;
 mod media_analysis;
 mod compression;
 mod hashing;
+mod chunking;
+pub mod object_manager;
 pub mod object_store;
 
 pub use backup_service::{BackupService, StorageStats, VerificationReport};

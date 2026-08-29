@@ -1,67 +1,27 @@
-# 📚 Phone Backup Documentation
+# Phone Backup Documentation 📚
 
-Welcome to the technical documentation for the **phone-backup** platform. This directory contains detailed guides, architecture diagrams, and development roadmaps.
+Welcome to the technical documentation for the **phone-backup** platform. This directory contains detailed information about the architecture, development process, and operational guides.
 
-## 🧭 Navigation
+## 📖 Table of Contents
 
-- **[Project Roadmap & Phases](phase.md)**: A detailed breakdown of the 34 development phases.
-- **[Known Limitations](LIMITATIONS.md)**: Important information about what cannot be backed up from Android devices.
-- **[Architecture Overview](#architecture-overview)**: Deep dive into the Hexagonal/Clean Architecture implementation.
-- **[Development Guide](#development-guide)**: How to set up the environment and run tests.
+1.  **[Project Phases & Roadmap](phase.md)**: The step-by-step evolution of the project from MVP to Production.
+2.  **[Software Architecture Document (SAD)](SAD/)**: Detailed hexagonal architecture, domain models, and data flow diagrams.
+3.  **[How-To Guides](howto/)**: Practical guides for common tasks (e.g., setting up S3, generating age keys).
+4.  **[Limitations & Known Issues](LIMITATIONS.md)**: Current technical boundaries and platform-specific quirks.
 
----
+## 🏗 Key Architectural Principles
 
-## 🏗 Architecture Overview
+-   **Hexagonal Architecture**: All external dependencies (ADB, SQLite, S3) are hidden behind "Ports" (Traits). The core business logic is pure Rust and platform-independent.
+-   **SOLID Principles**: High emphasis on Single Responsibility (e.g., `ObjectManager` for transformations) and Dependency Inversion.
+-   **Content-Addressed Storage (CAS)**: Files and blocks are stored based on their SHA-256 hash, enabling automatic global deduplication.
+-   **Zero-Knowledge Security**: Data is encrypted locally before being sent to storage. The backup server or cloud provider never sees your private data.
 
-The system is built using **Hexagonal Architecture** (Ports & Adapters) to ensure that the core backup logic is independent of external technical details.
+## 🚀 Recent Technical Achievements
 
-### 1. Core Domain (`core/domain`)
-Contains the business entities and rules. It has zero dependencies on other crates in the workspace.
-- **Entities**: `Device`, `Snapshot`, `FileEntry`, `AppInfo`.
-- **Logic**: `BackupPolicy` (filtering), `RetentionPolicy`.
-
-### 2. Application Layer (`core/application`)
-The "Brain" of the system. Implements use cases via the `BackupService`.
-- **Modules**:
-    - `security`: AES-256-GCM encryption & Argon2 KDF.
-    - `compression`: Zstd orchestration.
-    - `media_analysis`: EXIF/GPS extraction logic.
-    - `hashing`: SHA-256 integrity.
-- **Key Use Case**: `perform_backup` with failure recovery (resume) support.
-- **Observability**: Uses `tracing` for structured logging and performance instrumentation.
-- **Error Handling**: Uses `thiserror` for granular, domain-specific error reporting.
-
-### 3. Ports (`core/ports`)
-Interface definitions that the application layer uses to talk to the outside world.
-- `DevicePort`, `ScannerPort`, `StoragePort`, `RepositoryPort`.
-
-### 4. Adapters
-Concrete implementations of the Ports.
-- **`adapter-adb`**: Real Android communication.
-- **`adapter-opendal`**: Cloud storage (S3/R2) support.
-- **`adapter-filesystem`**: Local disk storage.
-- **`adapter-database-sqlite`**: Metadata indexing.
-- **`adapter-mock`**: Testing simulation.
+-   **FastCDC (Block-level Dedup)**: Large files are split into variable-sized chunks, allowing deduplication even if only parts of a file change.
+-   **Streaming ADB I/O**: High-speed data transfer that bypasses the local disk's temporary storage.
+-   **Asymmetric Cryptography**: Integration with the `age` format for secure, public-key-based automated backups.
+-   **Structured Trace Logging**: Granular observability across parallel threads using `tracing`.
 
 ---
-
-## 🧪 Development Guide
-
-### Running the Test Suite
-We maintain a strict testing policy. Always run tests before pushing:
-```bash
-# Run unit and integration tests
-cargo test
-
-# Run a specific integration test
-cargo test --test backup_integration
-```
-
-### Versioning Policy
-This project follows [Semantic Versioning](https://semver.org/).
-- **v0.1.x**: Initial MVP (Local backup).
-- **v0.2.x**: Modular engine, Cloud support, and Failure Recovery.
-- **v1.0.0**: Stable release with GUI support.
-
----
-*For user-facing installation and usage guides, please refer to the [Root README](../README.md).*
+*For development setup and basic usage, please refer to the [Root README](../README.md).*

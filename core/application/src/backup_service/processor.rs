@@ -1,15 +1,11 @@
 use anyhow::Result;
-use domain::{EncryptionMode, FileEntry, DeviceId};
-use ports::{DevicePort, StoragePort, RepositoryPort};
+use domain::{DeviceId, FileEntry};
+use ports::{DevicePort, RepositoryPort, StoragePort, ScannerPort, AppProviderPort, DataProviderPort};
 use std::io::Read;
 use std::sync::atomic::{AtomicU64, Ordering};
-use crate::security::EncryptionEngine;
-use crate::compression::CompressionEngine;
 use crate::media_analysis::MediaAnalyzer;
-use crate::hashing::calculate_hash;
-use crate::object_store::ObjectStoreKey;
-use crate::backup_service::BackupService;
-use ports::{AppProviderPort, DataProviderPort, ScannerPort};
+use crate::object_manager::ObjectManager;
+use tracing::instrument;
 
 pub struct FileProcessor<'a, D, S, R, T, A, DP>
 where
@@ -20,8 +16,8 @@ where
     A: AppProviderPort,
     DP: DataProviderPort,
 {
-    pub(crate) service: &'a BackupService<D, S, R, T, A, DP>,
-    pub(crate) encryption: &'a EncryptionMode,
+    pub(crate) service: &'a crate::backup_service::BackupService<D, S, R, T, A, DP>,
+    pub(crate) object_manager: ObjectManager<'a, T>,
     pub(crate) total_bytes: &'a AtomicU64,
     pub(crate) total_files: &'a AtomicU64,
     pub(crate) deduped_bytes: &'a AtomicU64,
@@ -36,42 +32,40 @@ where
     A: AppProviderPort,
     DP: DataProviderPort,
 {
+    #[instrument(skip(self, id, skip_content), fields(file = %file.path))]
     pub fn process_file(&self, id: &DeviceId, mut file: FileEntry, skip_content: bool) -> Result<FileEntry> {
         if !skip_content {
-            match self.service.device_adapter.read_file(id, &file.path) {
-                Ok(mut content_reader) => {
-                    let mut content_buf = Vec::with_capacity(file.size_bytes as usize);
-                    content_reader.read_to_end(&mut content_buf)?;
+            let mut content_reader = self.service.device_adapter.read_file(id, &file.path)?;
+            let mut content_buf = Vec::with_capacity(file.size_bytes as usize);
+            content_reader.read_to_end(&mut content_buf)?;
 
-                    let hash = calculate_hash(&content_buf);
-                    file.hash_sha256 = Some(hash.clone());
-                    file.media_info = MediaAnalyzer::extract_info(&content_buf, &file.mime_type);
+            file.media_info = MediaAnalyzer::extract_info(&content_buf, &file.mime_type);
 
-                    let object_id = ObjectStoreKey::compute_object_id(&hash, Some(&file.mime_type), self.encryption.is_encrypted());
-                    let object_path = ObjectStoreKey::compute_object_path(&hash, &object_id);
+            if file.size_bytes > 4 * 1024 * 1024 {
+                let chunks = self.object_manager.chunk_and_put(&content_buf)?;
+                // For chunked files, we store the file hash as the aggregate hash if needed,
+                // but usually CAS uses the chunk hashes. Let's still set the file hash.
+                file.hash_sha256 = Some(crate::hashing::calculate_hash(&content_buf));
 
-                    if !self.service.storage.exists(&object_path)? {
-                        let mut data_to_write = content_buf;
-                        if CompressionEngine::should_compress(&file.mime_type) {
-                            data_to_write = CompressionEngine::compress(&data_to_write)?;
-                        }
+                // Save file record before chunks due to FK constraints
+                self.service.repository.save_file(&file)?;
 
-                        data_to_write = match &self.encryption {
-                            EncryptionMode::Password(pwd) => EncryptionEngine::encrypt(&data_to_write, pwd)?,
-                            EncryptionMode::PublicKey(pk) => EncryptionEngine::encrypt_with_key(&data_to_write, pk)?,
-                            EncryptionMode::None => data_to_write,
-                        };
-
-                        self.service.storage.write(&object_path, &mut std::io::Cursor::new(data_to_write))?;
-                    } else {
-                        self.deduped_bytes.fetch_add(file.size_bytes, Ordering::Relaxed);
-                    }
+                for (i, chunk) in chunks.into_iter().enumerate() {
+                    self.service.repository.save_file_chunk(&file.id, &chunk.hash, chunk.offset, chunk.length, i as u32)?;
                 }
-                Err(e) => return Err(anyhow::anyhow!("Device read error: {}", e)),
+            } else {
+                let (hash, stored_size, _) = self.object_manager.put_object(&content_buf, Some(&file.mime_type))?;
+                file.hash_sha256 = Some(hash);
+                if stored_size == 0 {
+                    self.deduped_bytes.fetch_add(file.size_bytes, Ordering::Relaxed);
+                }
+                // Save file record
+                self.service.repository.save_file(&file)?;
             }
+        } else {
+             self.service.repository.save_file(&file)?;
         }
 
-        self.service.repository.save_file(&file)?;
         self.total_bytes.fetch_add(file.size_bytes, Ordering::Relaxed);
         self.total_files.fetch_add(1, Ordering::Relaxed);
 

@@ -6,6 +6,7 @@ use ports::RepositoryPort;
 use rusqlite::{params, Connection};
 use std::sync::{Arc, Mutex};
 use crate::mappers::RowMapper;
+use tracing::instrument;
 
 pub struct SqliteRepository {
     conn: Arc<Mutex<Connection>>,
@@ -29,6 +30,7 @@ impl SqliteRepository {
 }
 
 impl RepositoryPort for SqliteRepository {
+    #[instrument(skip(self))]
     fn save_device(&self, device: &Device) -> anyhow::Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
@@ -44,6 +46,7 @@ impl RepositoryPort for SqliteRepository {
         Ok(())
     }
 
+    #[instrument(skip(self))]
     fn save_file(&self, file: &FileEntry) -> anyhow::Result<()> {
         let conn = self.conn.lock().unwrap();
         let media_info_json = file.media_info.as_ref().map(|m| serde_json::to_string(m).unwrap());
@@ -60,6 +63,7 @@ impl RepositoryPort for SqliteRepository {
         Ok(())
     }
 
+    #[instrument(skip(self))]
     fn list_devices(&self) -> anyhow::Result<Vec<Device>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT id, manufacturer, model, serial, os_version, storage_total_bytes, storage_used_bytes, connection_type FROM devices")?;
@@ -69,10 +73,12 @@ impl RepositoryPort for SqliteRepository {
         Ok(devices)
     }
 
+    #[instrument(skip(self))]
     fn get_device(&self, _id: &DeviceId) -> anyhow::Result<Option<Device>> {
         Ok(None)
     }
 
+    #[instrument(skip(self))]
     fn list_files(&self, device_id: &DeviceId) -> anyhow::Result<Vec<FileEntry>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT * FROM files WHERE device_id = ?1")?;
@@ -82,6 +88,7 @@ impl RepositoryPort for SqliteRepository {
         Ok(files)
     }
 
+    #[instrument(skip(self))]
     fn create_snapshot(&self, snapshot: &Snapshot) -> anyhow::Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
@@ -96,6 +103,7 @@ impl RepositoryPort for SqliteRepository {
         Ok(())
     }
 
+    #[instrument(skip(self))]
     fn update_snapshot(&self, snapshot: &Snapshot) -> anyhow::Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
@@ -110,6 +118,7 @@ impl RepositoryPort for SqliteRepository {
         Ok(())
     }
 
+    #[instrument(skip(self))]
     fn get_snapshot(&self, id: &SnapshotId) -> anyhow::Result<Option<Snapshot>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT * FROM snapshots WHERE id = ?1")?;
@@ -117,6 +126,7 @@ impl RepositoryPort for SqliteRepository {
         if let Some(s) = snapshot_iter.next() { Ok(Some(s?)) } else { Ok(None) }
     }
 
+    #[instrument(skip(self))]
     fn link_file_to_snapshot(&self, snapshot_id: &SnapshotId, file_id: &domain::FileId) -> anyhow::Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
@@ -126,6 +136,7 @@ impl RepositoryPort for SqliteRepository {
         Ok(())
     }
 
+    #[instrument(skip(self))]
     fn list_snapshots(&self, device_id: &DeviceId) -> anyhow::Result<Vec<Snapshot>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT * FROM snapshots WHERE device_id = ?1 ORDER BY started_at DESC")?;
@@ -135,16 +146,19 @@ impl RepositoryPort for SqliteRepository {
         Ok(snapshots)
     }
 
+    #[instrument(skip(self))]
     fn get_latest_snapshot(&self, device_id: &DeviceId) -> anyhow::Result<Option<Snapshot>> {
         let snapshots = self.list_snapshots(device_id)?;
         Ok(snapshots.into_iter().find(|s| s.status == domain::SnapshotStatus::Completed))
     }
 
+    #[instrument(skip(self))]
     fn get_incomplete_snapshot(&self, device_id: &DeviceId) -> anyhow::Result<Option<Snapshot>> {
         let snapshots = self.list_snapshots(device_id)?;
         Ok(snapshots.into_iter().find(|s| s.status == domain::SnapshotStatus::Running || s.status == domain::SnapshotStatus::Interrupted))
     }
 
+    #[instrument(skip(self))]
     fn get_snapshot_files(&self, snapshot_id: &SnapshotId) -> anyhow::Result<Vec<FileEntry>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
@@ -156,6 +170,7 @@ impl RepositoryPort for SqliteRepository {
         Ok(files)
     }
 
+    #[instrument(skip(self))]
     fn save_app(&self, app: &AppInfo) -> anyhow::Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
@@ -166,6 +181,7 @@ impl RepositoryPort for SqliteRepository {
         Ok(())
     }
 
+    #[instrument(skip(self))]
     fn link_app_to_snapshot(&self, snapshot_id: &SnapshotId, app_id: &AppId) -> anyhow::Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
@@ -175,6 +191,7 @@ impl RepositoryPort for SqliteRepository {
         Ok(())
     }
 
+    #[instrument(skip(self))]
     fn get_snapshot_apps(&self, snapshot_id: &SnapshotId) -> anyhow::Result<Vec<AppInfo>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
@@ -186,6 +203,7 @@ impl RepositoryPort for SqliteRepository {
         Ok(apps)
     }
 
+    #[instrument(skip(self))]
     fn save_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: &str, object_id: &str) -> anyhow::Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
@@ -195,6 +213,7 @@ impl RepositoryPort for SqliteRepository {
         Ok(())
     }
 
+    #[instrument(skip(self))]
     fn save_schedule(&self, schedule: &BackupSchedule) -> anyhow::Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
@@ -204,6 +223,7 @@ impl RepositoryPort for SqliteRepository {
         Ok(())
     }
 
+    #[instrument(skip(self))]
     fn get_schedule(&self, device_id: &DeviceId) -> anyhow::Result<Option<BackupSchedule>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT * FROM schedules WHERE device_id = ?1")?;
@@ -211,6 +231,7 @@ impl RepositoryPort for SqliteRepository {
         if let Some(s) = schedule_iter.next() { Ok(Some(s?)) } else { Ok(None) }
     }
 
+    #[instrument(skip(self))]
     fn list_schedules(&self) -> anyhow::Result<Vec<BackupSchedule>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT * FROM schedules WHERE enabled = 1")?;
@@ -220,6 +241,7 @@ impl RepositoryPort for SqliteRepository {
         Ok(schedules)
     }
 
+    #[instrument(skip(self))]
     fn delete_snapshot(&self, snapshot_id: &SnapshotId) -> anyhow::Result<()> {
         let mut conn = self.conn.lock().unwrap();
         let tx = conn.transaction()?;
@@ -231,6 +253,7 @@ impl RepositoryPort for SqliteRepository {
         Ok(())
     }
 
+    #[instrument(skip(self))]
     fn search_files(&self, query: &str) -> anyhow::Result<Vec<FileEntry>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT * FROM files WHERE name LIKE ?1 OR path LIKE ?1")?;
@@ -239,5 +262,52 @@ impl RepositoryPort for SqliteRepository {
         let mut files = Vec::new();
         for f in file_iter { files.push(f?); }
         Ok(files)
+    }
+
+    #[instrument(skip(self))]
+    fn save_file_chunk(&self, file_id: &domain::FileId, chunk_hash: &str, offset: u64, length: u32, sequence: u32) -> anyhow::Result<()> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "INSERT OR REPLACE INTO file_chunks (file_id, chunk_hash, chunk_offset, chunk_length, sequence)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![file_id.0, chunk_hash, offset, length, sequence],
+        )?;
+        Ok(())
+    }
+
+    #[instrument(skip(self))]
+    fn get_file_chunks(&self, file_id: &domain::FileId) -> anyhow::Result<Vec<(String, u64, u32)>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT chunk_hash, chunk_offset, chunk_length FROM file_chunks
+             WHERE file_id = ?1 ORDER BY sequence ASC"
+        )?;
+
+        let chunk_iter = stmt.query_map([&file_id.0], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+        })?;
+
+        let mut chunks = Vec::new();
+        for c in chunk_iter {
+            chunks.push(c?);
+        }
+        Ok(chunks)
+    }
+
+    #[instrument(skip(self))]
+    fn get_all_referenced_hashes(&self) -> anyhow::Result<std::collections::HashSet<String>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT hash_sha256 FROM files WHERE hash_sha256 IS NOT NULL
+             UNION
+             SELECT chunk_hash FROM file_chunks"
+        )?;
+
+        let hash_iter = stmt.query_map([], |row| row.get::<_, String>(0))?;
+        let mut hashes = std::collections::HashSet::new();
+        for h in hash_iter {
+            hashes.insert(h?);
+        }
+        Ok(hashes)
     }
 }

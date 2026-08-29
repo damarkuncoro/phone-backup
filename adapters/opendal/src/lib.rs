@@ -42,4 +42,16 @@ impl StoragePort for CloudStorage {
     fn delete(&self, id: &str) -> Result<()> {
         Ok(self.op.delete(id)?)
     }
+
+    fn list(&self) -> Result<Vec<String>> {
+        let lister = self.op.lister_with("/").recursive(true).call()?;
+        let mut results = Vec::new();
+        for entry in lister {
+            let entry = entry?;
+            if entry.metadata().is_file() {
+                results.push(entry.path().to_string());
+            }
+        }
+        Ok(results)
+    }
 }

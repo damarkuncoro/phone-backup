@@ -7,9 +7,10 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-domain = { path = "../../core/domain", package = "phone-backup-domain", version = "0.2.0" }
-ports = { path = "../../core/ports", package = "phone-backup-ports", version = "0.2.0" }
+domain = { path = "../../core/domain", package = "phone-backup-domain", version = "0.3.0" }
+ports = { path = "../../core/ports", package = "phone-backup-ports", version = "0.3.0" }
 anyhow.workspace = true
 rusqlite.workspace = true
 chrono.workspace = true
 serde_json.workspace = true
+tracing.workspace = true

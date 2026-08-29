@@ -67,4 +67,13 @@ pub trait RepositoryPort: Send + Sync {
 
     /// Search for files across all devices and snapshots by name pattern.
     fn search_files(&self, query: &str) -> Result<Vec<FileEntry>>;
+
+    /// Save a chunk mapping for a file.
+    fn save_file_chunk(&self, file_id: &domain::FileId, chunk_hash: &str, offset: u64, length: u32, sequence: u32) -> Result<()>;
+
+    /// Get chunk mappings for a file.
+    fn get_file_chunks(&self, file_id: &domain::FileId) -> Result<Vec<(String, u64, u32)>>;
+
+    /// Get all unique hashes (file hashes and chunk hashes) currently referenced in the database.
+    fn get_all_referenced_hashes(&self) -> Result<std::collections::HashSet<String>>;
 }

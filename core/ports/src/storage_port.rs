@@ -14,6 +14,9 @@ pub trait StoragePort: Send + Sync {
 
     /// Delete a blob.
     fn delete(&self, id: &str) -> Result<()>;
+
+    /// List all blob IDs in the storage.
+    fn list(&self) -> Result<Vec<String>>;
 }
 
 impl<S: StoragePort + ?Sized> StoragePort for Box<S> {
@@ -31,5 +34,9 @@ impl<S: StoragePort + ?Sized> StoragePort for Box<S> {
 
     fn delete(&self, id: &str) -> Result<()> {
         (**self).delete(id)
+    }
+
+    fn list(&self) -> Result<Vec<String>> {
+        (**self).list()
     }
 }
