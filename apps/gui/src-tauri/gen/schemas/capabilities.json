@@ -1,1 +1,1 @@
-{}
+{"default-capability":{"identifier":"default-capability","description":"Standard app capability","local":true,"windows":["main"],"permissions":["core:default","allow-app-commands"]}}

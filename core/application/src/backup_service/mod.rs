@@ -7,7 +7,7 @@ pub mod verify;
 
 pub use verify::{StorageStats, VerificationReport};
 
-use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort};
+use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort, ProgressPort};
 
 /// The BackupService orchestrates use cases.
 pub struct BackupService<
@@ -17,6 +17,7 @@ pub struct BackupService<
     T: StoragePort,
     A: AppProviderPort,
     DP: DataProviderPort,
+    P: ProgressPort,
 > {
     pub(crate) device_adapter: D,
     pub(crate) scanner_adapter: S,
@@ -24,6 +25,7 @@ pub struct BackupService<
     pub storage: T,
     pub(crate) app_provider: A,
     pub(crate) data_provider: DP,
+    pub(crate) progress: P,
 }
 
 impl<
@@ -33,7 +35,8 @@ impl<
         T: StoragePort,
         A: AppProviderPort,
         DP: DataProviderPort,
-    > BackupService<D, S, R, T, A, DP>
+        P: ProgressPort,
+    > BackupService<D, S, R, T, A, DP, P>
 {
     pub fn new(
         device_adapter: D,
@@ -42,6 +45,7 @@ impl<
         storage: T,
         app_provider: A,
         data_provider: DP,
+        progress: P,
     ) -> Self {
         Self {
             device_adapter,
@@ -50,6 +54,7 @@ impl<
             storage,
             app_provider,
             data_provider,
+            progress,
         }
     }
 }

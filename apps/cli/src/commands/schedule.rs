@@ -3,8 +3,8 @@ use anyhow::Result;
 use application::BackupService;
 use domain::{ScheduleFrequency, EncryptionMode};
 
-pub fn handle_schedule<D, S, R, T, A, DP>(
-    service: &BackupService<D, S, R, T, A, DP>,
+pub fn handle_schedule<D, S, R, T, A, DP, P>(
+    service: &BackupService<D, S, R, T, A, DP, P>,
     command: ScheduleCommands,
     encryption: EncryptionMode,
 ) -> Result<()>
@@ -15,6 +15,7 @@ where
     T: ports::StoragePort,
     A: ports::AppProviderPort,
     DP: ports::DataProviderPort,
+    P: ports::ProgressPort,
 {
     match command {
         ScheduleCommands::Add { id, frequency } => {

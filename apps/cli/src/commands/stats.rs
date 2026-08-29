@@ -10,7 +10,7 @@ fn format_bytes(bytes: u64) -> String {
     }
 }
 
-pub fn run_stats<D, S, R, T, A, DP>(service: &BackupService<D, S, R, T, A, DP>) -> Result<()>
+pub fn run_stats<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>) -> Result<()>
 where
     D: ports::DevicePort,
     S: ports::ScannerPort,
@@ -18,6 +18,7 @@ where
     T: ports::StoragePort,
     A: ports::AppProviderPort,
     DP: ports::DataProviderPort,
+    P: ports::ProgressPort,
 {
     let stats = service.get_storage_stats()?;
     println!("Repository Statistics");
@@ -40,7 +41,7 @@ where
     Ok(())
 }
 
-pub fn run_search<D, S, R, T, A, DP>(service: &BackupService<D, S, R, T, A, DP>, query: &str) -> Result<()>
+pub fn run_search<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>, query: &str) -> Result<()>
 where
     D: ports::DevicePort,
     S: ports::ScannerPort,
@@ -48,6 +49,7 @@ where
     T: ports::StoragePort,
     A: ports::AppProviderPort,
     DP: ports::DataProviderPort,
+    P: ports::ProgressPort,
 {
     println!("Searching for '{}'...", query);
     let files = service.search_files(query)?;
@@ -60,8 +62,8 @@ where
     Ok(())
 }
 
-pub fn run_clone<D, S, R, T, A, DP>(
-    service: &BackupService<D, S, R, T, A, DP>,
+pub fn run_clone<D, S, R, T, A, DP, P>(
+    service: &BackupService<D, S, R, T, A, DP, P>,
     source: &str,
     target: &str,
 ) -> Result<()>
@@ -72,6 +74,7 @@ where
     T: ports::StoragePort,
     A: ports::AppProviderPort,
     DP: ports::DataProviderPort,
+    P: ports::ProgressPort,
 {
     service.migrate_device(&DeviceId::new(source), &DeviceId::new(target))
 }

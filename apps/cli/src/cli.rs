@@ -86,9 +86,9 @@ pub enum Commands {
     Restore {
         /// Snapshot ID
         snapshot_id: String,
-        /// Target directory
-        #[arg(short, long, default_value = "restore")]
-        target: String,
+        /// Target directory (defaults to restored_<DEVICE>_<DATE>)
+        #[arg(short, long)]
+        target: Option<String>,
         /// Optional password for encrypted backups
         #[arg(short, long)]
         password: Option<String>,

@@ -3,97 +3,61 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Phone Backup GUI</title>
+  <title>Phone Backup Modular</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f8f9fa; color: #333; }
-    .container { max-width: 600px; margin: 0 auto; }
-    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; }
-    h1 { color: #1a73e8; margin-top: 0; font-size: 1.5rem; }
-    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-    .stat-box { padding: 15px; background: #e8f0fe; border-radius: 8px; text-align: center; }
-    .stat-label { font-size: 0.8rem; color: #5f6368; }
-    .stat-value { font-size: 1.2rem; font-weight: bold; color: #1a73e8; }
-    button { background: #1a73e8; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; width: 100%; font-weight: bold; transition: background 0.2s; }
-    button:hover { background: #1765cc; }
-    .device-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-    #msg { margin-top: 15px; font-size: 0.9rem; color: #666; }
+    body { font-family: sans-serif; background-color: #f8fafc; }
+    .glass-card { background: white; border: 1px solid #e2e8f0; }
+    #file-modal, #settings-modal { display: none; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="card">
-      <h1>📱 Phone Backup Engine</h1>
 
-      <div class="stat-grid">
-        <div class="stat-box">
-          <div class="stat-label">Total Snapshots</div>
-          <div id="stat-snaps" class="stat-value">-</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">Storage Saved</div>
-          <div id="stat-saved" class="stat-value">-</div>
-        </div>
-      </div>
-
-      <button id="btn-refresh">Refresh Devices</button>
-      <div id="device-list" style="margin-top: 15px;"></div>
-      <p id="msg"></p>
+  <nav class="bg-indigo-700 text-white h-16 flex items-center px-8 justify-between shadow-lg sticky top-0 z-50">
+    <div class="flex items-center gap-4">
+      <span class="text-xl font-bold tracking-tight">phone-backup</span>
+      <!-- Tombol Test JS yang terjamin (Inline) -->
+      <button onclick="console.log('Inline test'); alert('JavaScript Inline OK')" class="bg-indigo-500 px-3 py-1 text-xs rounded font-bold">INLINE TEST</button>
+      <!-- Tombol Test JS untuk Module -->
+      <button id="test-js-btn" class="bg-indigo-500 hover:bg-indigo-400 px-3 py-1 text-xs rounded font-bold transition-colors">MODULE TEST</button>
     </div>
-  </div>
+    <div class="flex gap-4">
+      <button id="settings-btn" class="p-2 hover:bg-indigo-600 rounded-full transition-colors">⚙️</button>
+    </div>
+  </nav>
 
-  <script>
-    const { invoke } = window.__TAURI__.core;
+  <main class="container mx-auto px-6 py-8">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <pb-stat id="stat-efficiency" label="Efficiency" value="-" subtext="Calculating..."></pb-stat>
+        <pb-stat id="stat-snapshots" label="Snapshots" value="-" subtext="Total backups"></pb-stat>
+        <pb-stat id="stat-adb" label="ADB Status" value="Checking" subtext="Wait..."></pb-stat>
+    </div>
 
-    async function updateStats() {
-      try {
-        const stats = await invoke('get_storage_stats');
-        document.getElementById('stat-snaps').textContent = stats.total_snapshots;
-        document.getElementById('stat-saved').textContent = stats.efficiency_ratio.toFixed(1) + '%';
-      } catch (e) {
-        console.error(e);
-      }
-    }
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h2 class="font-bold text-slate-700">Connected Devices</h2>
+            <button id="refresh-btn" class="text-indigo-600 text-sm font-bold">RESCAN</button>
+          </div>
+          <div id="device-list" class="min-h-[200px]"></div>
+      </section>
 
-    async function loadDevices() {
-      const msg = document.getElementById('msg');
-      msg.textContent = "Scanning devices...";
-      try {
-        const devices = await invoke('get_devices');
-        const list = document.getElementById('device-list');
-        list.innerHTML = "";
+      <section id="history-section" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hidden">
+          <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
+            <h2 id="history-title" class="font-bold text-indigo-600">History</h2>
+          </div>
+          <pb-snapshot-list id="history-list"></pb-snapshot-list>
+      </section>
+    </div>
+  </main>
 
-        devices.forEach(d => {
-          const item = document.createElement('div');
-          item.className = "device-item";
-          item.innerHTML = `
-            <span><strong>${d.model}</strong> (${d.id.0})</span>
-            <button style="width: auto; padding: 5px 10px;" onclick="runBackup('${d.id.0}')">Backup</button>
-          `;
-          list.appendChild(item);
-        });
-        msg.textContent = devices.length + " device(s) found.";
-      } catch (e) {
-        msg.textContent = "Error: " + e;
-      }
-    }
+  <!-- Components -->
+  <pb-progress-hud id="global-progress"></pb-progress-hud>
+  <pb-file-browser id="file-browser"></pb-file-browser>
+  <pb-settings-modal id="settings-modal"></pb-settings-modal>
+  <pb-notification id="notifier"></pb-notification>
 
-    window.runBackup = async (id) => {
-      const msg = document.getElementById('msg');
-      msg.textContent = "Backup started for " + id + "... Please wait.";
-      try {
-        await invoke('start_backup', { deviceId: id });
-        msg.textContent = "Backup successful!";
-        updateStats();
-      } catch (e) {
-        msg.textContent = "Backup failed: " + e;
-      }
-    }
-
-    document.getElementById('btn-refresh').onclick = loadDevices;
-
-    // Initial Load
-    updateStats();
-    loadDevices();
-  </script>
+  <!-- PENTING: type="module" dimuat di akhir body -->
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>

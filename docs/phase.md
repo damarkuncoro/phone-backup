@@ -69,9 +69,13 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 ## ✅ PHASE 23 — Backup Integrity
 *   Perintah `verify` untuk cek objek hilang/rusak.
 
-## 🚧 PHASE 24 — Desktop GUI
-*   [In-Progress] Inisialisasi Tauri project.
-*   [TODO] Visual Dashboard.
+## ✅ PHASE 24 — Desktop GUI (Tauri Dashboard)
+*   Inisialisasi Tauri project.
+*   Backend Bridge (Rust Commands -> JavaScript).
+*   Event-driven real-time progress reporting.
+*   Dashboard visual dengan Tailwind CSS & Chart.js.
+*   Visualisasi efisiensi storage & snapshot history.
+*   Interactive Restore via UI.
 
 ## ✅ PHASE 30 — Failure Recovery
 *   **Resume Logic**: Melanjutkan backup yang terputus secara otomatis.

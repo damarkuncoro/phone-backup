@@ -13,7 +13,8 @@ impl<
         T: StoragePort,
         A: AppProviderPort,
         DP: DataProviderPort,
-    > BackupService<D, S, R, T, A, DP>
+        P: ports::ProgressPort,
+    > BackupService<D, S, R, T, A, DP, P>
 {
     #[instrument(skip(self))]
     pub fn list_devices(&self) -> Result<Vec<Device>> {
@@ -46,6 +47,22 @@ impl<
     }
 
     #[instrument(skip(self))]
+    pub fn get_latest_snapshot_any_device(&self) -> Result<Option<Snapshot>> {
+        let devices = self.list_devices()?;
+        let mut latest: Option<Snapshot> = None;
+        for d in devices {
+            if let Ok(snapshots) = self.list_snapshots(&d.id) {
+                if let Some(s) = snapshots.into_iter().find(|s| s.status == domain::SnapshotStatus::Completed) {
+                    if latest.is_none() || s.started_at > latest.as_ref().unwrap().started_at {
+                        latest = Some(s);
+                    }
+                }
+            }
+        }
+        Ok(latest)
+    }
+
+    #[instrument(skip(self))]
     pub fn get_snapshot(&self, id: &SnapshotId) -> Result<Option<Snapshot>> {
         self.repository.get_snapshot(id)
     }
@@ -53,6 +70,33 @@ impl<
     #[instrument(skip(self))]
     pub fn get_snapshot_apps(&self, snapshot_id: &SnapshotId) -> Result<Vec<AppInfo>> {
         self.repository.get_snapshot_apps(snapshot_id)
+    }
+
+    #[instrument(skip(self))]
+    pub fn get_snapshot_files(&self, snapshot_id: &SnapshotId) -> Result<Vec<FileEntry>> {
+        self.repository.get_snapshot_files(snapshot_id)
+    }
+
+    #[instrument(skip(self))]
+    pub fn get_structured_data(&self, snapshot_id: &SnapshotId, data_type: &str) -> Result<serde_json::Value> {
+        tracing::info!("Fetching structured data '{}' for snapshot {}", data_type, snapshot_id.0);
+        let object_path = self.repository.get_structured_data_ref(snapshot_id, data_type)?
+            .ok_or_else(|| {
+                tracing::warn!("Structured data '{}' reference not found in database", data_type);
+                anyhow::anyhow!("Data type {} not found for this snapshot", data_type)
+            })?;
+
+        tracing::info!("Reading data from storage: {}", object_path);
+        let mut reader = self.storage.read(&object_path)?;
+        let mut data = Vec::new();
+        std::io::Read::read_to_end(&mut reader, &mut data)?;
+
+        tracing::info!("Parsing JSON data ({} bytes)", data.len());
+        let json: serde_json::Value = serde_json::from_slice(&data).map_err(|e| {
+            tracing::error!("JSON parse error: {}. Data might be encrypted.", e);
+            e
+        })?;
+        Ok(json)
     }
 
     #[instrument(skip(self))]

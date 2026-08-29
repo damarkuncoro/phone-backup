@@ -2,8 +2,8 @@ use anyhow::Result;
 use application::BackupService;
 use domain::{DeviceId, SnapshotId};
 
-pub fn run_backup<D, S, R, T, A, DP>(
-    service: &BackupService<D, S, R, T, A, DP>,
+pub fn run_backup<D, S, R, T, A, DP, P>(
+    service: &BackupService<D, S, R, T, A, DP, P>,
     id: &str,
     encryption: domain::EncryptionMode,
     include: Option<Vec<String>>,
@@ -16,6 +16,7 @@ where
     T: ports::StoragePort,
     A: ports::AppProviderPort,
     DP: ports::DataProviderPort,
+    P: ports::ProgressPort,
 {
     let device_id = DeviceId::new(id);
     println!("Starting backup for device {}...", id);
@@ -41,7 +42,7 @@ where
     Ok(())
 }
 
-pub fn list_snapshots<D, S, R, T, A, DP>(service: &BackupService<D, S, R, T, A, DP>, id: &str) -> Result<()>
+pub fn list_snapshots<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>, id: &str) -> Result<()>
 where
     D: ports::DevicePort,
     S: ports::ScannerPort,
@@ -49,6 +50,7 @@ where
     T: ports::StoragePort,
     A: ports::AppProviderPort,
     DP: ports::DataProviderPort,
+    P: ports::ProgressPort,
 {
     let device_id = DeviceId::new(id);
     let snapshots = service.list_snapshots(&device_id)?;
@@ -67,8 +69,8 @@ where
     Ok(())
 }
 
-pub fn show_snapshot_detail<D, S, R, T, A, DP>(
-    service: &BackupService<D, S, R, T, A, DP>,
+pub fn show_snapshot_detail<D, S, R, T, A, DP, P>(
+    service: &BackupService<D, S, R, T, A, DP, P>,
     snapshot_id: &str,
 ) -> Result<()>
 where
@@ -78,6 +80,7 @@ where
     T: ports::StoragePort,
     A: ports::AppProviderPort,
     DP: ports::DataProviderPort,
+    P: ports::ProgressPort,
 {
     let s_id = SnapshotId(snapshot_id.to_string());
     let snapshot = service

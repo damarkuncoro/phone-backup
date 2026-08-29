@@ -2,10 +2,10 @@ use anyhow::Result;
 use application::BackupService;
 use domain::SnapshotId;
 
-pub fn run_restore<D, S, R, T, A, DP>(
-    service: &BackupService<D, S, R, T, A, DP>,
+pub fn run_restore<D, S, R, T, A, DP, P>(
+    service: &BackupService<D, S, R, T, A, DP, P>,
     snapshot_id: &str,
-    target: &str,
+    target: Option<String>,
     encryption: domain::EncryptionMode,
     filter: Option<&str>,
 ) -> Result<()>
@@ -16,22 +16,41 @@ where
     T: ports::StoragePort,
     A: ports::AppProviderPort,
     DP: ports::DataProviderPort,
+    P: ports::ProgressPort,
 {
+    let snapshot = if snapshot_id == "last" {
+        service
+            .get_latest_snapshot_any_device()?
+            .ok_or_else(|| anyhow::anyhow!("No snapshots found in repository"))?
+    } else {
+        let id = SnapshotId(snapshot_id.to_string());
+        service.get_snapshot(&id)?.ok_or_else(|| anyhow::anyhow!("Snapshot {} not found", snapshot_id))?
+    };
+
+    let target_dir = match target {
+        Some(t) => t,
+        None => {
+            let date_str = snapshot.started_at.format("%Y%m%d_%H%M%S").to_string();
+            format!("workspace/restored_{}_{}", snapshot.device_id.0, date_str)
+        }
+    };
+
     if let Some(f) = filter {
         println!(
             "Restoring files matching '{}' from snapshot {} to {}...",
-            f, snapshot_id, target
+            f, snapshot.id.0, target_dir
         );
     } else {
-        println!("Restoring snapshot {} to {}...", snapshot_id, target);
+        println!("Restoring snapshot {} to {}...", snapshot.id.0, target_dir);
     }
-    service.perform_restore(&SnapshotId(snapshot_id.to_string()), target, encryption, filter)?;
-    println!("\nRestore completed successfully!");
+
+    service.perform_restore(&snapshot.id, &target_dir, encryption, filter)?;
+    println!("\nRestore completed successfully to: {}", target_dir);
     Ok(())
 }
 
-pub fn run_verify<D, S, R, T, A, DP>(
-    service: &BackupService<D, S, R, T, A, DP>,
+pub fn run_verify<D, S, R, T, A, DP, P>(
+    service: &BackupService<D, S, R, T, A, DP, P>,
     encryption: domain::EncryptionMode,
 ) -> Result<()>
 where
@@ -41,6 +60,7 @@ where
     T: ports::StoragePort,
     A: ports::AppProviderPort,
     DP: ports::DataProviderPort,
+    P: ports::ProgressPort,
 {
     println!("Verifying repository integrity...");
     let report = service.verify_repository(encryption)?;

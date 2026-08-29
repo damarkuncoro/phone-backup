@@ -1,11 +1,11 @@
 mod mappers;
 mod schema;
 
-use domain::{Device, DeviceId, FileEntry, Snapshot, SnapshotId, AppInfo, AppId, BackupSchedule};
+use crate::mappers::RowMapper;
+use domain::{AppId, AppInfo, BackupSchedule, Device, DeviceId, FileEntry, Snapshot, SnapshotId};
 use ports::RepositoryPort;
 use rusqlite::{params, Connection};
 use std::sync::{Arc, Mutex};
-use crate::mappers::RowMapper;
 use tracing::instrument;
 
 pub struct SqliteRepository {
@@ -214,6 +214,20 @@ impl RepositoryPort for SqliteRepository {
     }
 
     #[instrument(skip(self))]
+    fn get_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: &str) -> anyhow::Result<Option<String>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT object_id FROM snapshot_data WHERE snapshot_id = ?1 AND data_type = ?2"
+        )?;
+        let mut rows = stmt.query(params![snapshot_id.0, data_type])?;
+        if let Some(row) = rows.next()? {
+            Ok(Some(row.get(0)?))
+        } else {
+            Ok(None)
+        }
+    }
+
+    #[instrument(skip(self))]
     fn save_schedule(&self, schedule: &BackupSchedule) -> anyhow::Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
@@ -297,6 +311,7 @@ impl RepositoryPort for SqliteRepository {
     #[instrument(skip(self))]
     fn get_all_referenced_hashes(&self) -> anyhow::Result<std::collections::HashSet<String>> {
         let conn = self.conn.lock().unwrap();
+
         let mut stmt = conn.prepare(
             "SELECT hash_sha256 FROM files WHERE hash_sha256 IS NOT NULL
              UNION
@@ -308,6 +323,18 @@ impl RepositoryPort for SqliteRepository {
         for h in hash_iter {
             hashes.insert(h?);
         }
+
+        // Add hashes from structured data manually to be safe
+        let mut stmt_data = conn.prepare("SELECT object_id FROM snapshot_data")?;
+        let data_iter = stmt_data.query_map([], |row| row.get::<_, String>(0))?;
+        for path in data_iter {
+            let path = path?;
+            if let Some(filename) = path.split('/').last() {
+                let hash = filename.split('.').next().unwrap_or("");
+                hashes.insert(hash.to_string());
+            }
+        }
+
         Ok(hashes)
     }
 }

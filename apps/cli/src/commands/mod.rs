@@ -14,9 +14,9 @@ use anyhow::Result;
 use application::BackupService;
 use domain::EncryptionMode;
 
-pub fn execute_command<D, S, R, T, A, DP>(
+pub fn execute_command<D, S, R, T, A, DP, P>(
     cli: Cli,
-    service: BackupService<D, S, R, T, A, DP>,
+    service: BackupService<D, S, R, T, A, DP, P>,
 ) -> Result<()>
 where
     D: ports::DevicePort,
@@ -25,6 +25,7 @@ where
     T: ports::StoragePort,
     A: ports::AppProviderPort,
     DP: ports::DataProviderPort,
+    P: ports::ProgressPort,
 {
     // Determine encryption mode from global CLI flags
     let encryption = if let Some(pk) = cli.pubkey {
@@ -78,12 +79,9 @@ where
             let enc = if let Some(pwd) = password {
                 EncryptionMode::Password(pwd)
             } else {
-                // For restore, privkey mapping is handled in application layer if needed,
-                // but let's be explicit here if EncryptionMode had a Separate SecretKey variant.
-                // Currently EncryptionMode has PublicKey(String). I'll use that for both.
                 encryption
             };
-            restore::run_restore(&service, &snapshot_id, &target, enc, filter.as_deref())?
+            restore::run_restore(&service, &snapshot_id, target, enc, filter.as_deref())?
         }
         Commands::Verify { password } => {
             let enc = if let Some(pwd) = password {

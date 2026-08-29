@@ -1,0 +1,9 @@
+{
+  "identifier": "default-capability",
+  "description": "Standard app capability",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "allow-app-commands"
+  ]
+}

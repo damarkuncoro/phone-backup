@@ -1,13 +1,13 @@
 use anyhow::Result;
 use domain::{DeviceId, FileEntry};
-use ports::{DevicePort, RepositoryPort, StoragePort, ScannerPort, AppProviderPort, DataProviderPort};
+use ports::{DevicePort, RepositoryPort, StoragePort, ScannerPort, AppProviderPort, DataProviderPort, ProgressPort};
 use std::io::Read;
 use std::sync::atomic::{AtomicU64, Ordering};
 use crate::media_analysis::MediaAnalyzer;
 use crate::object_manager::ObjectManager;
 use tracing::instrument;
 
-pub struct FileProcessor<'a, D, S, R, T, A, DP>
+pub struct FileProcessor<'a, D, S, R, T, A, DP, P>
 where
     D: DevicePort,
     S: ScannerPort,
@@ -15,15 +15,16 @@ where
     T: StoragePort,
     A: AppProviderPort,
     DP: DataProviderPort,
+    P: ProgressPort,
 {
-    pub(crate) service: &'a crate::backup_service::BackupService<D, S, R, T, A, DP>,
+    pub(crate) service: &'a crate::backup_service::BackupService<D, S, R, T, A, DP, P>,
     pub(crate) object_manager: ObjectManager<'a, T>,
     pub(crate) total_bytes: &'a AtomicU64,
     pub(crate) total_files: &'a AtomicU64,
     pub(crate) deduped_bytes: &'a AtomicU64,
 }
 
-impl<'a, D, S, R, T, A, DP> FileProcessor<'a, D, S, R, T, A, DP>
+impl<'a, D, S, R, T, A, DP, P> FileProcessor<'a, D, S, R, T, A, DP, P>
 where
     D: DevicePort,
     S: ScannerPort,
@@ -31,6 +32,7 @@ where
     T: StoragePort,
     A: AppProviderPort,
     DP: DataProviderPort,
+    P: ProgressPort,
 {
     #[instrument(skip(self, id, skip_content), fields(file = %file.path))]
     pub fn process_file(&self, id: &DeviceId, mut file: FileEntry, skip_content: bool) -> Result<FileEntry> {

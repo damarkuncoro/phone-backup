@@ -4,11 +4,11 @@
   "identifier": "com.phonebackup.app",
   "build": {
     "frontendDist": "../ui",
-    "devUrl": "http://localhost:1420",
     "beforeDevCommand": "",
     "beforeBuildCommand": ""
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "Phone Backup",

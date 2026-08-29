@@ -37,10 +37,16 @@ impl Default for AdbDataProvider {
 
 impl DataProviderPort for AdbDataProvider {
     fn list_contacts(&self, device_id: &DeviceId) -> Result<Vec<Contact>> {
+        tracing::info!("Fetching contacts for device {}", device_id.0);
         let output = self.client.shell(
             &device_id.0,
             "content query --uri content://com.android.contacts/data --projection display_name:data1",
         )?;
+
+        if output.contains("Permission denied") || output.contains("Error") {
+            tracing::error!("ADB Contact query failed: {}", output.trim());
+            return Ok(vec![]);
+        }
 
         let mut contacts = std::collections::HashMap::new();
         for line in output.lines() {
@@ -58,14 +64,22 @@ impl DataProviderPort for AdbDataProvider {
                 }
             }
         }
+        tracing::info!("Found {} unique contacts", contacts.len());
         Ok(contacts.into_values().collect())
     }
 
     fn list_sms(&self, device_id: &DeviceId) -> Result<Vec<Sms>> {
+        tracing::info!("Fetching SMS for device {}", device_id.0);
         let output = self.client.shell(
             &device_id.0,
             "content query --uri content://sms --projection address:body:date:type",
         )?;
+
+        if output.contains("Permission denied") || output.contains("Error") {
+            tracing::error!("ADB SMS query failed: {}", output.trim());
+            return Ok(vec![]);
+        }
+
         let mut messages = Vec::new();
         for line in output.lines() {
             if let (Some(address), Some(body), Some(date_str)) = (
@@ -82,6 +96,7 @@ impl DataProviderPort for AdbDataProvider {
                 });
             }
         }
+        tracing::info!("Found {} SMS messages", messages.len());
         Ok(messages)
     }
 

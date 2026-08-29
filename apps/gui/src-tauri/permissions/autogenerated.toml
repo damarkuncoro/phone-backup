@@ -1,0 +1,18 @@
+[[permission]]
+identifier = "allow-app-commands"
+description = "Allows all custom app commands"
+commands.allow = [
+    "get_devices",
+    "get_storage_stats",
+    "get_snapshots",
+    "start_backup",
+    "delete_snapshot",
+    "run_gc",
+    "restore_snapshot",
+    "get_doctor_report",
+    "generate_keys",
+    "add_schedule",
+    "get_snapshot_files",
+    "search_files",
+    "scan_device"
+]

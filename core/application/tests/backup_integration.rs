@@ -31,6 +31,7 @@ fn test_full_backup_restore_lifecycle() {
         storage,
         app_provider,
         data_provider,
+        phone_backup_ports::NoProgress,
     );
 
     // 3. Perform Discovery
@@ -84,6 +85,7 @@ fn test_asymmetric_backup_restore_lifecycle() {
         storage,
         MockAppProvider,
         MockDataProvider,
+        phone_backup_ports::NoProgress,
     );
 
     let devices = service.list_devices().unwrap();

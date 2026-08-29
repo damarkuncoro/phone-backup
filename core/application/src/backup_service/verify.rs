@@ -44,7 +44,8 @@ impl<
         T: StoragePort,
         A: AppProviderPort,
         DP: DataProviderPort,
-    > BackupService<D, S, R, T, A, DP>
+        P: ports::ProgressPort,
+    > BackupService<D, S, R, T, A, DP, P>
 {
     #[instrument(skip(self, encryption))]
     pub fn verify_repository(&self, encryption: domain::EncryptionMode) -> Result<VerificationReport> {

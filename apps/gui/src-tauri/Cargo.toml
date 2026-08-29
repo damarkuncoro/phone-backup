@@ -19,6 +19,11 @@ adapter-adb = { workspace = true }
 adapter-database-sqlite = { workspace = true }
 adapter-filesystem = { workspace = true }
 adapter-mock = { workspace = true }
+axum.workspace = true
+socketioxide.workspace = true
+tower.workspace = true
+tower-http.workspace = true
+tokio = { version = "1", features = ["full"] }
 
 [build-dependencies]
-tauri-build = "2.0"
+tauri-build = { version = "2.0", features = [] }

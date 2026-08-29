@@ -14,3 +14,4 @@ chrono.workspace = true
 uuid.workspace = true
 which.workspace = true
 mime_guess.workspace = true
+tracing.workspace = true

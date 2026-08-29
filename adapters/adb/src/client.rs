@@ -10,7 +10,22 @@ impl AdbClient {
     pub fn new() -> Self {
         let adb_path = which::which("adb")
             .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|_| "adb".to_string());
+            .unwrap_or_else(|_| {
+                // Lokasi standar macOS Android SDK dan Homebrew
+                let home = std::env::var("HOME").unwrap_or_default();
+                let paths = vec![
+                    format!("{}/Library/Android/sdk/platform-tools/adb", home),
+                    "/usr/local/bin/adb".to_string(),
+                    "/opt/homebrew/bin/adb".to_string(),
+                ];
+
+                for p in paths {
+                    if std::path::Path::new(&p).exists() {
+                        return p;
+                    }
+                }
+                "adb".to_string()
+            });
         Self { adb_path }
     }
 

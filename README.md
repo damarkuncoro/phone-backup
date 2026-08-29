@@ -8,27 +8,22 @@ A high-performance, secure, and professional Android backup platform written in 
 
 ## 🚀 Features
 
+### 🖥 Desktop GUI & Dashboard
+- **Modern Dashboard**: Visual summary of storage efficiency, engine health, and snapshot history built with Tauri, Tailwind CSS, and Chart.js.
+- **Real-time Progress HUD**: Floating status window with animated progress for long-running backup and restore operations.
+- **Device Management**: One-click backup and history viewing for all connected ADB devices.
+
 ### 🧠 Intelligent Engine
 - **Block-level Deduplication**: Uses Content-Defined Chunking (FastCDC) to deduplicate large files at the block level, saving massive storage for frequently modified large files.
 - **Fast Incremental Backup**: Scans device state and only transfers new or modified files based on size and mtime.
 - **Streaming I/O**: Direct data transfer from ADB (`exec-out`) to the backup engine without temporary files, maximizing performance and reducing disk wear.
 - **Parallel Processing**: Utilizes `Rayon` for multi-threaded hashing, compression, and encryption.
 - **Failure Recovery (Resume)**: Automatically detects interrupted backups and resumes from the last successful file.
-- **Content-Addressed Storage (CAS)**: Ensures identical files/blocks are stored only once using SHA-256 keying.
-- **Zstd Compression**: High-performance compression for text-based data.
 
 ### 🛡 Security & Privacy
 - **Asymmetric Encryption**: Support for **age (X25519)** public-key encryption. Perform password-less backups while keeping the secret key safe elsewhere.
 - **Zero-Knowledge Storage**: No plain-text data is stored if encryption is enabled.
 - **Authenticated Encryption**: AES-256-GCM or age-authenticated blobs ensure data integrity.
-- **Metadata Protection**: File catalogs are stored in a local SQLite database in the `workspace/` directory.
-
-### 📱 Deep Android Support
-- **Native ADB Integration**: Reliable communication with real Android devices via a custom `AdbClient`.
-- **Direct Migration (Cloning)**: Transfer apps and files directly from Device A to Device B.
-- **App Management**: Tracks installed applications and performs automatic **APK extraction**.
-- **Structured Data**: Backs up **Contacts**, **SMS**, and **Call Logs** into secure JSON objects.
-- **Media Intelligence**: Extracts **EXIF metadata** from photos.
 
 ---
 
@@ -38,12 +33,15 @@ The project follows strict **Clean Architecture** and **Hexagonal Architecture**
 
 ```text
 phone-backup/
-├── apps/               # UI implementations (CLI, GUI-Tauri)
-├── core/               # Domain & Application logic (Pure Rust)
-├── adapters/           # Technical adapters (ADB, Cloud S3, Filesystem)
-├── infrastructure/     # Database implementations (SQLite)
-├── docs/               # Detailed documentation & roadmaps
-└── workspace/          # Local storage (Database, Objects, Logs)
+├── apps/
+│   ├── cli/            # Professional Command Line Interface
+│   └── gui/            # Desktop Dashboard (Tauri + Tailwind)
+├── core/
+│   ├── domain/         # Pure business logic & entities
+│   └── application/    # Use cases, ObjectManager, and Engine
+├── adapters/           # ADB, Cloud Storage (OpenDAL), Filesystem
+├── infrastructure/     # Persistence (SQLite modular repository)
+└── workspace/          # Centralized data (DB, Objects, Logs)
 ```
 
 ---
@@ -53,51 +51,37 @@ phone-backup/
 ### Prerequisites
 - **Rust**: Latest stable toolchain.
 - **ADB**: Android Debug Bridge installed and in your `PATH`.
+- **Node.js**: Required only for GUI development.
 
 ### Installation
 ```bash
 git clone https://github.com/damarkuncoro/phone-backup.git
 cd phone-backup
-cargo build --release
+
+# Install CLI globally
+cargo install --path apps/cli
 ```
 
 ---
 
 ## 📖 Usage Guide
 
-### 1. System Health Check
+### 1. Launching the Desktop GUI
+For a visual experience, run the Tauri dashboard:
+```bash
+cd apps/gui/src-tauri
+cargo tauri dev
+```
+
+### 2. System Health Check (CLI)
 Run diagnostic to ensure ADB and workspace are ready:
 ```bash
-./target/release/phone-backup doctor
+phone-backup doctor
 ```
 
-### 2. Backup using Public Key (Asymmetric)
+### 3. Backup using Public Key (CLI)
 ```bash
-# Generate a keypair first (stored in age format)
-# Then backup using the public key
-./target/release/phone-backup --adapter adb --pubkey "age1..." backup <DEVICE_ID>
-```
-
-### 3. Backup to Cloud (S3/R2/MinIO)
-```bash
-./target/release/phone-backup --storage s3 \
-  --s3-bucket my-backup \
-  --s3-endpoint https://<id>.r2.cloudflarestorage.com \
-  --s3-access-key <key> \
-  --s3-secret-key <secret> \
-  backup <DEVICE_ID>
-```
-
-### 4. Restore & Management
-```bash
-# Restore snapshot using Secret Key
-./target/release/phone-backup --privkey "AGE-SECRET-KEY-1..." restore <SNAPSHOT_ID> --target ./restore
-
-# View snapshots for a device
-./target/release/phone-backup snapshots <DEVICE_ID>
-
-# Search for a file anywhere in the repository
-./target/release/phone-backup search "resume.pdf"
+phone-backup --adapter adb --pubkey "age1..." backup <DEVICE_ID>
 ```
 
 ---

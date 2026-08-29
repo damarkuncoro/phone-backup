@@ -53,6 +53,9 @@ pub trait RepositoryPort: Send + Sync {
     /// Record a reference to structured data (JSON/etc) in a snapshot.
     fn save_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: &str, object_id: &str) -> Result<()>;
 
+    /// Get a reference to structured data in a snapshot.
+    fn get_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: &str) -> Result<Option<String>>;
+
     /// Save or update a backup schedule.
     fn save_schedule(&self, schedule: &BackupSchedule) -> Result<()>;
 

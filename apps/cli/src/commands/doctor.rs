@@ -3,8 +3,8 @@ use application::BackupService;
 use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort};
 use std::process::Command;
 
-pub fn run_doctor<D, S, R, T, A, DP>(
-    service: &BackupService<D, S, R, T, A, DP>,
+pub fn run_doctor<D, S, R, T, A, DP, P>(
+    service: &BackupService<D, S, R, T, A, DP, P>,
 ) -> Result<()>
 where
     D: DevicePort,
@@ -13,6 +13,7 @@ where
     T: StoragePort,
     A: AppProviderPort,
     DP: DataProviderPort,
+    P: ports::ProgressPort,
 {
     println!("🩺 Phone Backup Doctor - System Diagnostic");
     println!("-----------------------------------------");

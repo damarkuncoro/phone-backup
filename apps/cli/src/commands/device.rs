@@ -2,7 +2,7 @@ use anyhow::Result;
 use application::BackupService;
 use domain::DeviceId;
 
-pub fn print_devices<D, S, R, T, A, DP>(service: &BackupService<D, S, R, T, A, DP>) -> Result<()>
+pub fn print_devices<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>) -> Result<()>
 where
     D: ports::DevicePort,
     S: ports::ScannerPort,
@@ -10,6 +10,7 @@ where
     T: ports::StoragePort,
     A: ports::AppProviderPort,
     DP: ports::DataProviderPort,
+    P: ports::ProgressPort,
 {
     let devices = service.list_devices()?;
     println!("Connected Devices\n");
@@ -21,7 +22,7 @@ where
     Ok(())
 }
 
-pub fn print_device_info<D, S, R, T, A, DP>(service: &BackupService<D, S, R, T, A, DP>, id: &str) -> Result<()>
+pub fn print_device_info<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>, id: &str) -> Result<()>
 where
     D: ports::DevicePort,
     S: ports::ScannerPort,
@@ -29,6 +30,7 @@ where
     T: ports::StoragePort,
     A: ports::AppProviderPort,
     DP: ports::DataProviderPort,
+    P: ports::ProgressPort,
 {
     let device_id = DeviceId::new(id);
     let device = service.device_info(&device_id)?;
@@ -52,7 +54,7 @@ where
     Ok(())
 }
 
-pub fn scan_device<D, S, R, T, A, DP>(service: &BackupService<D, S, R, T, A, DP>, id: &str) -> Result<()>
+pub fn scan_device<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>, id: &str) -> Result<()>
 where
     D: ports::DevicePort,
     S: ports::ScannerPort,
@@ -60,6 +62,7 @@ where
     T: ports::StoragePort,
     A: ports::AppProviderPort,
     DP: ports::DataProviderPort,
+    P: ports::ProgressPort,
 {
     let device_id = DeviceId::new(id);
     println!("Scanning device {}...", id);
@@ -76,7 +79,7 @@ where
     Ok(())
 }
 
-pub fn list_apps<D, S, R, T, A, DP>(service: &BackupService<D, S, R, T, A, DP>, id: &str) -> Result<()>
+pub fn list_apps<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>, id: &str) -> Result<()>
 where
     D: ports::DevicePort,
     S: ports::ScannerPort,
@@ -84,6 +87,7 @@ where
     T: ports::StoragePort,
     A: ports::AppProviderPort,
     DP: ports::DataProviderPort,
+    P: ports::ProgressPort,
 {
     let device_id = DeviceId::new(id);
     println!("Listing apps for device {}...", id);
@@ -97,7 +101,7 @@ where
     Ok(())
 }
 
-pub fn list_photos<D, S, R, T, A, DP>(service: &BackupService<D, S, R, T, A, DP>, id: &str) -> Result<()>
+pub fn list_photos<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>, id: &str) -> Result<()>
 where
     D: ports::DevicePort,
     S: ports::ScannerPort,
@@ -105,6 +109,7 @@ where
     T: ports::StoragePort,
     A: ports::AppProviderPort,
     DP: ports::DataProviderPort,
+    P: ports::ProgressPort,
 {
     let device_id = DeviceId::new(id);
     let files = service.scan_device(&device_id)?;

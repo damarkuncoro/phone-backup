@@ -17,7 +17,8 @@ impl<
         T: StoragePort,
         A: AppProviderPort,
         DP: DataProviderPort,
-    > BackupService<D, S, R, T, A, DP>
+        P: ports::ProgressPort,
+    > BackupService<D, S, R, T, A, DP, P>
 {
     /// Perform a full or incremental backup of a device (Phase 07-21 + Storage Check + Resume + Asymmetric Crypto)
     #[instrument(skip(self, policy))]
@@ -80,15 +81,11 @@ impl<
 
         self.check_available_disk_space(total_required)?;
 
-        use indicatif::{ProgressBar, ProgressStyle};
         use rayon::prelude::*;
         use std::sync::atomic::{AtomicU64, Ordering};
         use std::sync::Mutex;
 
-        let pb = ProgressBar::new(files.len() as u64);
-        pb.set_style(ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} ({eta}) {msg}")?
-            .progress_chars("#>-"));
+        self.progress.start(files.len() as u64, "Starting file backup...");
 
         let total_bytes_atomic = AtomicU64::new(snapshot.total_bytes);
         let total_files_atomic = AtomicU64::new(snapshot.total_files);
@@ -109,11 +106,11 @@ impl<
 
         let result: Result<()> = files.into_par_iter().try_for_each(|file| {
             if already_backed_up.contains(&file.path) {
-                pb.inc(1);
+                self.progress.inc(1, "Skipping already backed up file");
                 return Ok(());
             }
 
-            pb.set_message(format!("Processing {}", file.name));
+            self.progress.inc(0, &format!("Processing {}", file.name));
             let mut skip_content = false;
             let mut file_to_process = file;
 
@@ -132,7 +129,7 @@ impl<
                 Ok(processed_file) => {
                     let snap = snapshot_mutex.lock().unwrap();
                     let _ = self.repository.link_file_to_snapshot(&snap.id, &processed_file.id);
-                    pb.inc(1);
+                    self.progress.inc(1, &format!("Completed {}", processed_file.name));
                     Ok(())
                 }
                 Err(e) => {
@@ -148,18 +145,25 @@ impl<
 
         result?;
 
-        pb.finish_with_message("File backup finished.");
+        self.progress.finish("File backup finished.");
 
         let mut snapshot = snapshot_mutex.into_inner().unwrap();
 
+        tracing::info!("Starting app list backup...");
         if let Ok(apps) = self.app_provider.list_apps(id) {
-            for app in apps {
-                let _ = self.repository.save_app(&app);
+            for app in &apps {
+                let _ = self.repository.save_app(app);
                 let _ = self.repository.link_app_to_snapshot(&snapshot.id, &app.id);
             }
+            tracing::info!("Backed up {} apps", apps.len());
         }
 
-        let _ = self.backup_structured_data(id, &snapshot.id, &encryption);
+        tracing::info!("Starting structured data backup (Contacts, SMS, Logs)...");
+        if let Err(e) = self.backup_structured_data(id, &snapshot.id, &encryption) {
+            tracing::error!("Structured data backup failed: {}", e);
+        } else {
+            tracing::info!("Structured data backup completed successfully");
+        }
 
         snapshot.status = SnapshotStatus::Completed;
         snapshot.finished_at = Some(Utc::now());
@@ -167,6 +171,19 @@ impl<
         snapshot.total_bytes = total_bytes_atomic.load(Ordering::Relaxed);
         snapshot.deduped_bytes = deduped_bytes_atomic.load(Ordering::Relaxed);
         self.repository.update_snapshot(&snapshot)?;
+
+        // --- SMART RETENTION: AUTO-PRUNING ---
+        // Jika snapshot ini 100% identik dengan yang sebelumnya, kita hapus snapshot sebelumnya.
+        // Ini memastikan timeline Anda hanya mencatat kejadian di mana ada perubahan data yang nyata.
+        if let Some(prev) = latest_snapshot {
+            if snapshot.total_bytes == prev.total_bytes
+               && snapshot.deduped_bytes == snapshot.total_bytes
+               && snapshot.total_files == prev.total_files {
+
+                info!("Redundant snapshot detected (100% identical). Pruning previous snapshot: {}", prev.id.0);
+                let _ = self.delete_snapshot(&prev.id);
+            }
+        }
 
         let default_strategy = domain::KeepCountStrategy { keep_limit: 10 };
         let _ = self.apply_retention_strategy(id, &default_strategy);
@@ -198,15 +215,15 @@ impl<
             let available = disk.available_space();
             if available < required_bytes {
                 anyhow::bail!(
-                    "Insufficient disk space on host. Required: {} GB, Available: {} GB",
-                    required_bytes / 1024 / 1024 / 1024,
-                    available / 1024 / 1024 / 1024
+                    "Insufficient disk space on host. Required: {:.2} MB, Available: {:.2} MB",
+                    required_bytes as f64 / 1024.0 / 1024.0,
+                    available as f64 / 1024.0 / 1024.0
                 );
             }
             info!(
-                "Storage check: OK (Available: {} GB, Required max: {} GB)",
-                available / 1024 / 1024 / 1024,
-                required_bytes / 1024 / 1024 / 1024
+                "Storage check: OK (Available: {:.2} MB, Required max: {:.2} MB)",
+                available as f64 / 1024.0 / 1024.0,
+                required_bytes as f64 / 1024.0 / 1024.0
             );
         }
         Ok(())

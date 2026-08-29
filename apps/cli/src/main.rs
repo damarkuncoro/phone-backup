@@ -9,6 +9,7 @@
 mod cli;
 mod commands;
 mod factory;
+mod progress;
 
 use adapter_adb::{AdbAppProvider, AdbDataProvider, AdbDeviceAdapter, AdbScannerAdapter};
 use adapter_database_sqlite::SqliteRepository;
@@ -19,6 +20,7 @@ use clap::Parser;
 use cli::Cli;
 use commands::execute_command;
 use factory::StorageFactory;
+use progress::CliProgress;
 
 fn main() -> Result<()> {
     // Initialize structured logging to terminal and file
@@ -50,6 +52,7 @@ fn main() -> Result<()> {
                 storage,
                 AdbAppProvider::new(),
                 AdbDataProvider::new(),
+                CliProgress::new(),
             );
             execute_command(cli, service)
         }
@@ -61,6 +64,7 @@ fn main() -> Result<()> {
                 storage,
                 MockAppProvider,
                 MockDataProvider,
+                CliProgress::new(),
             );
             execute_command(cli, service)
         }

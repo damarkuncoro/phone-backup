@@ -16,7 +16,8 @@ impl<
         T: StoragePort,
         A: AppProviderPort,
         DP: DataProviderPort,
-    > BackupService<D, S, R, T, A, DP>
+        P: ports::ProgressPort,
+    > BackupService<D, S, R, T, A, DP, P>
 {
     #[instrument(skip(self))]
     pub fn apply_retention_policy(&self, device_id: &DeviceId, policy: RetentionPolicy) -> Result<u32> {
@@ -68,16 +69,20 @@ impl<
 
         for schedule in schedules {
             if schedule.is_due() {
-                if connected_devices.iter().any(|d| d.id == schedule.device_id) {
-                    info!("Running scheduled backup for device {}...", schedule.device_id);
+                if let Some(device) = connected_devices.iter().find(|d| d.id == schedule.device_id) {
+                    info!("Running scheduled backup for device {} ({})", device.model, schedule.device_id);
+                    self.progress.start(1, &format!("Auto-backup: {}", device.model));
+
                     match self.perform_backup(&schedule.device_id, encryption.clone(), None) {
                         Ok(_) => {
                             let mut updated_schedule = schedule;
                             updated_schedule.last_run_at = Some(Utc::now());
                             self.repository.save_schedule(&updated_schedule)?;
+                            self.progress.finish(&format!("Auto-backup for {} completed", device.model));
                         }
                         Err(e) => {
                             error!("Scheduled backup failed for {}: {}", schedule.device_id, e);
+                            self.progress.finish(&format!("Auto-backup for {} failed", device.model));
                         }
                     }
                 }
