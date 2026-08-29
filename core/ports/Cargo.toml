@@ -7,5 +7,5 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-domain = { path = "../domain", package = "phone-backup-domain", version = "0.3.0" }
+domain = { path = "../domain", package = "phone-backup-domain", version = "0.3.1" }
 anyhow.workspace = true
