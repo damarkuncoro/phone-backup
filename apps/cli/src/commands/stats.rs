@@ -1,6 +1,14 @@
 use anyhow::Result;
 use application::BackupService;
 use domain::DeviceId;
+use number_prefix::NumberPrefix;
+
+fn format_bytes(bytes: u64) -> String {
+    match NumberPrefix::binary(bytes as f64) {
+        NumberPrefix::Standalone(n) => format!("{:.0} B", n),
+        NumberPrefix::Prefixed(prefix, n) => format!("{:.2} {}B", n, prefix),
+    }
+}
 
 pub fn run_stats<D, S, R, T, A, DP>(service: &BackupService<D, S, R, T, A, DP>) -> Result<()>
 where
@@ -17,17 +25,17 @@ where
     println!("Devices tracked:    {}", stats.total_devices);
     println!("Total snapshots:    {}", stats.total_snapshots);
     println!(
-        "Total data backed:  {:.2} GB",
-        stats.total_logical_bytes as f64 / 1024.0 / 1024.0 / 1024.0
+        "Total data backed:  {}",
+        format_bytes(stats.total_logical_bytes)
     );
     println!(
-        "Storage saved:      {:.2} GB ({:.1}%)",
-        stats.total_deduped_bytes as f64 / 1024.0 / 1024.0 / 1024.0,
+        "Storage saved:      {} ({:.1}%)",
+        format_bytes(stats.total_deduped_bytes),
         stats.efficiency_ratio()
     );
     println!(
-        "Physical storage:   {:.2} GB (estimated)",
-        (stats.total_logical_bytes - stats.total_deduped_bytes) as f64 / 1024.0 / 1024.0 / 1024.0
+        "Physical storage:   {} (estimated)",
+        format_bytes(stats.total_logical_bytes - stats.total_deduped_bytes)
     );
     Ok(())
 }

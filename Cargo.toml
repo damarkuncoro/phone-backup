@@ -45,6 +45,7 @@ kamadak-exif = "0.5"
 sysinfo = "0.30"
 which = "6.0"
 indicatif = "0.17"
+number_prefix = "0.4"
 rayon = "1.10"
 opendal = { version = "0.48", features = ["services-s3", "layers-blocking"] }
 tempfile = "3"

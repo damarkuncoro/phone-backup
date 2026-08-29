@@ -20,7 +20,7 @@ impl VerificationReport {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, serde::Serialize)]
 pub struct StorageStats {
     pub total_devices: u64,
     pub total_snapshots: u64,
