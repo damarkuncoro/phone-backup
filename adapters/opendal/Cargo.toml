@@ -7,6 +7,6 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-ports = { workspace = true, package = "phone-backup-ports" }
+ports = { workspace = true }
 opendal.workspace = true
 anyhow.workspace = true
