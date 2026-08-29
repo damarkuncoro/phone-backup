@@ -2,7 +2,7 @@ mod mappers;
 mod schema;
 
 use crate::mappers::RowMapper;
-use domain::{AppId, AppInfo, BackupSchedule, Device, DeviceId, FileEntry, Snapshot, SnapshotId};
+use domain::{AppId, AppInfo, BackupSchedule, Device, DeviceId, FileEntry, Snapshot, SnapshotId, Contact};
 use ports::RepositoryPort;
 use rusqlite::{params, Connection};
 use std::sync::{Arc, Mutex};
@@ -286,6 +286,219 @@ impl RepositoryPort for SqliteRepository {
         let mut files = Vec::new();
         for f in file_iter { files.push(f?); }
         Ok(files)
+    }
+
+    #[instrument(skip(self))]
+    fn save_contact(&self, snapshot_id: &SnapshotId, contact: &domain::Contact) -> anyhow::Result<()> {
+        let mut conn = self.conn.lock().unwrap();
+        let tx = conn.transaction()?;
+
+        let created_at = chrono::Utc::now().to_rfc3339();
+
+        // 1. Save main contact entry
+        tx.execute(
+            "INSERT INTO contacts (id, snapshot_id, source_id, display_name, notes, source, source_account, content_hash, metadata_json, created_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            params![
+                contact.id, snapshot_id.0, contact.source_id, contact.display_name,
+                contact.notes, contact.source, contact.source_account,
+                contact.content_hash, contact.metadata_json, created_at
+            ],
+        )?;
+
+        // 2. Save names
+        for name in &contact.names {
+            tx.execute(
+                "INSERT INTO contact_names (id, contact_id, display_name, given_name, middle_name, family_name, prefix, suffix)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                params![
+                    uuid::Uuid::new_v4().to_string(), contact.id,
+                    name.display_name, name.given_name, name.middle_name,
+                    name.family_name, name.prefix, name.suffix
+                ],
+            )?;
+        }
+
+        // 3. Save phones
+        for phone in &contact.phones {
+            tx.execute(
+                "INSERT INTO contact_phones (id, contact_id, raw_value, normalized_value, type, label, is_primary)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    uuid::Uuid::new_v4().to_string(), contact.id,
+                    phone.raw_value, phone.normalized_value, phone.phone_type,
+                    phone.label, if phone.is_primary { 1 } else { 0 }
+                ],
+            )?;
+        }
+
+        // 4. Save emails
+        for email in &contact.emails {
+            tx.execute(
+                "INSERT INTO contact_emails (id, contact_id, value, type, label, is_primary)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    uuid::Uuid::new_v4().to_string(), contact.id,
+                    email.value, email.email_type, email.label,
+                    if email.is_primary { 1 } else { 0 }
+                ],
+            )?;
+        }
+
+        // 5. Save addresses
+        for addr in &contact.addresses {
+            tx.execute(
+                "INSERT INTO contact_addresses (id, contact_id, formatted_address, street, city, region, postal_code, country, country_code, type, label)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                params![
+                    uuid::Uuid::new_v4().to_string(), contact.id,
+                    addr.formatted_address, addr.street, addr.city, addr.region,
+                    addr.postal_code, addr.country, addr.country_code,
+                    addr.address_type, addr.label
+                ],
+            )?;
+        }
+
+        // 6. Save organizations
+        for org in &contact.organizations {
+            tx.execute(
+                "INSERT INTO contact_organizations (id, contact_id, company_name, department, title, job_description, type, label)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                params![
+                    uuid::Uuid::new_v4().to_string(), contact.id,
+                    org.company_name, org.department, org.title,
+                    org.job_description, org.org_type, org.label
+                ],
+            )?;
+        }
+
+        // 7. Save URLs
+        for url in &contact.urls {
+            tx.execute(
+                "INSERT INTO contact_urls (id, contact_id, url, type, label)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![uuid::Uuid::new_v4().to_string(), contact.id, url.url, url.url_type, url.label],
+            )?;
+        }
+
+        // 8. Save Events
+        for event in &contact.events {
+            tx.execute(
+                "INSERT INTO contact_events (id, contact_id, event_type, event_date, label)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![uuid::Uuid::new_v4().to_string(), contact.id, event.event_type, event.event_date, event.label],
+            )?;
+        }
+
+        // 9. Save Photos
+        for photo in &contact.photos {
+            tx.execute(
+                "INSERT INTO contact_photos (id, contact_id, file_id, photo_hash, mime_type, is_primary)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                params![
+                    uuid::Uuid::new_v4().to_string(), contact.id,
+                    photo.file_id, photo.photo_hash, photo.mime_type,
+                    if photo.is_primary { 1 } else { 0 }
+                ],
+            )?;
+        }
+
+        // 10. Save Labels
+        for label_name in &contact.labels {
+            let label_id = uuid::Uuid::new_v4().to_string();
+            tx.execute(
+                "INSERT INTO contact_labels (id, snapshot_id, name, source, source_account)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
+                params![label_id, snapshot_id.0, label_name, contact.source, contact.source_account],
+            )?;
+
+            tx.execute(
+                "INSERT INTO contact_label_members (contact_id, label_id) VALUES (?1, ?2)",
+                params![contact.id, label_id],
+            )?;
+        }
+
+        tx.commit()?;
+        Ok(())
+    }
+
+    #[instrument(skip(self))]
+    fn search_contacts(&self, query: &str) -> anyhow::Result<Vec<(SnapshotId, domain::Contact)>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT * FROM contacts WHERE display_name LIKE ?1"
+        )?;
+        let pattern = format!("%{}%", query);
+
+        let contact_rows: Vec<(String, SnapshotId, Option<String>, String, Option<String>, String, Option<String>, Option<String>, Option<String>)> = stmt.query_map([pattern], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                SnapshotId(row.get::<_, String>(1)?),
+                row.get::<_, Option<String>>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, Option<String>>(4)?,
+                row.get::<_, String>(5)?,
+                row.get::<_, Option<String>>(6)?,
+                row.get::<_, Option<String>>(7)?,
+                row.get::<_, Option<String>>(8)?,
+            ))
+        })?.collect::<Result<Vec<_>, _>>()?;
+
+        let mut results = Vec::new();
+        for (id, s_id, source_id, display_name, notes, source, source_account, content_hash, metadata_json) in contact_rows {
+            let names = conn.prepare("SELECT * FROM contact_names WHERE contact_id = ?1")?
+                .query_map([&id], RowMapper::to_contact_name)?.collect::<Result<Vec<_>, _>>()?;
+
+            let phones = conn.prepare("SELECT * FROM contact_phones WHERE contact_id = ?1")?
+                .query_map([&id], RowMapper::to_contact_phone)?.collect::<Result<Vec<_>, _>>()?;
+
+            let emails = conn.prepare("SELECT * FROM contact_emails WHERE contact_id = ?1")?
+                .query_map([&id], RowMapper::to_contact_email)?.collect::<Result<Vec<_>, _>>()?;
+
+            let addresses = conn.prepare("SELECT * FROM contact_addresses WHERE contact_id = ?1")?
+                .query_map([&id], RowMapper::to_contact_address)?.collect::<Result<Vec<_>, _>>()?;
+
+            let organizations = conn.prepare("SELECT * FROM contact_organizations WHERE contact_id = ?1")?
+                .query_map([&id], RowMapper::to_contact_organization)?.collect::<Result<Vec<_>, _>>()?;
+
+            let urls = conn.prepare("SELECT * FROM contact_urls WHERE contact_id = ?1")?
+                .query_map([&id], RowMapper::to_contact_url)?.collect::<Result<Vec<_>, _>>()?;
+
+            let events = conn.prepare("SELECT * FROM contact_events WHERE contact_id = ?1")?
+                .query_map([&id], RowMapper::to_contact_event)?.collect::<Result<Vec<_>, _>>()?;
+
+            let photos = conn.prepare("SELECT * FROM contact_photos WHERE contact_id = ?1")?
+                .query_map([&id], RowMapper::to_contact_photo)?.collect::<Result<Vec<_>, _>>()?;
+
+            let labels = conn.prepare(
+                "SELECT cl.name FROM contact_labels cl
+                 JOIN contact_label_members clm ON cl.id = clm.label_id
+                 WHERE clm.contact_id = ?1"
+            )?.query_map([&id], |row| row.get::<_, String>(0))?.collect::<Result<Vec<_>, _>>()?;
+
+            results.push((s_id.clone(), Contact {
+                id,
+                snapshot_id: Some(s_id.0.clone()),
+                source_id,
+                display_name,
+                notes,
+                source,
+                source_account,
+                content_hash,
+                metadata_json,
+                names,
+                phones,
+                emails,
+                addresses,
+                organizations,
+                urls,
+                events,
+                photos,
+                labels,
+            }));
+        }
+
+        Ok(results)
     }
 
     #[instrument(skip(self))]

@@ -99,6 +99,7 @@ where
         }
         Commands::Doctor => doctor::run_doctor(&service)?,
         Commands::Search { query } => stats::run_search(&service, &query)?,
+        Commands::Contacts { query } => stats::run_contact_search(&service, &query)?,
         Commands::Clone { source, target } => stats::run_clone(&service, &source, &target)?,
         Commands::Photos { id } => device::list_photos(&service, &id)?,
         Commands::Schedule { command } => {

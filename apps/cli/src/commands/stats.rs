@@ -62,6 +62,33 @@ where
     Ok(())
 }
 
+pub fn run_contact_search<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>, query: &str) -> Result<()>
+where
+    D: ports::DevicePort,
+    S: ports::ScannerPort,
+    R: ports::RepositoryPort,
+    T: ports::StoragePort,
+    A: ports::AppProviderPort,
+    DP: ports::DataProviderPort,
+    P: ports::ProgressPort,
+{
+    println!("Searching for contact '{}'...", query);
+    let results = service.search_contacts(query)?;
+    println!("\nFound {} matches:", results.len());
+    println!("{:<15} {:<25} {:<30}", "SNAPSHOT", "NAME", "PHONES");
+    println!("{}", "-".repeat(70));
+    for (s_id, c) in results {
+        let phone = c.phones.get(0).map(|p| p.raw_value.clone()).unwrap_or_default();
+        println!(
+            "{:<15} {:<25} {:<30}",
+            &s_id.0[..8],
+            c.display_name,
+            phone
+        );
+    }
+    Ok(())
+}
+
 pub fn run_clone<D, S, R, T, A, DP, P>(
     service: &BackupService<D, S, R, T, A, DP, P>,
     source: &str,

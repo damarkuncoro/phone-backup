@@ -107,6 +107,16 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 *   Structured logging (`tracing`).
 *   Rolling file logs harian di `workspace/logs`.
 
+## ✅ PHASE 34 — Relational Contact Engine
+*   Migrasi dari format JSON ke **Full Relational Schema** di SQLite.
+*   Deep Extraction: Mendukung multiple phones, emails, addresses, organizations, dan events (Birthday).
+*   Constraint Enforcement: Penjaminan integritas data (Unique primary phones/emails).
+
+## ✅ PHASE 35 — Global Search & Advanced Navigation
+*   **Global Contact Search**: Pencarian lintas snapshot dan perangkat secara instan via SQL.
+*   **Drawer Sidebar Navigation**: Layout modern dengan sidebar tetap dan active state tracking.
+*   **Full-Page Views**: Migrasi dari modal-based UI ke full-page explorer untuk ruang kerja yang lebih luas.
+
 ---
 
 # NEXT GOALS (v1.0.0 Roadmap)

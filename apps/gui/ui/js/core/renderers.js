@@ -12,12 +12,17 @@ export const renderers = {
 
             return contacts.map((c, i) => {
                 if (!c) return "";
-                const name = c.name || "Unknown";
+                const name = c.display_name || "Unknown";
                 const phones = Array.isArray(c.phones) ? c.phones : [];
                 const emails = Array.isArray(c.emails) ? c.emails : [];
                 const addresses = Array.isArray(c.addresses) ? c.addresses : [];
                 const organizations = Array.isArray(c.organizations) ? c.organizations : [];
-                const notes = Array.isArray(c.notes) ? c.notes : [];
+                const notes = c.notes || "";
+
+                // Get first title and company
+                const mainOrg = organizations[0] || {};
+                const jobTitle = mainOrg.title || "";
+                const company = mainOrg.company_name || "";
 
                 return `
                     <div class="p-4 bg-white border border-slate-100 rounded-2xl flex items-start gap-4 shadow-sm hover:shadow-md transition-all group">
@@ -25,45 +30,45 @@ export const renderers = {
                             ${getInitials(name)}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <div class="font-bold text-slate-800 text-base truncate mb-1">${name}</div>
+                            <div class="font-bold text-slate-800 text-base truncate">${name}</div>
+
+                            <!-- Job & Company -->
+                            ${jobTitle || company ? `
+                                <div class="text-[10px] text-indigo-500 font-bold uppercase tracking-wider mb-2">
+                                    ${jobTitle}${jobTitle && company ? ' @ ' : ''}${company}
+                                </div>
+                            ` : ''}
 
                             <div class="space-y-1">
                                 ${phones.map(p => `
-                                    <div class="text-[11px] text-indigo-600 font-mono flex items-center gap-1.5 bg-indigo-50/50 px-2 py-0.5 rounded-md w-fit">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-                                        ${p}
+                                    <div class="text-[11px] text-slate-600 font-mono flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-md w-fit">
+                                        <svg class="w-3 h-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                                        ${p.raw_value} ${p.label ? `<span class="opacity-50 text-[9px]">(${p.label})</span>` : ''}
                                     </div>
                                 `).join('')}
 
                                 ${emails.map(em => `
                                     <div class="text-[11px] text-slate-500 truncate flex items-center gap-1.5 px-2">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                                        ${em}
+                                        <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                        ${em.value}
                                     </div>
                                 `).join('')}
                             </div>
 
-                            ${addresses.length > 0 || organizations.length > 0 ? `
+                            ${addresses.length > 0 ? `
                                 <div class="mt-3 pt-3 border-t border-slate-50 space-y-1.5">
-                                    ${organizations.map(o => `
-                                        <div class="text-[10px] text-slate-700 font-bold flex items-center gap-1.5">
-                                            <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5"/></svg>
-                                            ${o}
-                                        </div>
-                                    `).join('')}
                                     ${addresses.map(a => `
                                         <div class="text-[10px] text-slate-500 italic flex items-start gap-1.5 leading-tight">
                                             <svg class="w-3 h-3 text-slate-300 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                            ${a}
+                                            ${a.formatted_address || a.street || ""}
                                         </div>
                                     `).join('')}
                                 </div>
                             ` : ''}
 
-                            ${notes.length > 0 ? `
+                            ${notes ? `
                                 <div class="mt-2 bg-amber-50/40 p-2 rounded-xl text-[10px] text-amber-800 border border-amber-100/50">
-                                    <div class="flex items-center gap-1 mb-1 font-bold opacity-60 uppercase text-[8px] tracking-widest">Note</div>
-                                    ${notes.join(', ')}
+                                    ${notes}
                                 </div>
                             ` : ''}
                         </div>

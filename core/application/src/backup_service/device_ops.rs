@@ -141,6 +141,11 @@ impl<
     }
 
     #[instrument(skip(self))]
+    pub fn search_contacts(&self, query: &str) -> Result<Vec<(SnapshotId, domain::Contact)>> {
+        self.repository.search_contacts(query)
+    }
+
+    #[instrument(skip(self))]
     pub fn migrate_device(&self, source_id: &DeviceId, target_id: &DeviceId) -> Result<()> {
         info!("🚀 Starting migration: {} -> {}", source_id, target_id);
 

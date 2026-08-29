@@ -21,6 +21,7 @@ class App {
         window.runBackup = (id, paths) => this.runBackup(id, paths);
         window.loadDevices = () => this.refreshAll();
         window.viewSnapshots = (id) => this.loadHistory(id);
+        window.viewSnapshotDetails = (id) => this.browse(id);
         window.runKeygen = async () => {
             try {
                 const [secret, public_key] = await SettingsService.generateNewKeys();
@@ -51,6 +52,15 @@ class App {
         const refreshBtn = document.getElementById('refresh-btn');
         if (refreshBtn) refreshBtn.onclick = () => this.refreshAll();
 
+        // Sidebar Navigation
+        const dashBtn = document.getElementById('nav-dashboard-btn');
+        const devBtn = document.getElementById('nav-devices-btn');
+        const conBtn = document.getElementById('nav-contacts-btn');
+
+        if (dashBtn) dashBtn.onclick = () => this.updateSidebar('dashboard');
+        if (devBtn) devBtn.onclick = () => this.updateSidebar('devices');
+        if (conBtn) conBtn.onclick = () => this.updateSidebar('contacts');
+
         // Register Global Event Bus
         store.addEventListener('change', (e) => this.handleStateChange(e.detail));
         window.addEventListener('run-backup', (e) => this.runBackup(e.detail));
@@ -60,7 +70,7 @@ class App {
         window.addEventListener('restore-snapshot', (e) => this.runRestore(e.detail));
         window.addEventListener('add-schedule', (e) => this.addSchedule(e.detail));
         window.addEventListener('browse-snapshot', (e) => this.browse(e.detail));
-        window.addEventListener('close-browser', () => this.toggleView('dashboard'));
+        window.addEventListener('close-browser', () => this.updateSidebar('dashboard'));
 
         // Global Search
         const searchInput = document.getElementById('global-search');
@@ -72,9 +82,23 @@ class App {
                     this.notifier.show(`Searching for "${query}"...`, "info");
                     try {
                         const files = await api.invoke('search_files', { query });
+                        this.toggleView('browser');
                         if (this.browser) this.browser.show("Search Results", files);
                     } catch (err) { this.notifier.show("Search failed: " + err, "error"); }
                 }
+            };
+        }
+
+        // Global Contact Search
+        const conSearch = document.getElementById('contact-global-search');
+        if (conSearch) {
+            conSearch.oninput = async (e) => {
+                const query = e.target.value;
+                if (query.length < 2) return;
+                try {
+                    const results = await api.invoke('search_contacts', { query });
+                    this.renderGlobalContacts(results);
+                } catch (err) { console.error(err); }
             };
         }
 
@@ -142,13 +166,40 @@ class App {
     toggleView(view) {
         const dashboard = document.getElementById('dashboard-view');
         const browser = document.getElementById('browser-view');
+        const contacts = document.getElementById('contacts-view');
+
+        dashboard.classList.add('hidden');
+        browser.classList.add('hidden');
+        contacts.classList.add('hidden');
+
         if (view === 'browser') {
-            dashboard.classList.add('hidden');
             browser.classList.remove('hidden');
             window.scrollTo(0,0);
+        } else if (view === 'contacts') {
+            contacts.classList.remove('hidden');
         } else {
-            browser.classList.add('hidden');
             dashboard.classList.remove('hidden');
+        }
+    }
+
+    updateSidebar(active) {
+        this.toggleView(active === 'contacts' ? 'contacts' : 'dashboard');
+
+        const dashBtn = document.getElementById('nav-dashboard-btn');
+        const devBtn = document.getElementById('nav-devices-btn');
+        const conBtn = document.getElementById('nav-contacts-btn');
+
+        const activeClass = "w-full flex items-center gap-3 px-4 py-3 text-sm font-bold bg-indigo-500 text-white rounded-xl shadow-lg shadow-indigo-500/20";
+        const inactiveClass = "w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-indigo-200 hover:bg-white/5 rounded-xl transition-all";
+
+        if (dashBtn) dashBtn.className = (active === 'dashboard') ? activeClass : inactiveClass;
+        if (devBtn) devBtn.className = (active === 'devices') ? activeClass : inactiveClass;
+        if (conBtn) conBtn.className = (active === 'contacts') ? activeClass : inactiveClass;
+
+        if (active === 'dashboard') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (active === 'devices') {
+            document.getElementById('device-list')?.scrollIntoView({ behavior: 'smooth' });
         }
     }
 
@@ -224,6 +275,47 @@ class App {
             if (this.notifier) this.notifier.show("Schedule error", "error");
             else console.error("Schedule error:", e);
         }
+    }
+
+    renderGlobalContacts(results) {
+        const container = document.getElementById('global-contacts-results');
+        if (!container) return;
+
+        if (!results || results.length === 0) {
+            container.innerHTML = '<div class="col-span-full p-20 text-center text-slate-300 font-bold uppercase tracking-widest">No matching contacts</div>';
+            return;
+        }
+
+        const colors = ['bg-blue-500', 'bg-purple-500', 'bg-indigo-500', 'bg-pink-500', 'bg-teal-500'];
+
+        container.innerHTML = results.map((res, i) => {
+            const c = res.contact;
+            const sId = res.snapshot_id;
+            const name = c.display_name || "Unknown";
+            const getInitials = (n) => n.split(' ').filter(x => x).map(x => x[0]).join('').substring(0, 2).toUpperCase() || "?";
+
+            const org = (c.organizations || [])[0] || {};
+            const jobTitle = org.title || "";
+
+            return `
+                <div class="p-6 bg-white border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-xl transition-all cursor-pointer group relative" onclick="window.viewSnapshotDetails('${sId}')">
+                    <div class="absolute top-4 right-6 text-[8px] font-black bg-slate-100 text-slate-400 px-2 py-1 rounded-full uppercase tracking-tighter">Snapshot: ${sId.substring(0,8)}</div>
+                    <div class="flex items-center gap-4 mb-4 mt-2">
+                        <div class="w-12 h-12 ${colors[i % colors.length]} text-white rounded-2xl flex items-center justify-center font-black text-sm shadow-inner">
+                            ${getInitials(name)}
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="font-bold text-slate-800 text-lg truncate">${name}</div>
+                            <div class="text-[10px] text-indigo-500 font-black uppercase tracking-widest">${jobTitle}</div>
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        ${(c.phones || []).slice(0,2).map(p => `<div class="text-xs text-slate-600 font-mono flex items-center gap-2"><span class="opacity-30">📞</span> ${p.raw_value}</div>`).join('')}
+                        ${(c.emails || []).slice(0,1).map(em => `<div class="text-xs text-slate-400 truncate flex items-center gap-2"><span class="opacity-30">✉️</span> ${em.value}</div>`).join('')}
+                    </div>
+                </div>
+            `;
+        }).join('');
     }
 }
 

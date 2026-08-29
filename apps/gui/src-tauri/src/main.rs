@@ -101,7 +101,8 @@ fn main() {
             commands::system::switch_to_mock_storage,
             commands::system::switch_to_s3_storage,
             commands::system::search_files,
-            commands::system::add_schedule
+            commands::system::add_schedule,
+            commands::contact::search_contacts
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

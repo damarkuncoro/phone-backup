@@ -113,6 +113,11 @@ pub enum Commands {
         /// Query pattern
         query: String,
     },
+    /// Search for contacts globally
+    Contacts {
+        /// Query (name, phone, email)
+        query: String,
+    },
     /// Direct transfer from one device to another
     Clone {
         /// Source device id

@@ -19,5 +19,6 @@ commands.allow = [
     "search_files",
     "scan_device",
     "switch_to_mock_storage",
-    "switch_to_s3_storage"
+    "switch_to_s3_storage",
+    "search_contacts"
 ]

@@ -59,6 +59,12 @@ pub trait RepositoryPort: Send + Sync {
     /// Get a reference to structured data in a snapshot.
     fn get_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: &str) -> Result<Option<String>>;
 
+    /// Save a contact entry for a specific snapshot.
+    fn save_contact(&self, snapshot_id: &SnapshotId, contact: &domain::Contact) -> Result<()>;
+
+    /// Search for contacts across all snapshots.
+    fn search_contacts(&self, query: &str) -> Result<Vec<(SnapshotId, domain::Contact)>>;
+
     /// Save or update a backup schedule.
     fn save_schedule(&self, schedule: &BackupSchedule) -> Result<()>;
 

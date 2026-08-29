@@ -23,7 +23,7 @@ pub use file::{FileEntry, FileId};
 pub use snapshot::{Snapshot, SnapshotId, SnapshotStatus};
 pub use app::{AppInfo, AppId};
 pub use crypto::EncryptionMode;
-pub use data::{Contact, Sms, CallLog, StructuredData};
+pub use data::*;
 pub use media::MediaInfo;
 pub use schedule::{BackupSchedule, ScheduleFrequency};
 pub use policy::BackupPolicy;

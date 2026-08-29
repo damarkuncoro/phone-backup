@@ -239,6 +239,11 @@ impl<
     ) -> Result<()> {
         if let Ok(contacts) = self.data_provider.list_contacts(device_id) {
             let _ = self.store_structured_data(snapshot_id, "contacts", &contacts, encryption);
+
+            // Also index contacts in database for global search
+            for contact in contacts {
+                let _ = self.repository.save_contact(snapshot_id, &contact);
+            }
         }
 
         if let Ok(sms) = self.data_provider.list_sms(device_id) {

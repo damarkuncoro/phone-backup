@@ -10,14 +10,17 @@ A high-performance, secure, and professional Android backup platform written in 
 
 ### 🖥 Desktop GUI & Dashboard
 - **Modern Dashboard**: Visual summary of storage efficiency, engine health, and snapshot history built with Tauri, Tailwind CSS, and Chart.js.
-- **Modular Architecture**: Built using **Atomic Design** principles with Native Web Components for high maintainability and TDD readiness.
-- **Android Data Explorer**: View your backed-up **Contacts** and **SMS** messages directly from the dashboard.
-- **Real-time Progress HUD**: Floating status window with animated progress for long-running backup and restore operations.
+- **Modular Architecture**: Built using **Atomic Design** principles with Native Web Components for high maintainability.
+- **Drawer Sidebar Navigation**: Modern, fixed side navigation with persistent search and engine status.
+- **Full-Page Explorers**: Comprehensive views for File Browsing and Android Data (Contacts, SMS, Call Logs) without limiting modals.
+- **Global Contact Search**: Instantly find people across all snapshots and devices using a high-performance relational search engine.
+- **Real-time Progress HUD**: Floating status window with animated progress for long-running operations.
 - **Selective Backup (Dry Run)**: Scan device files first, then select specifically what you want to protect.
 
 ### 🧠 Intelligent Engine
-- **Block-level Deduplication**: Uses Content-Defined Chunking (FastCDC) to deduplicate large files, saving massive storage space.
-- **Smart Retention**: Automatically prunes redundant snapshots if no data has changed, keeping your backup timeline clean.
+- **Block-level Deduplication**: Uses Content-Defined Chunking (FastCDC) to deduplicate large files.
+- **Relational Data Engine**: Full SQLite relational schema for Contacts, supporting deep extraction of multiple phones, emails, and organizations with transactional integrity.
+- **Smart Retention**: Automatically prunes redundant snapshots if no data has changed.
 - **Fast Incremental Backup**: Scans device state and only transfers new or modified files.
 - **Streaming I/O**: Direct data transfer from ADB (`exec-out`) to the backup engine without temporary files.
 - **Parallel Processing**: multi-threaded hashing, compression, and encryption using `Rayon`.

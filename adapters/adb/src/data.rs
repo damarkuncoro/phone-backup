@@ -1,7 +1,7 @@
 use crate::client::AdbClient;
 use anyhow::Result;
 use chrono::{TimeZone, Utc};
-use domain::{CallLog, Contact, DeviceId, Sms};
+use domain::{CallLog, Contact, DeviceId, Sms, ContactName, ContactPhone, ContactEmail, ContactAddress, ContactOrganization, ContactUrl, ContactEvent};
 use ports::DataProviderPort;
 
 pub struct AdbDataProvider {
@@ -65,29 +65,107 @@ impl Default for AdbDataProvider {
 
 impl DataProviderPort for AdbDataProvider {
     fn list_contacts(&self, device_id: &DeviceId) -> Result<Vec<Contact>> {
-        let output = self.safe_content_query(device_id, "content://com.android.contacts/data", "display_name:data1:mimetype")?;
+        // Broad projection to capture most common data fields
+        let projection = "contact_id:display_name:mimetype:account_name:data1:data2:data3:data4:data5:data6:data7:data8:data9:data10";
+        let output = self.safe_content_query(device_id, "content://com.android.contacts/data", projection)?;
+
         let mut contacts_map = std::collections::HashMap::new();
 
         for line in output.lines() {
-            let name = Self::extract_value(line, "display_name").unwrap_or_else(|| "Unknown".to_string());
-            let value = Self::extract_value(line, "data1");
+            let contact_id = Self::extract_value(line, "contact_id").unwrap_or_else(|| "0".to_string());
+            let display_name = Self::extract_value(line, "display_name").unwrap_or_else(|| "Unknown".to_string());
             let mimetype = Self::extract_value(line, "mimetype").unwrap_or_default();
+            let account_name = Self::extract_value(line, "account_name");
 
-            if let Some(val) = value {
-                let contact = contacts_map.entry(name.clone()).or_insert(Contact {
-                    name,
-                    phones: vec![],
-                    emails: vec![],
-                    addresses: vec![],
-                    organizations: vec![],
-                    notes: vec![],
+            let data1 = Self::extract_value(line, "data1");
+            let data2 = Self::extract_value(line, "data2");
+            let data3 = Self::extract_value(line, "data3");
+            let data4 = Self::extract_value(line, "data4");
+            let data5 = Self::extract_value(line, "data5");
+            let data7 = Self::extract_value(line, "data7");
+            let data8 = Self::extract_value(line, "data8");
+            let data9 = Self::extract_value(line, "data9");
+
+            let contact = contacts_map.entry(contact_id.clone()).or_insert(Contact {
+                id: contact_id,
+                snapshot_id: None,
+                source_id: None, // Will be filled with contact_id if needed
+                display_name,
+                notes: None,
+                source: "android".to_string(),
+                source_account: account_name,
+                content_hash: None,
+                metadata_json: None,
+                names: vec![],
+                phones: vec![],
+                emails: vec![],
+                addresses: vec![],
+                organizations: vec![],
+                urls: vec![],
+                events: vec![],
+                photos: vec![],
+                labels: vec![],
+            });
+
+            if mimetype.contains("name") {
+                contact.names.push(ContactName {
+                    display_name: data1,
+                    given_name: data2,
+                    family_name: data3,
+                    prefix: data4,
+                    middle_name: data5,
+                    suffix: None,
                 });
-
-                if mimetype.contains("phone") {
-                    if !contact.phones.contains(&val) { contact.phones.push(val); }
-                } else if mimetype.contains("email") {
-                    if !contact.emails.contains(&val) { contact.emails.push(val); }
-                }
+            } else if mimetype.contains("phone") {
+                contact.phones.push(ContactPhone {
+                    raw_value: data1.unwrap_or_default(),
+                    normalized_value: data4,
+                    phone_type: data2,
+                    label: data3,
+                    is_primary: false,
+                });
+            } else if mimetype.contains("email") {
+                contact.emails.push(ContactEmail {
+                    value: data1.unwrap_or_default(),
+                    email_type: data2,
+                    label: data3,
+                    is_primary: false,
+                });
+            } else if mimetype.contains("postal-address") {
+                contact.addresses.push(ContactAddress {
+                    formatted_address: data1,
+                    address_type: data2,
+                    label: data3,
+                    street: data4,
+                    postal_code: data9,
+                    city: data7,
+                    region: data8,
+                    country: None,
+                    country_code: None,
+                });
+            } else if mimetype.contains("organization") {
+                contact.organizations.push(ContactOrganization {
+                    company_name: data1,
+                    org_type: data2,
+                    label: data3,
+                    title: data4,
+                    department: data5,
+                    job_description: None,
+                });
+            } else if mimetype.contains("note") {
+                contact.notes = data1;
+            } else if mimetype.contains("website") {
+                contact.urls.push(ContactUrl {
+                    url: data1.unwrap_or_default(),
+                    url_type: data2,
+                    label: data3,
+                });
+            } else if mimetype.contains("event") {
+                contact.events.push(ContactEvent {
+                    event_date: data1.unwrap_or_default(),
+                    event_type: data2.unwrap_or_else(|| "custom".to_string()),
+                    label: data3,
+                });
             }
         }
         Ok(contacts_map.into_values().collect())

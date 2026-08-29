@@ -1,10 +1,26 @@
+Schema terbaru Anda sudah **lebih baik dan lebih tepat** untuk backup contact dibanding versi sebelumnya. Relasi `contacts → phones/emails/addresses/organizations` sudah benar.
+
+Namun, untuk target **backup HP + kompatibilitas Google Contacts + restore**, saya sarankan beberapa perbaikan penting:
+
+1. Aktifkan SQLite foreign keys.
+2. Tambahkan tabel nama terstruktur.
+3. Tambahkan `updated_at`.
+4. Tambahkan `normalized_value` untuk nomor telepon.
+5. Tambahkan `label` custom.
+6. Tambahkan index.
+7. Perbaiki constraint `snapshot_data`.
+8. Gunakan `execute_batch()` agar schema lebih mudah dirawat.
+
+Berikut versi yang saya rekomendasikan.
+
 use rusqlite::Connection;
 
 pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
-    conn.execute_batch(
-        r#"
-    PRAGMA foreign_keys = ON;
+conn.execute_batch(
+r#"
+PRAGMA foreign_keys = ON;
 
+```
     -- =========================================================
     -- DEVICES
     -- =========================================================
@@ -229,7 +245,6 @@ pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
         id TEXT PRIMARY KEY,
 
         snapshot_id TEXT NOT NULL,
-        source_id TEXT,
 
         display_name TEXT NOT NULL,
 
@@ -238,9 +253,6 @@ pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
         source TEXT NOT NULL DEFAULT 'unknown',
 
         source_account TEXT,
-
-        content_hash TEXT,
-        metadata_json TEXT,
 
         created_at TEXT NOT NULL,
 
@@ -257,12 +269,6 @@ pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
     CREATE INDEX IF NOT EXISTS idx_contacts_display_name
     ON contacts(display_name);
 
-    CREATE INDEX IF NOT EXISTS idx_contacts_source
-    ON contacts(source, source_id);
-
-    CREATE INDEX IF NOT EXISTS idx_contacts_content_hash
-    ON contacts(content_hash);
-
     -- =========================================================
     -- CONTACT NAMES
     -- Google Contacts compatible structured names
@@ -271,7 +277,7 @@ pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
     CREATE TABLE IF NOT EXISTS contact_names (
         id TEXT PRIMARY KEY,
 
-        contact_id TEXT NOT NULL UNIQUE,
+        contact_id TEXT NOT NULL,
 
         display_name TEXT,
 
@@ -302,7 +308,7 @@ pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
 
         contact_id TEXT NOT NULL,
 
-        raw_value TEXT NOT NULL,
+        value TEXT NOT NULL,
 
         normalized_value TEXT,
 
@@ -322,10 +328,6 @@ pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
 
     CREATE INDEX IF NOT EXISTS idx_contact_phones_normalized_value
     ON contact_phones(normalized_value);
-
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_one_primary_phone
-    ON contact_phones(contact_id)
-    WHERE is_primary = 1;
 
     -- =========================================================
     -- CONTACT EMAILS
@@ -354,10 +356,6 @@ pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
 
     CREATE INDEX IF NOT EXISTS idx_contact_emails_value
     ON contact_emails(value);
-
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_one_primary_email
-    ON contact_emails(contact_id)
-    WHERE is_primary = 1;
 
     -- =========================================================
     -- CONTACT ADDRESSES
@@ -412,8 +410,6 @@ pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
         job_description TEXT,
 
         type TEXT,
-
-        label TEXT,
 
         FOREIGN KEY(contact_id)
             REFERENCES contacts(id)
@@ -481,7 +477,6 @@ pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
         contact_id TEXT NOT NULL,
 
         file_id TEXT,
-        photo_hash TEXT,
 
         mime_type TEXT,
 
@@ -507,8 +502,6 @@ pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
 
         name TEXT NOT NULL,
 
-        source TEXT,
-        source_account TEXT,
         source_id TEXT,
 
         FOREIGN KEY(snapshot_id)
@@ -540,7 +533,117 @@ pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
             ON DELETE CASCADE
     );
     "#,
-    )?;
+)?;
 
-    Ok(())
+Ok(())
+```
+
 }
+
+## Perubahan paling penting
+
+### `contact_names`
+
+Sebelumnya hanya:
+
+```text
+display_name
+```
+
+Sekarang dapat menyimpan:
+
+```text
+Damar Kuncoro
+
+given_name  = Damar
+middle_name = NULL
+family_name = Kuncoro
+prefix      = NULL
+suffix      = NULL
+```
+
+Ini jauh lebih baik untuk proses restore ke Android atau export ke vCard.
+
+---
+
+### `normalized_value` pada nomor telepon
+
+Contoh data asli:
+
+```text
+0812-1234-5678
++62 812 1234 5678
+081212345678
+```
+
+Dapat dinormalisasi menjadi:
+
+```text
++6281212345678
+```
+
+Ini penting untuk:
+
+* Contact deduplication
+* Contact merging
+* Search
+* Restore
+* Deteksi duplicate contact
+
+---
+
+## Struktur akhirnya
+
+```text
+snapshots
+    │
+    └── contacts
+          │
+          ├── contact_names
+          ├── contact_phones
+          ├── contact_emails
+          ├── contact_addresses
+          ├── contact_organizations
+          ├── contact_urls
+          ├── contact_events
+          ├── contact_photos
+          │
+          └── contact_label_members
+                    │
+                    ▼
+              contact_labels
+```
+
+## Satu rekomendasi arsitektur tambahan
+
+Untuk **backup system**, `contacts` yang terikat langsung ke `snapshot_id` sebenarnya sudah bagus untuk mempertahankan histori snapshot.
+
+Contohnya:
+
+```text
+Snapshot 001
+├── Damar
+└── Budi
+
+Snapshot 002
+├── Damar
+├── Budi
+└── Andi
+```
+
+Dengan desain ini Anda bisa nanti membangun fitur:
+
+```text
+Snapshot Diff
+```
+
+Misalnya:
+
+```text
++ Contact Added
++ Phone Number Added
+~ Contact Modified
+- Contact Deleted
+```
+
+Ini akan sangat cocok untuk roadmap berikutnya: **incremental contact backup + deduplication + restore engine**.
