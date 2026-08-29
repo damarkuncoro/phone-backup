@@ -12,11 +12,17 @@ impl DataProviderPort for MockDataProvider {
                 name: "John Doe".into(),
                 phones: vec!["+123456789".into()],
                 emails: vec!["john@example.com".into()],
+                addresses: vec!["123 Rust Lane".into()],
+                organizations: vec!["Ferris Corp".into()],
+                notes: vec!["Met at a conference".into()],
             },
             Contact {
                 name: "Jane Smith".into(),
                 phones: vec!["+987654321".into()],
                 emails: vec!["jane@example.com".into()],
+                addresses: vec![],
+                organizations: vec![],
+                notes: vec![],
             },
         ])
     }
@@ -33,9 +39,11 @@ impl DataProviderPort for MockDataProvider {
     fn list_call_logs(&self, _device_id: &DeviceId) -> Result<Vec<CallLog>> {
         Ok(vec![CallLog {
             number: "+123456789".into(),
+            name: Some("John Doe".into()),
             date: Utc::now(),
             duration_seconds: 120,
             type_code: 1,
+            location: Some("California".into()),
         }])
     }
 }

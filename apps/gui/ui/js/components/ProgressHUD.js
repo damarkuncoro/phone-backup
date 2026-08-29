@@ -31,10 +31,21 @@ export class ProgressHUD extends HTMLElement {
             bar.style.width = '60%';
         } else if (data.type === 'finish') {
             title.textContent = "SUCCESS";
+            bar.classList.remove('bg-red-500');
+            bar.classList.add('bg-indigo-600');
             bar.style.width = '100%';
             setTimeout(() => {
                 overlay.classList.add('translate-y-32', 'opacity-0');
             }, 3000);
+        } else if (data.type === 'error') {
+            title.textContent = "ENGINE ERROR";
+            title.className = "text-xs font-black text-red-600 uppercase tracking-widest italic";
+            bar.classList.remove('bg-indigo-600');
+            bar.classList.add('bg-red-500');
+            bar.style.width = '100%';
+            setTimeout(() => {
+                overlay.classList.add('translate-y-32', 'opacity-0');
+            }, 5000);
         }
 
         msg.textContent = data.message || "";

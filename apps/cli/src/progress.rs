@@ -40,4 +40,13 @@ impl ProgressPort for CliProgress {
             pb.finish_with_message(message.to_string());
         }
     }
+
+    fn error(&self, message: &str) {
+        let mut guard = self.pb.lock().unwrap();
+        if let Some(pb) = guard.take() {
+            pb.abandon_with_message(format!("❌ Error: {}", message));
+        } else {
+            eprintln!("❌ Error: {}", message);
+        }
+    }
 }

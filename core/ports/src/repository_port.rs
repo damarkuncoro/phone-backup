@@ -32,6 +32,9 @@ pub trait RepositoryPort: Send + Sync {
     /// List all snapshots for a device.
     fn list_snapshots(&self, device_id: &DeviceId) -> Result<Vec<Snapshot>>;
 
+    /// List all snapshots in the repository.
+    fn list_all_snapshots(&self) -> Result<Vec<Snapshot>>;
+
     /// Get the latest completed snapshot for a device.
     fn get_latest_snapshot(&self, device_id: &DeviceId) -> Result<Option<Snapshot>>;
 

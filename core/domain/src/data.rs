@@ -6,6 +6,9 @@ pub struct Contact {
     pub name: String,
     pub phones: Vec<String>,
     pub emails: Vec<String>,
+    pub addresses: Vec<String>,
+    pub organizations: Vec<String>,
+    pub notes: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,9 +22,11 @@ pub struct Sms {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CallLog {
     pub number: String,
+    pub name: Option<String>,
     pub date: DateTime<Utc>,
     pub duration_seconds: u32,
-    pub type_code: u8, // 1: incoming, 2: outgoing, etc.
+    pub type_code: u8, // 1: incoming, 2: outgoing, 3: missed, etc.
+    pub location: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

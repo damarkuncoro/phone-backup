@@ -67,22 +67,26 @@ impl<
         let schedules = self.repository.list_schedules()?;
         let connected_devices = self.device_adapter.discover()?;
 
-        for schedule in schedules {
+        for mut schedule in schedules {
             if schedule.is_due() {
                 if let Some(device) = connected_devices.iter().find(|d| d.id == schedule.device_id) {
                     info!("Running scheduled backup for device {} ({})", device.model, schedule.device_id);
+
+                    // Mark as attempted to avoid immediate retry loop on failure
+                    schedule.last_run_at = Some(Utc::now());
+                    let _ = self.repository.save_schedule(&schedule);
+
                     self.progress.start(1, &format!("Auto-backup: {}", device.model));
 
                     match self.perform_backup(&schedule.device_id, encryption.clone(), None) {
                         Ok(_) => {
-                            let mut updated_schedule = schedule;
-                            updated_schedule.last_run_at = Some(Utc::now());
-                            self.repository.save_schedule(&updated_schedule)?;
+                            info!("Auto-backup for {} completed successfully", device.model);
                             self.progress.finish(&format!("Auto-backup for {} completed", device.model));
                         }
                         Err(e) => {
                             error!("Scheduled backup failed for {}: {}", schedule.device_id, e);
-                            self.progress.finish(&format!("Auto-backup for {} failed", device.model));
+                            // We already updated last_run_at, so it won't retry until next interval (Hourly/Daily)
+                            self.progress.error(&format!("Auto-backup for {} failed: {}", device.model, e));
                         }
                     }
                 }

@@ -1,3 +1,5 @@
+import { utils } from '../core/utils.js';
+
 export class SnapshotList extends HTMLElement {
     set snapshots(data) {
         if (!data || data.length === 0) {
@@ -8,7 +10,7 @@ export class SnapshotList extends HTMLElement {
         this.innerHTML = `
             <div class="divide-y divide-slate-50">
                 ${data.map(s => {
-                    const sId = Array.isArray(s.id) ? s.id[0] : s.id;
+                    const sId = utils.getSafeId(s);
                     return `
                     <div class="snapshot-row flex items-center justify-between p-4 hover:bg-slate-50 transition-all cursor-pointer" id="snap-${sId}">
                         <div>
@@ -28,7 +30,7 @@ export class SnapshotList extends HTMLElement {
 
         // Add event listeners
         this.querySelectorAll('.snapshot-row').forEach((row, index) => {
-            const sId = Array.isArray(data[index].id) ? data[index].id[0] : data[index].id;
+            const sId = utils.getSafeId(data[index]);
             row.onclick = (e) => {
                 if (e.target.closest('.restore-btn')) return;
                 window.dispatchEvent(new CustomEvent('browse-snapshot', { detail: sId }));

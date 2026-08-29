@@ -4,10 +4,10 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 
 ---
 
-# STATUS PROYEK: v0.3.0-alpha 🚀
+# STATUS PROYEK: v0.3.1-stable 🚀
 
 ## ✅ PHASE 01 — Project Foundation
-*   Struktur Workspace (9 package).
+*   Struktur Workspace (10 package).
 *   Hexagonal Architecture (Ports & Adapters).
 
 ## ✅ PHASE 02 — Device Discovery
@@ -61,6 +61,7 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 
 ## ✅ PHASE 19 — Media Intelligence
 *   EXIF metadata extraction (Resolution, Camera).
+*   MP4/Video metadata processing.
 
 ## ✅ PHASE 20-22 — Scheduler & Retention
 *   Background schedule runner.
@@ -73,9 +74,23 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 *   Inisialisasi Tauri project.
 *   Backend Bridge (Rust Commands -> JavaScript).
 *   Event-driven real-time progress reporting.
-*   Dashboard visual dengan Tailwind CSS & Chart.js.
-*   Visualisasi efisiensi storage & snapshot history.
-*   Interactive Restore via UI.
+
+## ✅ PHASE 25 — Modular GUI Architecture
+*   **Atomic Design Implementation**: Komponen Web Native (Atom, Molecule, Organism).
+*   **Reactive State Management**: Centralized Store untuk konsistensi data.
+*   **Service Layer Pattern**: Decoupling API logic dari UI logic.
+
+## ✅ PHASE 26 — Android Data Explorer
+*   Visualisasi data terstruktur (SMS, Contacts) langsung di Dashboard.
+*   Tab-based navigation antara Files dan Android Data.
+
+## ✅ PHASE 27 — Smart Retention (Auto-Pruning)
+*   Otomatis menghapus snapshot lama jika snapshot terbaru 100% identik (redundan).
+*   Menjaga timeline backup tetap bersih dan bermakna.
+
+## ✅ PHASE 28 — Dynamic Infrastructure
+*   **Switchable Storage**: Berpindah provider storage (Local/Mock) secara runtime.
+*   Implementasi SOLID (Liskov Substitution Principle) pada layer infrastruktur.
 
 ## ✅ PHASE 30 — Failure Recovery
 *   **Resume Logic**: Melanjutkan backup yang terputus secara otomatis.
@@ -86,7 +101,7 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 
 ## ✅ PHASE 32 — Packaging
 *   Binary build untuk macOS & Linux.
-*   Published v0.2.0.
+*   Published v0.3.1.
 
 ## ✅ PHASE 33 — Observability
 *   Structured logging (`tracing`).
@@ -96,7 +111,7 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 
 # NEXT GOALS (v1.0.0 Roadmap)
 
-1.  **GUI Dashboard**: Tampilan visual untuk memantau storage.
+1.  **Cloud Sync GUI**: Pengaturan S3/Google Drive langsung dari panel Settings.
 2.  **iOS Support**: Eksplorasi adapter Apple via `libimobiledevice`.
 3.  **Encrypted Metadata**: Enkripsi database SQLite (`SQLCipher`).
-4.  **Auto-Backup Daemon**: Service yang jalan di background saat USB dicolok.
+4.  **Auto-Backup Daemon**: Service yang jalan di background saat USB dicolok (Plug & Forget).

@@ -42,6 +42,21 @@ impl<
     }
 
     #[instrument(skip(self))]
+    pub fn list_contacts(&self, id: &DeviceId) -> Result<Vec<domain::Contact>> {
+        self.data_provider.list_contacts(id)
+    }
+
+    #[instrument(skip(self))]
+    pub fn list_sms(&self, id: &DeviceId) -> Result<Vec<domain::Sms>> {
+        self.data_provider.list_sms(id)
+    }
+
+    #[instrument(skip(self))]
+    pub fn list_call_logs(&self, id: &DeviceId) -> Result<Vec<domain::CallLog>> {
+        self.data_provider.list_call_logs(id)
+    }
+
+    #[instrument(skip(self))]
     pub fn list_snapshots(&self, id: &DeviceId) -> Result<Vec<Snapshot>> {
         self.repository.list_snapshots(id)
     }
@@ -102,6 +117,22 @@ impl<
     #[instrument(skip(self))]
     pub fn delete_snapshot(&self, id: &SnapshotId) -> Result<()> {
         self.repository.delete_snapshot(id)
+    }
+
+    #[instrument(skip(self))]
+    pub fn prune_failed_snapshots(&self) -> Result<usize> {
+        let snapshots = self.repository.list_all_snapshots()?;
+        let mut deleted_count = 0;
+
+        for s in snapshots {
+            if s.status != domain::SnapshotStatus::Completed {
+                info!("Pruning incomplete/failed snapshot: {} (status: {:?})", s.id.0, s.status);
+                self.delete_snapshot(&s.id)?;
+                deleted_count += 1;
+            }
+        }
+
+        Ok(deleted_count)
     }
 
     #[instrument(skip(self))]

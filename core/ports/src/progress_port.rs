@@ -8,6 +8,9 @@ pub trait ProgressPort: Send + Sync {
 
     /// Mark the operation as finished.
     fn finish(&self, message: &str);
+
+    /// Report an error that occurred during the operation.
+    fn error(&self, message: &str);
 }
 
 /// A no-op implementation of ProgressPort.
@@ -16,4 +19,5 @@ impl ProgressPort for NoProgress {
     fn start(&self, _total: u64, _message: &str) {}
     fn inc(&self, _amount: u64, _message: &str) {}
     fn finish(&self, _message: &str) {}
+    fn error(&self, _message: &str) {}
 }

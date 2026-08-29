@@ -28,6 +28,7 @@ impl<
         encryption: EncryptionMode,
         policy: Option<BackupPolicy>,
     ) -> Result<Snapshot> {
+        info!("Starting perform_backup for device: {}", id.0);
         let policy = policy.unwrap_or_default();
 
         let device = self.device_adapter.info(id)?;
@@ -134,10 +135,11 @@ impl<
                 }
                 Err(e) => {
                     let snap = snapshot_mutex.lock().unwrap();
-                    self.mark_interrupted(&mut snap.clone(),
+                    let _ = self.mark_interrupted(&mut snap.clone(),
                         total_files_atomic.load(Ordering::Relaxed),
                         total_bytes_atomic.load(Ordering::Relaxed),
-                        deduped_bytes_atomic.load(Ordering::Relaxed))?;
+                        deduped_bytes_atomic.load(Ordering::Relaxed));
+                    self.progress.error(&format!("File processing error: {}", e));
                     Err(anyhow::anyhow!("File processing error: {}", e))
                 }
             }
@@ -235,14 +237,17 @@ impl<
         snapshot_id: &domain::SnapshotId,
         encryption: &EncryptionMode,
     ) -> Result<()> {
-        let contacts = self.data_provider.list_contacts(device_id)?;
-        self.store_structured_data(snapshot_id, "contacts", &contacts, encryption)?;
+        if let Ok(contacts) = self.data_provider.list_contacts(device_id) {
+            let _ = self.store_structured_data(snapshot_id, "contacts", &contacts, encryption);
+        }
 
-        let sms = self.data_provider.list_sms(device_id)?;
-        self.store_structured_data(snapshot_id, "sms", &sms, encryption)?;
+        if let Ok(sms) = self.data_provider.list_sms(device_id) {
+            let _ = self.store_structured_data(snapshot_id, "sms", &sms, encryption);
+        }
 
-        let logs = self.data_provider.list_call_logs(device_id)?;
-        self.store_structured_data(snapshot_id, "call_logs", &logs, encryption)?;
+        if let Ok(logs) = self.data_provider.list_call_logs(device_id) {
+            let _ = self.store_structured_data(snapshot_id, "call_logs", &logs, encryption);
+        }
 
         Ok(())
     }

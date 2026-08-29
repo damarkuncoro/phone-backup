@@ -19,6 +19,7 @@ adapter-adb = { workspace = true }
 adapter-database-sqlite = { workspace = true }
 adapter-filesystem = { workspace = true }
 adapter-mock = { workspace = true }
+adapter-opendal = { workspace = true }
 axum.workspace = true
 socketioxide.workspace = true
 tower.workspace = true

@@ -7,12 +7,17 @@ commands.allow = [
     "get_snapshots",
     "start_backup",
     "delete_snapshot",
+    "prune_failed_snapshots",
     "run_gc",
     "restore_snapshot",
     "get_doctor_report",
     "generate_keys",
     "add_schedule",
     "get_snapshot_files",
+    "get_structured_data",
+    "get_live_data",
     "search_files",
-    "scan_device"
+    "scan_device",
+    "switch_to_mock_storage",
+    "switch_to_s3_storage"
 ]

@@ -16,6 +16,7 @@
   <nav class="bg-indigo-700 text-white h-16 flex items-center px-8 justify-between shadow-lg sticky top-0 z-50">
     <div class="flex items-center gap-4">
       <span class="text-xl font-bold tracking-tight">phone-backup</span>
+      <input type="text" id="global-search" placeholder="Search files..." class="bg-indigo-800 text-white placeholder-indigo-300 px-4 py-1.5 rounded-md text-sm border-none focus:ring-2 focus:ring-white/50 w-64 outline-none ml-4">
       <!-- Tombol Test JS yang terjamin (Inline) -->
       <button onclick="console.log('Inline test'); alert('JavaScript Inline OK')" class="bg-indigo-500 px-3 py-1 text-xs rounded font-bold">INLINE TEST</button>
       <!-- Tombol Test JS untuk Module -->
@@ -26,7 +27,7 @@
     </div>
   </nav>
 
-  <main class="container mx-auto px-6 py-8">
+  <main id="dashboard-view" class="container mx-auto px-6 py-8">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <pb-stat id="stat-efficiency" label="Efficiency" value="-" subtext="Calculating..."></pb-stat>
         <pb-stat id="stat-snapshots" label="Snapshots" value="-" subtext="Total backups"></pb-stat>
@@ -51,9 +52,13 @@
     </div>
   </main>
 
+  <!-- Browser View (Replacement for Modal) -->
+  <div id="browser-view" class="hidden container mx-auto px-6 py-8">
+    <pb-file-browser id="file-browser"></pb-file-browser>
+  </div>
+
   <!-- Components -->
   <pb-progress-hud id="global-progress"></pb-progress-hud>
-  <pb-file-browser id="file-browser"></pb-file-browser>
   <pb-settings-modal id="settings-modal"></pb-settings-modal>
   <pb-notification id="notifier"></pb-notification>
 

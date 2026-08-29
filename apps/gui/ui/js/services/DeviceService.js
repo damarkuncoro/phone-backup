@@ -1,19 +1,26 @@
-import { api } from '../core/api.js';
+import { BaseService } from '../core/BaseService.js';
 
 /**
- * Service untuk menangani logika bisnis perangkat (Devices).
- * Sesuai prinsip SRP, kelas ini hanya peduli pada data perangkat.
+ * Service for Device Management.
+ * Modular approach using inheritance for common API behaviors.
  */
-export const DeviceService = {
-    async getAll() {
-        return await api.invoke('get_devices');
-    },
-
-    async scan(deviceId) {
-        return await api.invoke('scan_device', { deviceId });
-    },
-
-    async getStatus() {
-        return await api.invoke('get_doctor_report');
+export class DeviceService extends BaseService {
+    static async getAll() {
+        return await this.call('get_devices');
     }
-};
+
+    static async scan(deviceId) {
+        return await this.call('scan_device', { device_id: deviceId });
+    }
+
+    static async getLiveData(deviceId, dataType) {
+        return await this.call('get_live_data', {
+            device_id: deviceId,
+            data_type: dataType
+        });
+    }
+
+    static async getStatus() {
+        return await this.call('get_doctor_report');
+    }
+}

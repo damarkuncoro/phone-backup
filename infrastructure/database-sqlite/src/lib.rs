@@ -147,6 +147,16 @@ impl RepositoryPort for SqliteRepository {
     }
 
     #[instrument(skip(self))]
+    fn list_all_snapshots(&self) -> anyhow::Result<Vec<Snapshot>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare("SELECT * FROM snapshots ORDER BY started_at DESC")?;
+        let snapshot_iter = stmt.query_map([], RowMapper::to_snapshot)?;
+        let mut snapshots = Vec::new();
+        for s in snapshot_iter { snapshots.push(s?); }
+        Ok(snapshots)
+    }
+
+    #[instrument(skip(self))]
     fn get_latest_snapshot(&self, device_id: &DeviceId) -> anyhow::Result<Option<Snapshot>> {
         let snapshots = self.list_snapshots(device_id)?;
         Ok(snapshots.into_iter().find(|s| s.status == domain::SnapshotStatus::Completed))
