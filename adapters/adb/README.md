@@ -1,25 +1,36 @@
-# phone-backup-adapter-adb
+# phone-backup-adapter-adb 📱
 
-A concrete adapter implementation of `DevicePort`, `ScannerPort`, `AppProviderPort`, and `DataProviderPort` using the **Android Debug Bridge (ADB)**.
+A professional-grade adapter implementation for Android devices using the **Android Debug Bridge (ADB)**. This module acts as a bridge between the core backup engine and physical Android hardware.
 
-## 🧱 Submodules & `AdbClient`
+## 🏗 Modular Architecture (DDD)
 
-This crate is structured into modular components powered by a centralized ADB communication helper:
+This crate follows **Domain-Driven Design (DDD)** and **Clean Architecture** principles, organized into distinct layers:
 
-- **`client`**: `AdbClient` helper encapsulation for `adb` binary discovery, command execution, shell execution, and binary-safe `pull_file`/`push_file` streaming.
-- **`device`**: Implements `AdbDeviceAdapter` (`DevicePort`).
-- **`scanner`**: Implements `AdbScannerAdapter` (`ScannerPort`).
-- **`app`**: Implements `AdbAppProvider` (`AppProviderPort`).
-- **`data`**: Implements `AdbDataProvider` (`DataProviderPort`).
+- **`gateways/`**: Implementation of Domain Ports (`DevicePort`, `ScannerPort`, etc.). Acts as the Bounded Context Gateway.
+- **`parsers/`**: Anti-Corruption Layer (ACL). Responsible for translating raw ADB text output into rich Domain entities.
+- **`client/`**: Low-level transport layer managing ADB binary execution, connection pooling, and lifecycle.
+- **`scripts/`**: Centralized repository of optimized Android shell script templates.
 
-## 🛠 Functionality
+## 🚀 Advanced Features
 
-- **Device Discovery**: Lists connected Android devices via USB or WiFi.
-- **Remote Filesystem Scanning**: Uses optimized shell commands (`find`, `stat`) to quickly inventory large filesystems.
-- **Data Streaming**: Efficiently pulls and pushes files using binary-safe transfers via `AdbClient`.
-- **App Extraction**: Extracts APK files for backup and supports remote installation for cloning.
-- **Content Provider Querying**: Directly queries Android system providers for SMS, Contacts, and Call Logs.
+- **Hybrid MediaStore Scraper**: Combined filesystem `find` with `content query` to extract rich metadata (GPS coordinates, image dimensions, creation dates) **instantly** without downloading files.
+- **Zero-Copy Streaming I/O**: Direct data transfer from device to storage via memory streams (`exec-out`), bypassing slow temporary files and extending SSD life.
+- **Reactive Device Monitor**: Real-time hardware detection using `adb track-devices`. Notifies the engine immediately when a device is connected or removed.
+- **Resilience Engine**: Built-in **Exponential Backoff Retry** strategy to handle transient USB connection instabilities.
+- **Hardware Safety Guard**: Real-time monitoring of device **Battery Level** and **Thermal State** to protect user hardware during intensive backup tasks.
+
+## 🛠 Design Patterns Used
+
+- **Builder Pattern**: Fluent configuration for `AdbClient` (timeouts, custom paths).
+- **Factory Pattern**: Centralized creation of gateways via `AdbGatewayFactory`.
+- **Facade Pattern**: Simplified high-level API via `AdbAdapter` for easy integration.
+- **Command Builder**: Type-safe construction of complex ADB commands.
 
 ## ⚙️ Requirements
 
-This adapter requires the `adb` binary to be installed and available in the system `PATH`. It is compatible with devices running Android 5.0 (API 21) and above.
+- **ADB Binary**: Must be installed on the host system.
+- **Android Version**: Supports Android 5.0 (API 21) through Android 15+.
+- **Permissions**: Requires ADB Debugging enabled on the target device.
+
+---
+*Built for speed, reliability, and developer happiness.*

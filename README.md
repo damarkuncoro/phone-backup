@@ -10,24 +10,24 @@ A high-performance, secure, and professional Android backup platform written in 
 
 ### 🖥 Desktop GUI & Dashboard
 - **Modern Dashboard**: Visual summary of storage efficiency, engine health, and snapshot history built with Tauri, Tailwind CSS, and Chart.js.
-- **Modular Architecture**: Built using **Atomic Design** principles with Native Web Components for high maintainability.
-- **Drawer Sidebar Navigation**: Modern, fixed side navigation with persistent search and engine status.
-- **Full-Page Explorers**: Comprehensive views for File Browsing and Android Data (Contacts, SMS, Call Logs) without limiting modals.
-- **Global Contact Search**: Instantly find people across all snapshots and devices using a high-performance relational search engine.
+- **Reactive Monitoring**: Instantly detects when a phone is plugged in or unplugged.
+- **Full-Page Explorers**: Comprehensive views for File Browsing and Android Data (Contacts, SMS, Call Logs).
+- **Global Smart Search**: Instant Full-Text Search (FTS5) across all snapshots, messages, and contacts.
+- **Snapshot Diffing**: Visual markers for **New**, **Modified**, or **Deleted** files and contacts between backups.
 - **Real-time Progress HUD**: Floating status window with animated progress for long-running operations.
-- **Selective Backup (Dry Run)**: Scan device files first, then select specifically what you want to protect.
 
 ### 🧠 Intelligent Engine
+- **Hybrid MediaStore Scraper**: Extracts rich metadata (GPS locations, image dimensions) directly from Android system databases during scan.
 - **Block-level Deduplication**: Uses Content-Defined Chunking (FastCDC) to deduplicate large files.
-- **Relational Data Engine**: Full SQLite relational schema for Contacts, supporting deep extraction of multiple phones, emails, and organizations with transactional integrity.
-- **Smart Retention**: Automatically prunes redundant snapshots if no data has changed.
-- **Fast Incremental Backup**: Scans device state and only transfers new or modified files.
-- **Streaming I/O**: Direct data transfer from ADB (`exec-out`) to the backup engine without temporary files.
-- **Parallel Processing**: multi-threaded hashing, compression, and encryption using `Rayon`.
+- **Resilient Transport**: Automatic **Exponential Backoff Retry** for unstable USB connections.
+- **Safety Guards**: Automatically pauses or warns if the device battery is too low or temperature is too high.
+- **Zero-Copy Streaming**: Direct data transfer from device to storage via memory streams, extending SSD life.
+- **Parallel Processing**: Multi-threaded hashing, compression, and encryption using `Rayon`.
 
 ### 🛡 Security & Privacy
-- **Asymmetric Encryption**: Support for **age (X25519)** public-key encryption. Perform password-less backups while keeping the secret key safe.
-- **Zero-Knowledge Storage**: No plain-text data is stored; your data is encrypted before it hits the disk.
+- **At-Rest Encryption**: Database level encryption using **SQLCipher (AES-256)**.
+- **Asymmetric Object Crypto**: Support for **age (X25519)** public-key encryption for all backed-up files.
+- **Zero-Knowledge Storage**: Data is encrypted locally before hitting any storage backend.
 - **Authenticated Integrity**: Every object is hashed and verified to prevent silent data corruption.
 
 ---
@@ -40,14 +40,14 @@ The project follows strict **Clean Architecture** and **Hexagonal Architecture**
 phone-backup/
 ├── apps/
 │   ├── cli/            # Professional Command Line Interface
-│   └── gui/            # Desktop Dashboard (Modular Web Components)
+│   └── gui/            # Desktop Dashboard (Tauri + Web Components)
 ├── core/
 │   ├── domain/         # Pure business logic & entities
 │   ├── application/    # Use cases, ObjectManager, and Engine
 │   └── ports/          # Port definitions (Repository, Storage, etc.)
 ├── adapters/           # ADB, Cloud Storage (OpenDAL), Filesystem, Mock
-├── infrastructure/     # Persistence (SQLite modular repository)
-└── workspace/          # Centralized data (DB, Objects, Logs)
+├── infrastructure/     # Persistence (SQLite relational engine + FTS5)
+└── workspace/          # Centralized data (Encrypted DB, Objects, Logs)
 ```
 
 ---
@@ -64,43 +64,20 @@ phone-backup/
 git clone https://github.com/damarkuncoro/phone-backup.git
 cd phone-backup
 
-# Install CLI globally
-cargo install --path apps/cli
-```
-
----
-
-## 📖 Usage Guide
-
-### 1. Launching the Desktop GUI
-```bash
-cd apps/gui/src-tauri
-cargo tauri dev
-```
-
-### 2. System Diagnostic (CLI)
-```bash
-phone-backup doctor
-```
-
-### 3. Backup with Encryption (CLI)
-```bash
-phone-backup --adapter adb --pubkey "age1..." backup <DEVICE_ID>
-```
-
-### 4. Smart Restore
-```bash
-# Automatically restores to a versioned folder in your workspace
-phone-backup restore last
+# Build the CLI
+cargo build --release -p phone-backup
 ```
 
 ---
 
 ## 🧪 Testing & Quality
-The modular architecture allows for easy unit testing of both Rust and JavaScript components:
+The platform maintains a high-quality codebase with comprehensive testing:
+- **Modular Unit Tests**: Isolated logic tests for parsers, crypto, and hashing.
+- **Database Integration Tests**: Verification of relational integrity and migrations.
+- **E2E Real Device Tests**: Verified against real physical Android hardware (Xiaomi, Pixel, etc.).
+
 ```bash
-cargo test             # Rust Core Tests
-# (Future) npm test    # Frontend Atomic Component Tests
+cargo test --workspace    # Run all tests
 ```
 
 ---
