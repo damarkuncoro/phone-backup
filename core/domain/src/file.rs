@@ -5,7 +5,7 @@ use crate::{DeviceId, MediaInfo};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FileId(pub String);
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct FileEntry {
     pub id: FileId,
     pub device_id: DeviceId,

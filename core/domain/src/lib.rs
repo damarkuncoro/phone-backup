@@ -20,6 +20,7 @@ mod settings;
 mod value_objects;
 mod events;
 mod event_bus;
+mod scan_result;
 
 pub use capability::{Capability, CapabilityStatus, CapabilityMatrix};
 pub use device::{ConnectionType, Device, DeviceId};
@@ -37,3 +38,4 @@ pub use settings::{AppSettings, StorageBackend};
 pub use value_objects::{Checksum, DevicePath, StorageSize};
 pub use events::DomainEvent;
 pub use event_bus::{DomainEventBus, DomainEventHandler, EventHandlerRef};
+pub use scan_result::{ScanResult, ScanWarning, ScanSource};

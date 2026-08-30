@@ -58,9 +58,37 @@ impl ScannerAggregator {
     }
 
     pub fn scan(&self, device_id: &DeviceId, roots: Vec<String>) -> Result<Vec<FileEntry>> {
-        let media_entries = self.mediastore_scanner.scan(device_id)?;
+        let res = self.scan_with_result(device_id, roots)?;
+        Ok(res.files)
+    }
+
+    pub fn scan_with_result(&self, device_id: &DeviceId, roots: Vec<String>) -> Result<domain::ScanResult> {
+        let mut warnings = Vec::new();
+
+        let media_entries = match self.mediastore_scanner.scan(device_id) {
+            Ok(entries) => entries,
+            Err(e) => {
+                warnings.push(domain::ScanWarning {
+                    source: domain::ScanSource::MediaStoreImages,
+                    path: "MediaStore".to_string(),
+                    message: format!("MediaStore query warning: {}", e),
+                });
+                Vec::new()
+            }
+        };
+
         let scan_roots = self.resolve_roots(roots);
-        let filesystem_entries = self.filesystem_scanner.scan(device_id, &scan_roots)?;
+        let filesystem_entries = match self.filesystem_scanner.scan(device_id, &scan_roots) {
+            Ok(entries) => entries,
+            Err(e) => {
+                warnings.push(domain::ScanWarning {
+                    source: domain::ScanSource::FileSystem,
+                    path: scan_roots.join(", "),
+                    message: format!("Filesystem scan warning: {}", e),
+                });
+                Vec::new()
+            }
+        };
 
         let mut entries_map = BTreeMap::<String, FileEntry>::new();
 
@@ -77,6 +105,6 @@ impl ScannerAggregator {
             }
         }
 
-        Ok(entries_map.into_values().collect())
+        Ok(domain::ScanResult::new(entries_map.into_values().collect(), warnings))
     }
 }

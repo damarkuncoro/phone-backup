@@ -159,3 +159,20 @@ fn test_domain_event_bus_pub_sub() {
     assert_eq!(received.len(), 1);
     assert_eq!(received[0], event);
 }
+
+#[test]
+fn test_scan_result_warning_aggregation() {
+    use phone_backup_domain::{ScanResult, ScanWarning, ScanSource};
+
+    let warning = ScanWarning {
+        source: ScanSource::FileSystem,
+        path: "/sdcard/Android/data".to_string(),
+        message: "Permission denied (Scoped Storage)".to_string(),
+    };
+
+    let result = ScanResult::new(vec![], vec![warning.clone()]);
+    assert!(!result.is_successful());
+    assert_eq!(result.warning_count(), 1);
+    assert_eq!(result.file_count(), 0);
+    assert_eq!(result.warnings[0], warning);
+}
