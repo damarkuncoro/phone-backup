@@ -18,7 +18,19 @@ impl AdbDeviceRepository {
 
     pub fn discover(&self) -> Result<Vec<Device>> {
         let output = self.client.run(&["devices", "-l"])?;
-        Ok(DeviceParser::parse_devices_l(&output))
+        let basic_devices = DeviceParser::parse_devices_l(&output);
+
+        let mut full_devices = Vec::new();
+        for dev in basic_devices {
+            // Fetch rich info for each discovered device to populate manufacturer, version, storage, etc.
+            if let Ok(full_info) = self.get_info(&dev.id) {
+                full_devices.push(full_info);
+            } else {
+                full_devices.push(dev);
+            }
+        }
+
+        Ok(full_devices)
     }
 
     pub fn get_info(&self, id: &DeviceId) -> Result<Device> {
