@@ -1,6 +1,7 @@
 use crate::client::AdbClient;
 use anyhow::Result;
 use chrono::{TimeZone, Utc};
+use sha2::Digest;
 use domain::{CallLog, Contact, DeviceId, Sms, ContactName, ContactPhone, ContactEmail, ContactAddress, ContactOrganization, ContactUrl, ContactEvent};
 use ports::DataProviderPort;
 
@@ -87,9 +88,9 @@ impl DataProviderPort for AdbDataProvider {
             let data9 = Self::extract_value(line, "data9");
 
             let contact = contacts_map.entry(contact_id.clone()).or_insert(Contact {
-                id: contact_id,
+                id: uuid::Uuid::new_v4().to_string(), // Internal DB ID placeholder
                 snapshot_id: None,
-                source_id: None, // Will be filled with contact_id if needed
+                source_id: Some(contact_id),
                 display_name,
                 notes: None,
                 source: "android".to_string(),
@@ -168,6 +169,13 @@ impl DataProviderPort for AdbDataProvider {
                 });
             }
         }
+
+        // Calculate content hashes for deduplication
+        for contact in contacts_map.values_mut() {
+            let json = serde_json::to_string(&contact).unwrap_or_default();
+            contact.content_hash = Some(sha2::Sha256::digest(json.as_bytes()).iter().map(|b| format!("{:02x}", b)).collect());
+        }
+
         Ok(contacts_map.into_values().collect())
     }
 

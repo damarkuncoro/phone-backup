@@ -105,3 +105,34 @@ where
 {
     service.migrate_device(&DeviceId::new(source), &DeviceId::new(target))
 }
+
+pub fn run_sms_search<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>, query: &str) -> Result<()>
+where
+    D: ports::DevicePort,
+    S: ports::ScannerPort,
+    R: ports::RepositoryPort,
+    T: ports::StoragePort,
+    A: ports::AppProviderPort,
+    DP: ports::DataProviderPort,
+    P: ports::ProgressPort,
+{
+    println!("Searching for messages containing '{}'...", query);
+    let results = service.search_sms(query)?;
+    println!("\nFound {} matches:", results.len());
+    println!("{:<15} {:<15} {:<40}", "SNAPSHOT", "SENDER", "MESSAGE");
+    println!("{}", "-".repeat(70));
+    for (s_id, m) in results {
+        let body = if m.body.len() > 37 {
+            format!("{}...", &m.body[..37])
+        } else {
+            m.body.clone()
+        };
+        println!(
+            "{:<15} {:<15} {:<40}",
+            &s_id.0[..8],
+            m.address,
+            body.replace('\n', " ")
+        );
+    }
+    Ok(())
+}

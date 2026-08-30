@@ -133,13 +133,23 @@ impl ContactRepositoryPort for ContactRepository {
             )?;
 
             // Insert details
-            for name in &contact.names {
+            if let Some(name) = contact.names.first() {
                 tx.execute(
                     "INSERT INTO contact_names (id, contact_id, display_name, given_name, middle_name, family_name, prefix, suffix)
                      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-                    params![uuid::Uuid::new_v4().to_string(), new_id, name.display_name, name.given_name, name.middle_name, name.family_name, name.prefix, name.suffix],
+                    params![
+                        uuid::Uuid::new_v4().to_string(),
+                        new_id,
+                        name.display_name,
+                        name.given_name,
+                        name.middle_name,
+                        name.family_name,
+                        name.prefix,
+                        name.suffix
+                    ],
                 )?;
             }
+
             for phone in &contact.phones {
                 tx.execute(
                     "INSERT INTO contact_phones (id, contact_id, raw_value, normalized_value, type, label, is_primary)

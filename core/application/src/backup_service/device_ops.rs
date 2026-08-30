@@ -152,6 +152,16 @@ impl<
     }
 
     #[instrument(skip(self))]
+    pub fn search_sms(&self, query: &str) -> Result<Vec<(SnapshotId, domain::Sms)>> {
+        self.repository.search_sms(query)
+    }
+
+    #[instrument(skip(self))]
+    pub fn list_media_files(&self, device_id: &DeviceId) -> Result<Vec<FileEntry>> {
+        self.repository.list_media_files(device_id)
+    }
+
+    #[instrument(skip(self))]
     pub fn migrate_device(&self, source_id: &DeviceId, target_id: &DeviceId) -> Result<()> {
         info!("🚀 Starting migration: {} -> {}", source_id, target_id);
 

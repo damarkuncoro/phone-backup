@@ -104,8 +104,8 @@ impl<
 
         // We need a thread-safe way to update the snapshot if interrupted
         let snapshot_mutex = Mutex::new(snapshot);
-        // We need a thread-safe way to collect processed files for batch linking
-        let processed_ids = Mutex::new(Vec::with_capacity(files.len()));
+        // We need a thread-safe way to collect processed files for batch saving and linking
+        let processed_files = Mutex::new(Vec::with_capacity(files.len()));
 
         let result: Result<()> = files.into_par_iter().try_for_each(|file| {
             if already_backed_up.contains(&file.path) {
@@ -130,11 +130,11 @@ impl<
 
             match processor.process_file(id, file_to_process, skip_content) {
                 Ok(processed_file) => {
-                    {
-                        let mut ids = processed_ids.lock().unwrap();
-                        ids.push(processed_file.id.clone());
-                    }
                     self.progress.inc(1, &format!("Completed {}", processed_file.name));
+                    {
+                        let mut batch = processed_files.lock().unwrap();
+                        batch.push(processed_file);
+                    }
                     Ok(())
                 }
                 Err(e) => {
@@ -151,11 +151,15 @@ impl<
 
         result?;
 
-        // Batch link all processed files to the snapshot
+        // Batch save all processed files and link them to the snapshot
         {
-            let ids = processed_ids.into_inner().unwrap();
+            let entries = processed_files.into_inner().unwrap();
             let snap = snapshot_mutex.lock().unwrap();
-            if !ids.is_empty() {
+            if !entries.is_empty() {
+                info!("Saving {} file entries in batch...", entries.len());
+                self.repository.save_files_batch(&entries)?;
+
+                let ids: Vec<domain::FileId> = entries.iter().map(|f| f.id.clone()).collect();
                 self.repository.link_files_to_snapshot_batch(&snap.id, &ids)?;
             }
         }
@@ -263,10 +267,20 @@ impl<
 
         if let Ok(sms) = self.data_provider.list_sms(device_id) {
             let _ = self.store_structured_data(snapshot_id, "sms", &sms, encryption);
+
+            // Also index SMS in database for global search
+            for msg in sms {
+                let _ = self.repository.save_sms(snapshot_id, &msg);
+            }
         }
 
         if let Ok(logs) = self.data_provider.list_call_logs(device_id) {
             let _ = self.store_structured_data(snapshot_id, "call_logs", &logs, encryption);
+
+            // Also index Call Logs
+            for log in logs {
+                let _ = self.repository.save_call_log(snapshot_id, &log);
+            }
         }
 
         Ok(())

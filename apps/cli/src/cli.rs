@@ -118,6 +118,11 @@ pub enum Commands {
         /// Query (name, phone, email)
         query: String,
     },
+    /// Search for SMS messages globally
+    Sms {
+        /// Query pattern
+        query: String,
+    },
     /// Direct transfer from one device to another
     Clone {
         /// Source device id

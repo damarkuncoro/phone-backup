@@ -45,11 +45,11 @@ where
 
             if file.size_bytes > 4 * 1024 * 1024 {
                 let chunks = self.object_manager.chunk_and_put(&content_buf)?;
-                // For chunked files, we store the file hash as the aggregate hash if needed,
-                // but usually CAS uses the chunk hashes. Let's still set the file hash.
                 file.hash_sha256 = Some(crate::hashing::calculate_hash(&content_buf));
 
-                // Save file record before chunks due to FK constraints
+                // We return chunks as part of a specialized result or just save them here.
+                // Since chunks are specific to ONE file and have FKs,
+                // we save the file record now to allow chunks to be saved.
                 self.service.repository.save_file(&file)?;
 
                 for (i, chunk) in chunks.into_iter().enumerate() {
@@ -61,11 +61,8 @@ where
                 if stored_size == 0 {
                     self.deduped_bytes.fetch_add(file.size_bytes, Ordering::Relaxed);
                 }
-                // Save file record
-                self.service.repository.save_file(&file)?;
+                // Small files will be batch-saved by the caller for better performance
             }
-        } else {
-             self.service.repository.save_file(&file)?;
         }
 
         self.total_bytes.fetch_add(file.size_bytes, Ordering::Relaxed);
