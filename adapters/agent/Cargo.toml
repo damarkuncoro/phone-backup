@@ -1,0 +1,23 @@
+[package]
+name = "phone-backup-adapter-agent"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Wireless Agent Adapter for Android Companion APK"
+
+[dependencies]
+phone-backup-domain = { workspace = true }
+phone-backup-ports = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+sha2 = { workspace = true }
+tracing = { workspace = true }
+tokio = { version = "1", features = ["full"] }
+
+[dev-dependencies]
+tempfile = { workspace = true }
