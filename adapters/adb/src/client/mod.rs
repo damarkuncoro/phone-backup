@@ -37,15 +37,35 @@ impl AdbClient {
         which::which("adb")
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_else(|_| {
-                let home = std::env::var("HOME").unwrap_or_default();
-                let paths = vec![
-                    format!("{}/Library/Android/sdk/platform-tools/adb", home),
-                    "/usr/local/bin/adb".to_string(),
-                    "/opt/homebrew/bin/adb".to_string(),
-                    "/usr/bin/adb".to_string(),
-                ];
+                let mut candidates = Vec::new();
 
-                for p in paths {
+                if let Ok(android_home) = std::env::var("ANDROID_HOME") {
+                    candidates.push(format!("{}/platform-tools/adb", android_home));
+                    candidates.push(format!("{}/platform-tools/adb.exe", android_home));
+                }
+
+                if let Ok(sdk_root) = std::env::var("ANDROID_SDK_ROOT") {
+                    candidates.push(format!("{}/platform-tools/adb", sdk_root));
+                    candidates.push(format!("{}/platform-tools/adb.exe", sdk_root));
+                }
+
+                let home = std::env::var("HOME").unwrap_or_default();
+                if !home.is_empty() {
+                    candidates.push(format!("{}/Library/Android/sdk/platform-tools/adb", home));
+                    candidates.push(format!("{}/.android/sdk/platform-tools/adb", home));
+                }
+
+                let local_app_data = std::env::var("LOCALAPPDATA").unwrap_or_default();
+                if !local_app_data.is_empty() {
+                    candidates.push(format!("{}/Android/Sdk/platform-tools/adb.exe", local_app_data));
+                }
+
+                candidates.push("/usr/local/bin/adb".to_string());
+                candidates.push("/opt/homebrew/bin/adb".to_string());
+                candidates.push("/usr/bin/adb".to_string());
+                candidates.push("/usr/lib/android-sdk/platform-tools/adb".to_string());
+
+                for p in candidates {
                     if std::path::Path::new(&p).exists() {
                         return p;
                     }

@@ -9,8 +9,10 @@ mod hashing;
 mod chunking;
 pub mod object_manager;
 pub mod object_store;
+mod progress_estimator;
 
 pub use backup_service::{BackupService, StorageStats, VerificationReport};
 pub use compression::CompressionEngine;
 pub use object_store::ObjectStoreKey;
 pub use security::EncryptionEngine;
+pub use progress_estimator::ProgressEstimator;
