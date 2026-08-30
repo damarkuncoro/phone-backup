@@ -179,6 +179,9 @@ impl FileRepositoryPort for SqliteRepository {
     fn search_files(&self, query: &str) -> anyhow::Result<Vec<FileEntry>> { self.files().search_files(query) }
     fn list_media_files(&self, device_id: &DeviceId) -> anyhow::Result<Vec<FileEntry>> { self.files().list_media_files(device_id) }
     fn get_recent_media(&self, limit: u32) -> anyhow::Result<Vec<FileEntry>> { self.files().get_recent_media(limit) }
+    fn get_file_diff(&self, old_snapshot_id: &SnapshotId, new_snapshot_id: &SnapshotId) -> anyhow::Result<domain::FileDiff> {
+        self.files().get_file_diff(old_snapshot_id, new_snapshot_id)
+    }
     fn save_file_chunk(&self, file_id: &FileId, chunk_hash: &str, offset: u64, length: u32, sequence: u32) -> anyhow::Result<()> {
         self.files().save_file_chunk(file_id, chunk_hash, offset, length, sequence)
     }
@@ -220,12 +223,14 @@ impl MaintenanceRepositoryPort for SqliteRepository {
 
 impl SmsRepositoryPort for SqliteRepository {
     fn save_sms(&self, snapshot_id: &SnapshotId, sms: &domain::Sms) -> anyhow::Result<()> { self.communication().save_sms(snapshot_id, sms) }
+    fn save_sms_batch(&self, snapshot_id: &SnapshotId, sms_list: &[domain::Sms]) -> anyhow::Result<()> { self.communication().save_sms_batch(snapshot_id, sms_list) }
     fn get_snapshot_sms(&self, snapshot_id: &SnapshotId) -> anyhow::Result<Vec<domain::Sms>> { self.communication().get_snapshot_sms(snapshot_id) }
     fn search_sms(&self, query: &str) -> anyhow::Result<Vec<(SnapshotId, domain::Sms)>> { self.communication().search_sms(query) }
 }
 
 impl CallLogRepositoryPort for SqliteRepository {
     fn save_call_log(&self, snapshot_id: &SnapshotId, log: &domain::CallLog) -> anyhow::Result<()> { self.communication().save_call_log(snapshot_id, log) }
+    fn save_call_logs_batch(&self, snapshot_id: &SnapshotId, logs: &[domain::CallLog]) -> anyhow::Result<()> { self.communication().save_call_logs_batch(snapshot_id, logs) }
     fn get_snapshot_call_logs(&self, snapshot_id: &SnapshotId) -> anyhow::Result<Vec<domain::CallLog>> { self.communication().get_snapshot_call_logs(snapshot_id) }
 }
 

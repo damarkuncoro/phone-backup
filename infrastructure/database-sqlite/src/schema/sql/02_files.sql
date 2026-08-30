@@ -8,7 +8,6 @@ CREATE TABLE IF NOT EXISTS files (
     mime_type TEXT NOT NULL,
     permissions TEXT NOT NULL,
     hash_sha256 TEXT,
-    thumbnail_hash TEXT,
     media_info TEXT,
     FOREIGN KEY(device_id) REFERENCES devices(id) ON DELETE CASCADE
 );

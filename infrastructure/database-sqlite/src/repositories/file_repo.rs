@@ -156,6 +156,45 @@ impl FileRepositoryPort for FileRepository {
         Ok(files)
     }
 
+    fn get_file_diff(&self, old_snapshot_id: &SnapshotId, new_snapshot_id: &SnapshotId) -> anyhow::Result<domain::FileDiff> {
+        let old_files = self.get_snapshot_files(old_snapshot_id)?;
+        let new_files = self.get_snapshot_files(new_snapshot_id)?;
+
+        let mut diff = domain::FileDiff::default();
+
+        let old_map: std::collections::HashMap<String, domain::FileEntry> = old_files.into_iter()
+            .map(|f| (f.path.clone(), f))
+            .collect();
+
+        let mut new_map: std::collections::HashMap<String, domain::FileEntry> = new_files.into_iter()
+            .map(|f| (f.path.clone(), f))
+            .collect();
+
+        for (path, new_file) in new_map.drain() {
+            if let Some(old_file) = old_map.get(&path) {
+                if old_file.hash_sha256 != new_file.hash_sha256 || old_file.size_bytes != new_file.size_bytes {
+                    diff.modified.push(new_file);
+                }
+            } else {
+                diff.added.push(new_file);
+            }
+        }
+
+        // Re-collect new_files to get paths for removal check
+        let new_files_again = self.get_snapshot_files(new_snapshot_id)?;
+        let new_paths: std::collections::HashSet<String> = new_files_again.into_iter()
+            .map(|f| f.path)
+            .collect();
+
+        for (path, old_file) in old_map {
+            if !new_paths.contains(&path) {
+                diff.removed.push(old_file);
+            }
+        }
+
+        Ok(diff)
+    }
+
     fn save_file_chunk(&self, file_id: &FileId, chunk_hash: &str, offset: u64, length: u32, sequence: u32) -> anyhow::Result<()> {
         let conn = self.pool.get()?;
         conn.execute(

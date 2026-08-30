@@ -178,11 +178,35 @@ impl<
         }
 
         tracing::info!("Starting structured data backup (Contacts, SMS, Logs)...");
-        if let Err(e) = self.backup_structured_data(id, &snapshot.id, &encryption) {
-            tracing::error!("Structured data backup failed: {}", e);
-        } else {
-            tracing::info!("Structured data backup completed successfully");
+        if let Ok(contacts) = self.data_provider.list_contacts(id) {
+            let _ = self.store_structured_data(&snapshot.id, "contacts", &contacts, &encryption);
+
+            // Index contacts for global search (deduplication handled by repo)
+            for contact in contacts {
+                if let Err(e) = self.repository.save_contact(&snapshot.id, &contact) {
+                    tracing::error!("Failed to index contact {}: {}", contact.display_name, e);
+                }
+            }
         }
+
+        if let Ok(sms) = self.data_provider.list_sms(id) {
+            let _ = self.store_structured_data(&snapshot.id, "sms", &sms, &encryption);
+
+            // Index SMS in batch for global search
+            if let Err(e) = self.repository.save_sms_batch(&snapshot.id, &sms) {
+                tracing::error!("Failed to index SMS batch: {}", e);
+            }
+        }
+
+        if let Ok(logs) = self.data_provider.list_call_logs(id) {
+            let _ = self.store_structured_data(&snapshot.id, "call_logs", &logs, &encryption);
+
+            // Index Call Logs in batch
+            if let Err(e) = self.repository.save_call_logs_batch(&snapshot.id, &logs) {
+                tracing::error!("Failed to index call log batch: {}", e);
+            }
+        }
+        tracing::info!("Structured data backup completed");
 
         snapshot.status = SnapshotStatus::Completed;
         snapshot.finished_at = Some(Utc::now());
@@ -192,8 +216,8 @@ impl<
         self.repository.update_snapshot(&snapshot)?;
 
         // --- SMART RETENTION: AUTO-PRUNING ---
-        // Jika snapshot ini 100% identik dengan yang sebelumnya, kita hapus snapshot sebelumnya.
-        // Ini memastikan timeline Anda hanya mencatat kejadian di mana ada perubahan data yang nyata.
+        // Feature disabled temporarily for debugging multiple snapshots
+        /*
         if let Some(prev) = latest_snapshot {
             if snapshot.total_bytes == prev.total_bytes
                && snapshot.deduped_bytes == snapshot.total_bytes
@@ -203,6 +227,7 @@ impl<
                 let _ = self.delete_snapshot(&prev.id);
             }
         }
+        */
 
         let default_strategy = domain::KeepCountStrategy { keep_limit: 10 };
         let _ = self.apply_retention_strategy(id, &default_strategy);
@@ -245,44 +270,6 @@ impl<
                 required_bytes as f64 / 1024.0 / 1024.0
             );
         }
-        Ok(())
-    }
-
-    pub(crate) fn backup_structured_data(
-        &self,
-        device_id: &DeviceId,
-        snapshot_id: &domain::SnapshotId,
-        encryption: &EncryptionMode,
-    ) -> Result<()> {
-        if let Ok(contacts) = self.data_provider.list_contacts(device_id) {
-            let _ = self.store_structured_data(snapshot_id, "contacts", &contacts, encryption);
-
-            // Also index contacts in database for global search
-            for contact in contacts {
-                if let Err(e) = self.repository.save_contact(snapshot_id, &contact) {
-                    tracing::error!("Failed to index contact {}: {}", contact.display_name, e);
-                }
-            }
-        }
-
-        if let Ok(sms) = self.data_provider.list_sms(device_id) {
-            let _ = self.store_structured_data(snapshot_id, "sms", &sms, encryption);
-
-            // Also index SMS in database for global search
-            for msg in sms {
-                let _ = self.repository.save_sms(snapshot_id, &msg);
-            }
-        }
-
-        if let Ok(logs) = self.data_provider.list_call_logs(device_id) {
-            let _ = self.store_structured_data(snapshot_id, "call_logs", &logs, encryption);
-
-            // Also index Call Logs
-            for log in logs {
-                let _ = self.repository.save_call_log(snapshot_id, &log);
-            }
-        }
-
         Ok(())
     }
 

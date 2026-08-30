@@ -35,6 +35,8 @@ pub trait FileRepositoryPort: Send + Sync {
     fn list_media_files(&self, device_id: &DeviceId) -> Result<Vec<FileEntry>>;
     /// Get recent media files across all devices.
     fn get_recent_media(&self, limit: u32) -> Result<Vec<FileEntry>>;
+    /// Get differences between two file snapshots.
+    fn get_file_diff(&self, old_snapshot_id: &SnapshotId, new_snapshot_id: &SnapshotId) -> Result<domain::FileDiff>;
     fn save_file_chunk(&self, file_id: &FileId, chunk_hash: &str, offset: u64, length: u32, sequence: u32) -> Result<()>;
     fn get_file_chunks(&self, file_id: &FileId) -> Result<Vec<(String, u64, u32)>>;
 }
@@ -76,12 +78,14 @@ pub trait MaintenanceRepositoryPort: Send + Sync {
 
 pub trait SmsRepositoryPort: Send + Sync {
     fn save_sms(&self, snapshot_id: &SnapshotId, sms: &domain::Sms) -> Result<()>;
+    fn save_sms_batch(&self, snapshot_id: &SnapshotId, sms_list: &[domain::Sms]) -> Result<()>;
     fn get_snapshot_sms(&self, snapshot_id: &SnapshotId) -> Result<Vec<domain::Sms>>;
     fn search_sms(&self, query: &str) -> Result<Vec<(SnapshotId, domain::Sms)>>;
 }
 
 pub trait CallLogRepositoryPort: Send + Sync {
     fn save_call_log(&self, snapshot_id: &SnapshotId, log: &domain::CallLog) -> Result<()>;
+    fn save_call_logs_batch(&self, snapshot_id: &SnapshotId, logs: &[domain::CallLog]) -> Result<()>;
     fn get_snapshot_call_logs(&self, snapshot_id: &SnapshotId) -> Result<Vec<domain::CallLog>>;
 }
 

@@ -20,7 +20,7 @@ mod settings;
 
 pub use capability::{Capability, CapabilityStatus, CapabilityMatrix};
 pub use device::{ConnectionType, Device, DeviceId};
-pub use file::{FileEntry, FileId};
+pub use file::{FileEntry, FileId, FileDiff};
 pub use snapshot::{Snapshot, SnapshotId, SnapshotStatus};
 pub use app::{AppInfo, AppId};
 pub use crypto::EncryptionMode;

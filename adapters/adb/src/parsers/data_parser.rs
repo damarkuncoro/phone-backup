@@ -1,22 +1,11 @@
-use crate::client::AdbClient;
-use anyhow::Result;
-use chrono::{TimeZone, Utc};
-use sha2::Digest;
 use domain::{CallLog, Contact, DeviceId, Sms, ContactName, ContactPhone, ContactEmail, ContactAddress, ContactOrganization, ContactUrl, ContactEvent};
-use ports::DataProviderPort;
+use chrono::{TimeZone, Utc};
+use sha2::{Sha256, Digest};
 
-pub struct AdbDataProvider {
-    client: AdbClient,
-}
+pub struct DataParser;
 
-impl AdbDataProvider {
-    pub fn new() -> Self {
-        Self {
-            client: AdbClient::new(),
-        }
-    }
-
-    fn extract_value(line: &str, key: &str) -> Option<String> {
+impl DataParser {
+    pub fn extract_value(line: &str, key: &str) -> Option<String> {
         let key_with_eq = format!("{}=", key);
         if let Some(start) = line.find(&key_with_eq) {
             let value_part = &line[start + key_with_eq.len()..];
@@ -26,7 +15,6 @@ impl AdbDataProvider {
                 value_part.trim().to_string()
             };
 
-            // Jika ADB mengembalikan literal "null" atau string kosong, anggap sebagai None
             if value.to_lowercase() == "null" || value.is_empty() {
                 return None;
             }
@@ -35,41 +23,7 @@ impl AdbDataProvider {
         None
     }
 
-    fn safe_content_query(&self, device_id: &DeviceId, uri: &str, projection: &str) -> Result<String> {
-        let output = self.client.shell(
-            &device_id.0,
-            &format!("content query --uri {} --projection {}", uri, projection),
-        );
-
-        match output {
-            Ok(out) => {
-                if out.contains("Permission denied") || out.contains("Error") {
-                    tracing::warn!("ADB query warning for {}: {}", uri, out.trim());
-                    Ok(String::new())
-                } else {
-                    Ok(out)
-                }
-            },
-            Err(e) => {
-                tracing::error!("ADB query failed for {}: {}", uri, e);
-                Ok(String::new()) // Return empty instead of error to keep backup alive
-            }
-        }
-    }
-}
-
-impl Default for AdbDataProvider {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl DataProviderPort for AdbDataProvider {
-    fn list_contacts(&self, device_id: &DeviceId) -> Result<Vec<Contact>> {
-        // Broad projection to capture most common data fields
-        let projection = "contact_id:display_name:mimetype:account_name:data1:data2:data3:data4:data5:data6:data7:data8:data9:data10";
-        let output = self.safe_content_query(device_id, "content://com.android.contacts/data", projection)?;
-
+    pub fn parse_contacts(_device_id: &DeviceId, output: &str) -> Vec<Contact> {
         let mut contacts_map = std::collections::HashMap::new();
 
         for line in output.lines() {
@@ -88,7 +42,7 @@ impl DataProviderPort for AdbDataProvider {
             let data9 = Self::extract_value(line, "data9");
 
             let contact = contacts_map.entry(contact_id.clone()).or_insert(Contact {
-                id: uuid::Uuid::new_v4().to_string(), // Internal DB ID placeholder
+                id: uuid::Uuid::new_v4().to_string(),
                 snapshot_id: None,
                 source_id: Some(contact_id),
                 display_name,
@@ -173,14 +127,13 @@ impl DataProviderPort for AdbDataProvider {
         // Calculate content hashes for deduplication
         for contact in contacts_map.values_mut() {
             let json = serde_json::to_string(&contact).unwrap_or_default();
-            contact.content_hash = Some(sha2::Sha256::digest(json.as_bytes()).iter().map(|b| format!("{:02x}", b)).collect());
+            contact.content_hash = Some(Sha256::digest(json.as_bytes()).iter().map(|b| format!("{:02x}", b)).collect());
         }
 
-        Ok(contacts_map.into_values().collect())
+        contacts_map.into_values().collect()
     }
 
-    fn list_sms(&self, device_id: &DeviceId) -> Result<Vec<Sms>> {
-        let output = self.safe_content_query(device_id, "content://sms", "address:body:date:type")?;
+    pub fn parse_sms(output: &str) -> Vec<Sms> {
         let mut messages = Vec::new();
         for line in output.lines() {
             if let (Some(address), Some(body), Some(date_str)) = (
@@ -199,11 +152,93 @@ impl DataProviderPort for AdbDataProvider {
             }
         }
         messages.sort_by(|a, b| b.date.cmp(&a.date));
-        Ok(messages)
+        messages
     }
 
-    fn list_call_logs(&self, device_id: &DeviceId) -> Result<Vec<CallLog>> {
-        let output = self.safe_content_query(device_id, "content://call_log/calls", "number:date:duration:type:name:geocoded_location")?;
+    pub fn parse_filesystem_scan(device_id: &DeviceId, stdout: &str) -> Vec<domain::FileEntry> {
+        stdout.lines()
+            .filter(|line| !line.is_empty())
+            .filter_map(|line| {
+                let parts: Vec<&str> = line.split('|').collect();
+                if parts.len() < 3 { return None; }
+
+                let path = parts[0].to_string();
+                let size_bytes = parts[1].parse::<u64>().unwrap_or(0);
+                let mtime_unix = parts[2].parse::<i64>().unwrap_or(0);
+
+                let modified_at = Utc.timestamp_opt(mtime_unix, 0)
+                    .single()
+                    .unwrap_or_else(Utc::now);
+
+                let name = path.split('/').last().unwrap_or("").to_string();
+                let mime_type = mime_guess::from_path(&path).first_or_octet_stream().to_string();
+
+                Some(domain::FileEntry {
+                    id: domain::FileId(path.clone()),
+                    device_id: device_id.clone(),
+                    path,
+                    name,
+                    size_bytes,
+                    modified_at,
+                    mime_type,
+                    permissions: String::new(),
+                    hash_sha256: None,
+                    thumbnail_hash: None,
+                    media_info: None,
+                })
+            })
+            .collect()
+    }
+
+    pub fn parse_mediastore(device_id: &DeviceId, output: &str) -> Vec<domain::FileEntry> {
+        output.lines()
+            .filter(|line| !line.is_empty())
+            .filter_map(|line| {
+                let path = Self::extract_value(line, "_data")?;
+                let size = Self::extract_value(line, "_size").and_then(|s| s.parse().ok()).unwrap_or(0);
+                let mtime = Self::extract_value(line, "date_modified").and_then(|s| s.parse().ok()).unwrap_or(0);
+                let mime = Self::extract_value(line, "mime_type").unwrap_or_default();
+
+                let width = Self::extract_value(line, "width").and_then(|s| s.parse().ok());
+                let height = Self::extract_value(line, "height").and_then(|s| s.parse().ok());
+                let taken_at_ms = Self::extract_value(line, "datetaken").and_then(|s| s.parse::<i64>().ok());
+                let lat = Self::extract_value(line, "latitude").and_then(|s| s.parse().ok());
+                let lon = Self::extract_value(line, "longitude").and_then(|s| s.parse().ok());
+
+                let modified_at = Utc.timestamp_opt(mtime, 0).single().unwrap_or_else(Utc::now);
+                let taken_at = taken_at_ms.and_then(|ms| Utc.timestamp_opt(ms / 1000, 0).single());
+
+                let media_info = if width.is_some() || height.is_some() || taken_at.is_some() || lat.is_some() {
+                    Some(domain::MediaInfo {
+                        width,
+                        height,
+                        taken_at,
+                        latitude: lat,
+                        longitude: lon,
+                        ..Default::default()
+                    })
+                } else {
+                    None
+                };
+
+                Some(domain::FileEntry {
+                    id: domain::FileId(path.clone()),
+                    device_id: device_id.clone(),
+                    path: path.clone(),
+                    name: path.split('/').last().unwrap_or("").to_string(),
+                    size_bytes: size,
+                    modified_at,
+                    mime_type: mime,
+                    permissions: String::new(),
+                    hash_sha256: None,
+                    thumbnail_hash: None,
+                    media_info,
+                })
+            })
+            .collect()
+    }
+
+    pub fn parse_call_logs(output: &str) -> Vec<CallLog> {
         let mut logs = Vec::new();
         for line in output.lines() {
             if let (Some(number), Some(date_str), Some(duration_str)) = (
@@ -222,6 +257,6 @@ impl DataProviderPort for AdbDataProvider {
                 });
             }
         }
-        Ok(logs)
+        logs
     }
 }

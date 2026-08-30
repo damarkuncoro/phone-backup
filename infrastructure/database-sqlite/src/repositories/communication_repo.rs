@@ -18,15 +18,28 @@ impl CommunicationRepository {
 
 impl SmsRepositoryPort for CommunicationRepository {
     fn save_sms(&self, snapshot_id: &SnapshotId, sms: &Sms) -> anyhow::Result<()> {
-        let conn = self.pool.get()?;
-        conn.execute(
-            "INSERT INTO messages (id, snapshot_id, address, body, date, type_code)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![
-                uuid::Uuid::new_v4().to_string(), snapshot_id.0,
-                sms.address, sms.body, sms.date.to_rfc3339(), sms.type_code
-            ],
-        )?;
+        self.save_sms_batch(snapshot_id, std::slice::from_ref(sms))
+    }
+
+    fn save_sms_batch(&self, snapshot_id: &SnapshotId, sms_list: &[Sms]) -> anyhow::Result<()> {
+        let mut conn = self.pool.get()?;
+        let tx = conn.transaction()?;
+
+        {
+            let mut stmt = tx.prepare_cached(
+                "INSERT INTO messages (id, snapshot_id, address, body, date, type_code)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)"
+            )?;
+
+            for sms in sms_list {
+                stmt.execute(params![
+                    uuid::Uuid::new_v4().to_string(), snapshot_id.0,
+                    sms.address, sms.body, sms.date.to_rfc3339(), sms.type_code
+                ])?;
+            }
+        }
+
+        tx.commit()?;
         Ok(())
     }
 
@@ -76,16 +89,29 @@ impl SmsRepositoryPort for CommunicationRepository {
 
 impl CallLogRepositoryPort for CommunicationRepository {
     fn save_call_log(&self, snapshot_id: &SnapshotId, log: &CallLog) -> anyhow::Result<()> {
-        let conn = self.pool.get()?;
-        conn.execute(
-            "INSERT INTO call_logs (id, snapshot_id, number, name, date, duration_seconds, type_code, location)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-            params![
-                uuid::Uuid::new_v4().to_string(), snapshot_id.0,
-                log.number, log.name, log.date.to_rfc3339(),
-                log.duration_seconds, log.type_code, log.location
-            ],
-        )?;
+        self.save_call_logs_batch(snapshot_id, std::slice::from_ref(log))
+    }
+
+    fn save_call_logs_batch(&self, snapshot_id: &SnapshotId, logs: &[CallLog]) -> anyhow::Result<()> {
+        let mut conn = self.pool.get()?;
+        let tx = conn.transaction()?;
+
+        {
+            let mut stmt = tx.prepare_cached(
+                "INSERT INTO call_logs (id, snapshot_id, number, name, date, duration_seconds, type_code, location)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)"
+            )?;
+
+            for log in logs {
+                stmt.execute(params![
+                    uuid::Uuid::new_v4().to_string(), snapshot_id.0,
+                    log.number, log.name, log.date.to_rfc3339(),
+                    log.duration_seconds, log.type_code, log.location
+                ])?;
+            }
+        }
+
+        tx.commit()?;
         Ok(())
     }
 

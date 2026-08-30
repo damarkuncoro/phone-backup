@@ -1,11 +1,11 @@
-pub mod app;
 pub mod client;
-pub mod data;
-pub mod device;
-pub mod scanner;
+pub mod gateways;
+pub mod parsers;
+pub mod scripts;
 
-pub use app::AdbAppProvider;
+// Re-export concrete implementations for use by the application layer
+pub use gateways::device::AdbDeviceGateway as AdbDeviceAdapter;
+pub use gateways::app::AdbAppGateway as AdbAppProvider;
+pub use gateways::scanner::AdbScannerGateway as AdbScannerAdapter;
+pub use gateways::data::AdbDataGateway as AdbDataProvider;
 pub use client::AdbClient;
-pub use data::AdbDataProvider;
-pub use device::AdbDeviceAdapter;
-pub use scanner::AdbScannerAdapter;

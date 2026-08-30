@@ -19,3 +19,10 @@ pub struct FileEntry {
     pub thumbnail_hash: Option<String>,
     pub media_info: Option<MediaInfo>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct FileDiff {
+    pub added: Vec<FileEntry>,
+    pub removed: Vec<FileEntry>,
+    pub modified: Vec<FileEntry>,
+}
