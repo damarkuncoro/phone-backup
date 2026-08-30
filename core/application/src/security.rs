@@ -96,11 +96,37 @@ impl EncryptionEngine {
 
         Ok(plaintext)
     }
+
+    /// Derive a 256-bit hex-encoded database encryption key from a user passphrase using Argon2id.
+    pub fn derive_database_key(passphrase: &str, salt: &[u8]) -> Result<String> {
+        let mut key = [0u8; 32];
+        Argon2::default()
+            .hash_password_into(passphrase.as_bytes(), salt, &mut key)
+            .map_err(|e| anyhow::anyhow!("Argon2 KDF error: {}", e))?;
+
+        let hex_key: String = key.iter().map(|b| format!("{:02x}", b)).collect();
+        Ok(hex_key)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_derive_database_key() {
+        let pass = "my_master_db_password";
+        let salt = b"phone_backup_db_salt";
+
+        let key1 = EncryptionEngine::derive_database_key(pass, salt).unwrap();
+        let key2 = EncryptionEngine::derive_database_key(pass, salt).unwrap();
+
+        assert_eq!(key1.len(), 64);
+        assert_eq!(key1, key2);
+
+        let key_diff_pass = EncryptionEngine::derive_database_key("different_pass", salt).unwrap();
+        assert_ne!(key1, key_diff_pass);
+    }
 
     #[test]
     fn test_encryption_decryption_roundtrip() {

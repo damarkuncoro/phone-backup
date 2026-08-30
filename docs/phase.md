@@ -139,10 +139,13 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 *   **Reactive Background Trigger**: Otomatis mendeteksi saat HP dicolok via USB dan memicu `trigger_on_connect_backup` tanpa intervensi pengguna.
 *   **Tauri Event Toasts**: Emisi event `"auto-backup-started"` dan `"auto-backup-finished"` untuk notifikasi visual di GUI.
 
+## ✅ PHASE 41 — Encrypted Metadata Engine (SQLCipher + Argon2id)
+*   **Argon2id Key Derivation**: Fungsi `derive_database_key` pada `EncryptionEngine` untuk menghasilkan kunci enkripsi 256-bit dari kata sandi pengguna.
+*   **Encrypted Repository Factory**: `SqliteRepositoryFactory::create_encrypted` dengan inisialisasi `PRAGMA key` otomatis pada connection customizer pool.
+
 ---
 
 # NEXT GOALS (v1.0.0 Roadmap)
 
 1.  **Cloud Sync GUI**: Pengaturan S3/Google Drive langsung dari panel Settings.
 2.  **iOS Support**: Eksplorasi adapter Apple via `libimobiledevice`.
-3.  **Encrypted Metadata**: Enkripsi database SQLite (`SQLCipher`).
