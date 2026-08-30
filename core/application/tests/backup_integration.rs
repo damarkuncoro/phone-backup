@@ -4,9 +4,12 @@ use adapter_filesystem::LocalStorage;
 use adapter_database_sqlite::SqliteRepository;
 use tempfile::TempDir;
 use std::fs;
+use std::sync::Mutex;
+static TEST_LOCK: Mutex<()> = Mutex::new(());
 
 #[test]
 fn test_full_backup_restore_lifecycle() {
+    let _guard = TEST_LOCK.lock().unwrap();
     // 1. Setup temporary directories for test
     let tmp_repo_dir = TempDir::new().unwrap();
     let tmp_storage_dir = TempDir::new().unwrap();
@@ -68,6 +71,7 @@ fn test_full_backup_restore_lifecycle() {
 
 #[test]
 fn test_asymmetric_backup_restore_lifecycle() {
+    let _guard = TEST_LOCK.lock().unwrap();
     let tmp_repo_dir = TempDir::new().unwrap();
     let tmp_storage_dir = TempDir::new().unwrap();
     let tmp_restore_dir = TempDir::new().unwrap();
