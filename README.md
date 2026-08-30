@@ -56,21 +56,212 @@ phone-backup/
 
 ---
 
-## 🚦 Getting Started
+## 🚦 Panduan Penggunaan Langkah Demi Langkah (Step-by-Step Guide)
 
-### Prerequisites
-- **Rust**: Latest stable toolchain.
-- **ADB**: Android Debug Bridge installed and authorized on your device.
-- **Node.js**: Required only for GUI development.
+Ikuti langkah-langkah berikut untuk mulai menggunakan **phone-backup** dari awal hingga data berhasil dicadangkan dan dipulihkan.
 
-### Installation
+---
+
+### 📱 Langkah 1: Persiapan Smartphone Android
+
+Sebelum menghubungkan smartphone ke komputer, Anda perlu mengaktifkan mode debugging pada perangkat:
+
+1. **Buka Pengaturan (Settings)** pada Android Anda.
+2. Masuk ke **Tentang Ponsel (About Phone)**.
+3. Cari **Nomor Bentukan (Build Number)** atau versi MIUI/HyperOS, lalu **ketuk sebanyak 7 kali** hingga muncul notifikasi *"Anda sekarang adalah seorang pengembang"* (Developer).
+4. Kembali ke menu utama Pengaturan ➔ **Sistem / Pengaturan Tambahan** ➔ **Opsi Pengembang (Developer Options)**.
+5. Aktifkan toggle **USB Debugging** (Debugging USB).
+6. *(Khusus Pengguna Xiaomi / Redmi / POCO)*:
+   - Aktifkan **USB Debugging (Security settings)** agar aplikasi diizinkan membaca Kontak & SMS.
+   - Aktifkan **Install via USB** jika ingin mengekspor / migrasi aplikasi.
+7. Hubungkan HP ke komputer menggunakan kabel USB data yang berkualitas.
+8. Saat pop-up konfirmasi **"Allow USB Debugging?"** muncul di layar HP, centang *"Always allow from this computer"* lalu tekan **OK / Izinkan**.
+
+---
+
+### 💻 Langkah 2: Persiapan Komputer & Instalasi
+
+Pastikan komputer Anda memiliki **ADB** dan compiler **Rust**.
+
+#### 1. Verifikasi / Instalasi ADB:
+- **macOS** (via Homebrew):
+  ```bash
+  brew install android-platform-tools
+  ```
+- **Linux (Ubuntu/Debian)**:
+  ```bash
+  sudo apt update && sudo apt install adb -y
+  ```
+- **Windows**: Unduh Android SDK Platform-Tools dan daftarkan ke System `PATH`.
+
+#### 2. Kloning Repositori & Build Project:
 ```bash
 git clone https://github.com/damarkuncoro/phone-backup.git
 cd phone-backup
 
-# Build the CLI
+# Build CLI binary versi release
 cargo build --release -p phone-backup
 ```
+*Binary yang dihasilkan akan berada di `./target/release/phone-backup`.*
+
+---
+
+### 🩺 Langkah 3: Diagnostik Sistem (Doctor Check)
+
+Sebelum melakukan backup, pastikan semua prasyarat sistem telah siap:
+
+```bash
+./target/release/phone-backup doctor
+```
+**Contoh Output Sehat:**
+```text
+🩺 Phone Backup Doctor - System Diagnostic
+-----------------------------------------
+Checking ADB installation... ✅ FOUND (Android Debug Bridge version 1.0.41)
+Checking connected devices... ✅ 1 device(s) detected
+Checking workspace integrity... ✅ backup.db found
+Checking storage connectivity... ✅ storage reachable
+
+System is ready for backup operations!
+```
+
+---
+
+### 🔍 Langkah 4: Deteksi & Cek Kapabilitas Perangkat
+
+#### 1. Cek Daftar HP yang Terhubung:
+```bash
+./target/release/phone-backup --adapter adb devices
+```
+*Catat **ID Perangkat** Anda (misalnya: `fynrorjncy6x4xib` atau `A1B2C3D4`).*
+
+#### 2. Cek Informasi & Matriks Izin Perangkat:
+```bash
+./target/release/phone-backup --adapter adb device-info <DEVICE_ID>
+```
+*Contoh:*
+```bash
+./target/release/phone-backup --adapter adb device-info fynrorjncy6x4xib
+```
+
+---
+
+### 💾 Langkah 5: Melakukan Backup Data
+
+Anda dapat memilih mode backup sesuai kebutuhan keamanan Anda:
+
+#### Opsi A: Backup Penuh Terenkripsi Password (Sangat Direkomendasikan)
+Mencadangkan seluruh data HP dengan enkripsi AES-256 + Argon2id:
+```bash
+./target/release/phone-backup --adapter adb backup -p "KataSandiSuperKuat123" <DEVICE_ID>
+```
+
+#### Opsi B: Backup Selektif Folder Tertentu (Misal: Hanya Foto / DCIM)
+Gunakan flag `-i` (`--include`) untuk memilih folder tertentu:
+```bash
+./target/release/phone-backup --adapter adb backup -i /storage/emulated/0/DCIM -p "KataSandiSuperKuat123" <DEVICE_ID>
+```
+
+#### Opsi C: Backup Zero-Knowledge dengan Kunci Asimetris (`age` X25519)
+1. **Buat pasangan kunci:**
+   ```bash
+   ./target/release/phone-backup keygen
+   ```
+   *Simpan Public Key (`age1...`) dan Secret Key (`AGE-SECRET-KEY-1...`).*
+2. **Jalankan backup dengan Public Key:**
+   ```bash
+   ./target/release/phone-backup --adapter adb backup --pubkey "age1..." <DEVICE_ID>
+   ```
+
+---
+
+### 📋 Langkah 6: Melihat Daftar Snapshot (Riwayat Backup)
+
+#### 1. Lihat Daftar Semua Snapshot:
+```bash
+./target/release/phone-backup --adapter adb snapshots <DEVICE_ID>
+```
+*Contoh Output:*
+```text
+Available Snapshots for device fynrorjncy6x4xib:
+  - 504f46de-2e86-4fcf-af29-68570cf8d68f | 2026-08-30 19:45:00 | 142 files | 1.84 GB
+```
+
+#### 2. Lihat Rincian Isi Snapshot Tertentu:
+```bash
+./target/release/phone-backup --adapter adb snapshots <DEVICE_ID> -s <SNAPSHOT_ID>
+```
+
+---
+
+### 🔎 Langkah 7: Pencarian Cepat Data (Full-Text Search FTS5)
+
+Cari data tanpa harus mengekstrak seluruh backup:
+- **Cari File**:
+  ```bash
+  ./target/release/phone-backup search "laporan_keuangan.pdf"
+  ```
+- **Cari Kontak**:
+  ```bash
+  ./target/release/phone-backup contacts "Budi"
+  ```
+- **Cari Pesan SMS / OTP**:
+  ```bash
+  ./target/release/phone-backup sms "Bank"
+  ```
+
+---
+
+### 🔄 Langkah 8: Memulihkan Data (Restore)
+
+#### 1. Restore Seluruh Snapshot ke Folder Lokal:
+```bash
+./target/release/phone-backup restore -p "KataSandiSuperKuat123" -t ./folder_hasil_restore <SNAPSHOT_ID>
+```
+
+#### 2. Restore Selektif dengan Pola Filter (Misal: Hanya file `.jpg`):
+```bash
+./target/release/phone-backup restore -p "KataSandiSuperKuat123" --filter "*.jpg" -t ./foto_restore <SNAPSHOT_ID>
+```
+
+#### 3. Restore Backup yang Terenkripsi Asymmetric Key (`age`):
+```bash
+./target/release/phone-backup --privkey "AGE-SECRET-KEY-1..." restore -t ./folder_hasil_restore <SNAPSHOT_ID>
+```
+
+---
+
+### 🖥 Langkah 9: Menggunakan Desktop GUI (Tauri Dashboard)
+
+Bagi pengguna yang lebih menyukai tampilan grafis interaktif:
+
+1. **Jalankan Dashboard GUI:**
+   ```bash
+   cargo tauri dev
+   ```
+2. **Fitur yang Tersedia di GUI:**
+   - **Dashboard Ringkasan**: Grafik efisiensi deduplikasi storage, kapasitas, dan status engine.
+   - **Live Device File Manager**: Jelajahi memori HP, download file ke PC, upload file ke HP, rename, delete, dan hitung hash SHA-256 secara langsung.
+   - **Visual Snapshot Diffing**: Bandingkan dua snapshot secara visual dengan status badge:
+     - 🟢 **New** (File baru).
+     - 🟡 **Modified** (File berubah isi/ukuran).
+     - 🔴 **Deleted** (File dihapus).
+     - ⚪ **Unchanged** (File identik).
+   - **Installed Apps Explorer**: Lihat seluruh aplikasi HP dan ekspor file `.apk` langsung ke komputer.
+   - **Android Data Explorer**: Baca Kontak, SMS, dan Riwayat Panggilan secara visual.
+
+---
+
+### 🧹 Langkah 10: Pemeliharaan Repository (Verify & GC)
+
+- **Verifikasi Integritas Data (Mendeteksi file korup/hilang)**:
+  ```bash
+  ./target/release/phone-backup verify -p "KataSandiSuperKuat123"
+  ```
+- **Garbage Collection (Membersihkan data sampah / orphan objects)**:
+  ```bash
+  ./target/release/phone-backup gc
+  ```
 
 ---
 

@@ -160,13 +160,49 @@ phone-backup restore -p "KataSandiSuperKuat" <SNAPSHOT_ID>
 ```
 *Contoh:* `phone-backup restore -p "my_secret_pass" 504f46de-2e86-4fcf-af29-68570cf8d68f`
 
-### 3.9 Full-Text Search (FTS5) & Query Global
-Cari file, kontak, atau SMS di seluruh snapshot secara cepat:
+### 3.9 Pencadangan, Pencarian & Ekspor Kontak (Contacts Management)
+
+Platform **phone-backup** secara otomatis mengekstrak seluruh data buku telepon Android melalui Content Provider (`content://com.android.contacts/data`) pada setiap sesi backup penuh maupun terstruktur.
+
+#### A. Data Kontak yang Didukung & Diamankan:
+- **Identitas**: Nama lengkap (*Display Name*), Nama depan, Nama belakang, Gelar (*Prefix/Suffix*).
+- **Nomor Telepon**: Multi-nomor (*Mobile, Home, Work, WhatsApp*) dengan normalisasi nomor internasional (E.164).
+- **Email & Alamat**: Email pribadi/kantor serta alamat fisik lengkap.
+- **Organisasi & Jabatan**: Nama perusahaan, departemen, dan judul pekerjaan.
+- **Catatan (Notes) & Label**: Label kustom dan catatan yang tersimpan pada kontak.
+
+#### B. Pencarian Kontak Instan (FTS5 Search):
+Cari kontak berdasarkan nama atau potongan nomor telepon langsung dari terminal:
 ```bash
-phone-backup search "Dokumen"
-phone-backup contacts "Budi"
-phone-backup sms "OTP"
+# Cari berdasarkan nama
+phone-backup contacts "Damar"
+
+# Cari berdasarkan awalan kode negara atau nomor
+phone-backup contacts "+62"
 ```
+*Contoh Output:*
+```text
+Searching for contact 'Damar'...
+
+Found 1 matches:
+SNAPSHOT        NAME                      PHONES                        
+----------------------------------------------------------------------
+b21c6f3c        damarkuncoro              +6285921495599                
+```
+
+#### C. Format Standar vCard (`.vcf`) & Ekspor:
+Data kontak yang telah di-backup dapat diekspor langsung ke format standar **vCard 4.0 / 3.0 (RFC 6350)** melalui antarmuka GUI atau API Tauri `export_contacts_vcard`. Berkas `.vcf` yang dihasilkan kompatibel 100% untuk diimpor kembali ke:
+- Google Contacts (Android baru)
+- Apple Contacts (iPhone / iPad / macOS)
+- Microsoft Outlook / Mozilla Thunderbird
+
+#### D. Visual Contact Diffing (GUI Matrix):
+Pada Desktop GUI, fitur *Visual Contact Diffing* membandingkan dua snapshot untuk menampilkan:
+- 🟢 **Kontak Baru**: Kontak yang baru ditambahkan sejak backup terakhir.
+- 🟡 **Kontak Berubah**: Kontak yang nomor telepon atau alamat emailnya dimodifikasi.
+- 🔴 **Kontak Terhapus**: Kontak yang sudah tidak ada di HP.
+
+---
 
 ### 3.10 Pemeliharaan & Garbage Collection (GC)
 Bersihkan data *orphan* yang tidak lagi dirujuk oleh snapshot manapun:

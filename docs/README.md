@@ -7,8 +7,9 @@ Welcome to the technical documentation for the **phone-backup** platform. This d
 1.  **[Project Phases & Roadmap](phase.md)**: The step-by-step evolution of the project from MVP to Production.
 2.  **[Software Architecture Document (SAD)](SAD/)**: Detailed hexagonal architecture, domain models, and data flow diagrams.
 3.  **[How-To Guides](howto/)**: Practical guides for common tasks (e.g., setting up S3, generating age keys).
-4.  **[Limitations & Known Issues](LIMITATIONS.md)**: Current technical boundaries and platform-specific quirks.
-5.  **[Technical Review & Hardware Assessment](REVIEW.md)**: Comprehensive technical review, physical device testing obstacles, and development recommendations.
+4.  **[Test Cases & Validation Report](TEST_CASES_REPORT.md)**: Comprehensive test results and multi-scenario trials report.
+5.  **[Limitations & Known Issues](LIMITATIONS.md)**: Current technical boundaries and platform-specific quirks.
+6.  **[Technical Review & Hardware Assessment](REVIEW.md)**: Comprehensive technical review, physical device testing obstacles, and development recommendations.
 
 ## 🏗 Key Architectural Principles
 
