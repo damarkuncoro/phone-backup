@@ -209,38 +209,62 @@ sequenceDiagram
 ---
 
 ### 🧪 Kasus 8: Pencadangan & Pencarian Kontak Android Nyata (*Real Contacts Backup & FTS5 Query*)
-- **Tujuan**: Memvalidasi proses ekstraksi kontak dari Content Provider Android (`content://com.android.contacts/data`), enkripsi terstruktur, pengindeksan Full-Text Search (FTS5), dan ekspor vCard standard.
+- **Tujuan**: Memvalidasi proses ekstraksi kontak langsung dari Content Provider Android (`content://com.android.contacts/data`) pada smartphone fisik Xiaomi (Android 14 HyperOS), enkripsi terstruktur, pengindeksan Full-Text Search (FTS5), dan ekspor vCard.
 - **Prasyarat Khusus**: Opsi `USB Debugging (Security settings)` aktif pada perangkat Xiaomi/HyperOS.
-- **Alur Eksekusi**:
-  1. Engine membaca data nama, nomor telepon, email, organisasi, dan alamat kontak.
-  2. Data kontak lengkap dienkripsi dengan AES-256 / age dan disimpan sebagai objek terstruktur (`StructuredDataType::Contacts`).
-  3. Relasi FTS5 dibuat di database `backup.db` untuk pencarian instan.
-- **Perintah Pencarian CLI**:
+- **Perintah Pencadangan Kontak Nyata**:
+  ```bash
+  phone-backup --adapter adb backup -i /storage/emulated/0/Pictures -p "RealPhoneContacts2026!" fynrorjncy6x4xib
+  ```
+- **Log Eksekusi Backup Nyata**:
+  ```text
+  Starting backup for device fynrorjncy6x4xib...
+  INFO: Safety Check: Battery 98%, Temp 36.8°C - OK
+  INFO: Manifest built with 4 files
+  INFO: Backed up 413 apps
+  INFO: Starting structured data backup (Contacts, SMS, Logs)...
+  INFO: Backup Job Completed: 1456b4b3-5be6-4569-9177-72ddf93f0308
+
+  Backup completed successfully!
+  Snapshot ID: 1456b4b3-5be6-4569-9177-72ddf93f0308
+  Files:       4
+  Total Size:  722441 bytes
+  Deduplication: 100.0% (722441 bytes saved)
+  ```
+- **Uji Coba Pencarian Kontak Instan (FTS5 Query)**:
   ```bash
   phone-backup contacts "Damar"
+  phone-backup contacts "nabila"
   phone-backup contacts "+62"
   ```
 - **Hasil**: **PASSED ✅**
-- **Log Terminal**:
+- **Log Hasil Pencarian**:
   ```text
   Searching for contact 'Damar'...
 
   Found 1 matches:
   SNAPSHOT        NAME                      PHONES                        
   ----------------------------------------------------------------------
-  b21c6f3c        damarkuncoro              +6285921495599                
+  06949444        damarkuncoro              +6285921495599                
+
+  Searching for contact 'nabila'...
+
+  Found 1 matches:
+  SNAPSHOT        NAME                      PHONES                        
+  ----------------------------------------------------------------------
+  a11ad1c2        nabila +6285780166487     +6285780166487                
 
   Searching for contact '+62'...
 
   Found 2 matches:
   SNAPSHOT        NAME                      PHONES                        
   ----------------------------------------------------------------------
-  f3035871        6281510297979             6281510297979                 
-  26f312bc        nabila +6285780166487     +6285780166487                
+  217c4d2e        6281510297979             6281510297979                 
+  a11ad1c2        nabila +6285780166487     +6285780166487                
   ```
-- **Fitur Ekspor vCard & Diffing**:
-  - Format standar RFC 6350 (`.vcf`) didukung melalui `VCardEngine::export_to_vcard`.
-  - GUI Dashboard menyediakan Visual Contact Diffing untuk membandingkan nomor kontak yang bertambah, berubah, atau terhapus antar snapshot.
+- **Verifikasi Integritas Relasional & Objek Terenkripsi**:
+  - Seluruh objek kontak terenkripsi disimpan ke CAS storage dan terverifikasi sehat (`verify -p "..."` menghasilkan status `STATUS: HEALTHY`).
+  - Mendukung ekspor format standar RFC 6350 (`.vcf`) via `VCardEngine::export_to_vcard`.
+  - GUI Dashboard menyediakan Visual Contact Diffing untuk membandingkan kontak antar-snapshot.
 
 ---
 

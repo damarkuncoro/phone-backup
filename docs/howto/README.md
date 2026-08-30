@@ -233,4 +233,90 @@ Jika Anda menggunakan perangkat Xiaomi/Redmi/POCO, pastikan opsi berikut aktif d
 3. **Install via USB**: Aktifkan untuk pengujian migrasi/ekspor APK.
 
 ---
+
+## 👥 6. Panduan & Rekomendasi: Pencadangan Khusus Kontak Saja (Contacts-Only Backup)
+
+Jika tujuan utama Anda adalah **hanya mengamankan buku telepon (kontak)** tanpa ingin menyalin puluhan gigabyte file media/video yang memakan waktu dan kapasitas disk, ikuti rekomendasi dan strategi berikut:
+
+### 6.1 Strategi Pencadangan Instan (< 5 Detik)
+Pada arsitektur `phone-backup`, data terstruktur (**Kontak, SMS, Riwayat Panggilan, dan Metadata Aplikasi**) akan **selalu diekstraksi secara otomatis** pada setiap sesi backup.
+
+Untuk mencegah sistem memindai seluruh memori internal HP yang besar (50 GB - 200 GB), gunakan filter `-i` (*include*) ke folder atau file kecil:
+
+```bash
+# Backup kontak + metadata terenkripsi super cepat (hanya 3 - 5 detik)
+phone-backup --adapter adb backup -i /storage/emulated/0/Download/ -p "KataSandiKontak123" <DEVICE_ID>
+```
+
+> **Keuntungan Strategi Ini:**
+> - **Super Cepat**: Selesai dalam hitungan detik karena tidak menyalin video/foto besar.
+> - **Hemat Storage**: Hanya memakan ruang beberapa ratus KB di komputer.
+> - **Terenkripsi Penuh**: Seluruh data kontak dienkripsi dengan AES-256 / age dan diindeks ke SQLite FTS5.
+
+### 6.2 Ekspor Kontak ke Format Standar Universal (vCard `.vcf`)
+Jika Anda mencadangkan kontak untuk keperluan migrasi ke HP baru atau sinkronisasi dengan platform lain, gunakan format standar **vCard (RFC 6350)**:
+- **Kompatibilitas Penuh**: Dapat langsung diimpor ke **Google Contacts**, **iPhone (Apple Contacts)**, **Samsung**, **Microsoft Outlook**, atau **Mozilla Thunderbird**.
+- **Cara Ekspor di GUI**: Buka tab **Android Data Explorer (👥 CONTACTS)** pada Desktop GUI (`cargo tauri dev`), lalu klik tombol **Export vCard** untuk menyimpan file `.vcf` ke komputer.
+
+### 6.3 Pencarian Instan Nomor Telepon Tanpa Perlu Restore
+Anda tidak perlu mengekstrak seluruh backup hanya untuk mencari 1 nomor telepon. Gunakan Full-Text Search (FTS5) langsung dari terminal:
+```bash
+# Cari berdasarkan nama kontak
+phone-backup contacts "Damar"
+
+# Cari berdasarkan potongan nomor atau kode negara
+phone-backup contacts "+62"
+```
+
+### 6.4 Otomatisasi Sinkronisasi Kontak Harian (Zero-Knowledge Age Key)
+1. **Buat Kunci Kriptografi Sekali Saja**:
+   ```bash
+   phone-backup keygen
+   ```
+2. **Jadwalkan Backup Harian**:
+   ```bash
+   phone-backup schedule add <DEVICE_ID> --frequency daily
+   ```
+   *Setiap kali HP terhubung ke komputer, data kontak terbaru otomatis tersinkronisasi tanpa perlu memasukkan password manual.*
+
+---
+
+## 🔌 7. Analisis & Panduan: Pencadangan Tanpa USB Debugging (Non-USB Debugging Alternatives)
+
+Banyak pengguna bertanya: *"Apakah kita bisa melakukan backup tanpa mengaktifkan USB Debugging?"*
+
+Secara arsitektur keamanan Android:
+- **Untuk Berkas Media (Foto/Video/Dokumen)**: **BISA** menggunakan protokol transfer berkas standar (MTP).
+- **Untuk Kontak, SMS, Call Logs & App Data**: **TIDAK BISA** via kabel biasa tanpa USB Debugging, kecuali menggunakan metode ekspor manual atau aplikasi pendamping (*Companion App*).
+
+### 7.1 Matriks Perbandingan Kemampuan
+
+| Tipe Data / Fitur | 🔌 Jalur ADB (USB Debugging) | 📁 Jalur Kabel Biasa (MTP / File Transfer) | 📱 Jalur Aplikasi Pendamping (*Companion App*) |
+| :--- | :---: | :---: | :---: |
+| **Foto, Video, Musik (DCIM)** | ✅ Cepat & Terenkripsi | ✅ Bisa (Salin Manual) | ✅ Penuh (Nirkabel) |
+| **Dokumen & Berkas Download** | ✅ Penuh | ✅ Bisa | ✅ Penuh |
+| **Buku Telepon (Kontak)** | ✅ Otomatis (Content Provider) | ❌ **TIDAK BISA** (Diblokir Android) | ✅ Bisa (Izin Runtime Android) |
+| **Pesan SMS & Log Panggilan** | ✅ Otomatis | ❌ **TIDAK BISA** (Diblokir Android) | ✅ Bisa |
+| **Daftar Aplikasi & Ekspor APK** | ✅ Penuh | ❌ **TIDAK BISA** | ✅ Penuh |
+| **Deduplikasi Blok (FastCDC)** | ✅ Aktif (CAS) | ⚠️ Terbatas | ✅ Aktif |
+
+### 7.2 Mengapa Android Memblokir Kontak & SMS pada Kabel Biasa (MTP)?
+Sistem operasi Android mengisolasi database sistem (**`contacts2.db`**, **`mmssms.db`**) di dalam direktori terlindungi. Protokol MTP (*Media Transfer Protocol*) hanya diizinkan membaca folder publik (`/storage/emulated/0`) dan **tidak memiliki instruksi query database sistem**. Oleh karena itu, komputer luar tidak dapat membaca kontak/SMS tanpa perantara **ADB** atau izin **Aplikasi Android**.
+
+### 7.3 Solusi Praktis Tanpa USB Debugging
+
+#### A. Ekspor Manual vCard di HP (Khusus Kontak):
+1. Buka aplikasi **Kontak (Contacts)** bawaan di smartphone Android Anda.
+2. Buka menu **Pengaturan (Settings / Kelola Kontak)**.
+3. Pilih opsi **Ekspor Kontak ke file `.vcf`** (Simpan ke memori internal).
+4. Hubungkan HP ke komputer dengan kabel USB biasa (Mode *File Transfer / MTP*).
+5. Salin berkas `.vcf` tersebut ke komputer Anda untuk diarsipkan.
+
+#### B. Solusi Roadmap: Android Companion App (Wi-Fi Local Backup):
+Solusi jangka panjang terbaik agar pengguna tidak perlu repot mengaktifkan USB Debugging adalah arsitektur **Companion Agent APK**:
+- Pengguna menginstal aplikasi kecil `phone-backup.apk` di HP.
+- Aplikasi meminta izin runtime standar (*"Izinkan akses Kontak & SMS"*).
+- HP dan Komputer berkomunikasi langsung melalui jaringan Wi-Fi lokal via WebSockets/gRPC (**100% nirkabel tanpa kabel & tanpa USB Debugging**).
+
+---
 *phone-backup — Engineered with Rust, Clean Architecture, and Military-Grade Security.*

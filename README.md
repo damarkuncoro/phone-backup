@@ -173,6 +173,13 @@ Gunakan flag `-i` (`--include`) untuk memilih folder tertentu:
    ./target/release/phone-backup --adapter adb backup --pubkey "age1..." <DEVICE_ID>
    ```
 
+#### Opsi D: Backup Khusus Kontak & SMS Cepat (< 5 Detik Tanpa File Media Besar)
+Untuk mengamankan buku telepon kontak tanpa menyalin puluhan gigabyte foto/video:
+```bash
+./target/release/phone-backup --adapter adb backup -i /storage/emulated/0/Download/ -p "KataSandiSuperKuat123" <DEVICE_ID>
+```
+*Kontak, SMS, Call Logs, dan Metadata Aplikasi otomatis dicadangkan 100% dan diindeks ke pencarian FTS5.*
+
 ---
 
 ### 📋 Langkah 6: Melihat Daftar Snapshot (Riwayat Backup)

@@ -104,3 +104,9 @@ All IPC capabilities exposed to the frontend are bound by **Tauri ACL Permission
 ### Workspace Source & Test Isolation (`src/` vs `tests/`)
 - **100% Pure Production `src/`**: All crate `src/` directories are reserved exclusively for production business logic and structural declarations (zero inline `#[cfg(test)]` modules).
 - **Isolated Integration & Unit Test Suites**: Unit, integration, and scenario tests are hosted under dedicated `tests/` directories (`domain_tests.rs`, `security_compression_test.rs`, `filesystem_adapter_test.rs`, `mock_adapter_test.rs`, `encrypted_repo_test.rs`).
+
+---
+
+## 10. Future Architectural Extensions: Companion Agent APK
+For the complete technical blueprint and phased roadmap of the wireless, zero-debugging Android agent, refer to the dedicated document:
+- 📄 **[Android Companion Agent APK Roadmap](COMPANION_AGENT_ROADMAP.md)**: Specifications for mDNS discovery, mTLS pairing, gRPC streaming, and background sync.
