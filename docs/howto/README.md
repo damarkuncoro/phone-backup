@@ -312,11 +312,31 @@ Sistem operasi Android mengisolasi database sistem (**`contacts2.db`**, **`mmssm
 4. Hubungkan HP ke komputer dengan kabel USB biasa (Mode *File Transfer / MTP*).
 5. Salin berkas `.vcf` tersebut ke komputer Anda untuk diarsipkan.
 
-#### B. Solusi Roadmap: Android Companion App (Wi-Fi Local Backup):
+#### B. Solusi Nirkabel: Android Companion App (Wi-Fi Local Backup):
 Solusi jangka panjang terbaik agar pengguna tidak perlu repot mengaktifkan USB Debugging adalah arsitektur **Companion Agent APK**:
 - Pengguna menginstal aplikasi kecil `phone-backup.apk` di HP.
 - Aplikasi meminta izin runtime standar (*"Izinkan akses Kontak & SMS"*).
 - HP dan Komputer berkomunikasi langsung melalui jaringan Wi-Fi lokal via WebSockets/gRPC (**100% nirkabel tanpa kabel & tanpa USB Debugging**).
+
+### 7.4 Mengoperasikan Adapter Agen Nirkabel (`--adapter agent`)
+Anda dapat menjalankan CLI `phone-backup` dengan adapter agen nirkabel menggunakan flag `--adapter agent`:
+
+```bash
+# 1. Deteksi agen Android nirkabel yang aktif
+phone-backup --adapter agent devices
+
+# 2. Periksa detail spesifikasi dan matriks perizinan agen nirkabel
+phone-backup --adapter agent device-info AGENT_WIRELESS_01
+
+# 3. Pindai berkas jarak jauh via agen nirkabel
+phone-backup --adapter agent scan AGENT_WIRELESS_01
+
+# 4. Tampilkan aplikasi terpasang di HP via agen
+phone-backup --adapter agent apps AGENT_WIRELESS_01
+
+# 5. Jalankan pencadangan terenkripsi penuh nirkabel
+phone-backup --adapter agent backup -p "KataSandiNirkabel123" AGENT_WIRELESS_01
+```
 
 ---
 *phone-backup — Engineered with Rust, Clean Architecture, and Military-Grade Security.*

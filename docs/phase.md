@@ -147,14 +147,19 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 *   **Pure Production Code**: Menghapus seluruh blok `#[cfg(test)]` dari folder `src/` seluruh crate workspace (`core/domain`, `core/application`, `adapters/filesystem`, `adapters/mock`, `infrastructure/database-sqlite`).
 *   **Dedicated Test Suites**: Memisahkan test suite terisolasi ke direktori `tests/` (`domain_tests.rs`, `security_compression_test.rs`, `filesystem_adapter_test.rs`, `mock_adapter_test.rs`, `encrypted_repo_test.rs`).
 
+## ✅ PHASE 43 — Wireless Companion Agent Protocol & Rust Adapter (`adapters/agent`)
+*   **Crate Baru**: Pembuatan `adapters/agent` (`phone-backup-adapter-agent`) yang mengimplementasikan `ports::DevicePort`, `ports::ScannerPort`, `ports::DataProviderPort`, dan `ports::AppProviderPort`.
+*   **Protokol Nirkabel**: Definisi kontrak data nirkabel (`AgentHandshake`, `AgentFileScanResponse`, `AgentStructuredDataResponse`, `AgentHeartbeat`).
+*   **CLI Integration**: Dukungan penuh flag `--adapter agent` pada CLI `phone-backup`.
+*   **Scaffolding Android APK**: Inisialisasi struktur proyek native `apps/android-agent/` (Kotlin + Jetpack Compose + CameraX + `AndroidManifest.xml`).
+*   **Isolated Integration Tests**: Test suite terisolasi di `adapters/agent/tests/agent_adapter_test.rs`.
+
 ---
 
 # NEXT GOALS (v1.0.0 Roadmap)
 
-1.  **Android Companion Agent APK (Wireless Zero-Debugging Backup)**:
-    *   Aplikasi Android native (Kotlin + Jetpack Compose) untuk backup nirkabel via Wi-Fi lokal.
-    *   Discovery otomatis via mDNS/NSD dan Zero-Trust Pairing (QR Code / mTLS).
-    *   Izin runtime standar tanpa memerlukan *Developer Options* atau *USB Debugging*.
+1.  **Android Companion Agent APK (Wi-Fi gRPC / WebSocket Streaming Client)**:
+    *   Implementasi pipeline streaming biner dan pairing QR Code CameraX di Android APK.
     *   Dokumen detail: [**`docs/SAD/COMPANION_AGENT_ROADMAP.md`**](SAD/COMPANION_AGENT_ROADMAP.md).
 2.  **Cloud Sync GUI**: Pengaturan S3/Google Drive langsung dari panel Settings.
 3.  **iOS Support**: Eksplorasi adapter Apple via `libimobiledevice`.
