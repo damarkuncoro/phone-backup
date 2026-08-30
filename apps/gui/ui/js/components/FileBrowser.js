@@ -1,19 +1,27 @@
 import { FileListView } from './browser/FileListView.js';
 import { AndroidDataView } from './browser/AndroidDataView.js';
+import { DeviceService } from '../services/DeviceService.js';
 import './MediaGallery.js';
 
 export class FileBrowser extends HTMLElement {
     constructor() {
         super();
-        this.renderBase();
-
         this._selectedPaths = new Set();
         this._files = [];
         this._currentTab = 'files';
+        this._currentPath = "/storage/emulated/0";
+
+        this.renderBase();
 
         this.listView = new FileListView(this.querySelector('#list'), {
             onToggle: (path, selected) => this._togglePath(path, selected),
-            onRestore: (path) => this._onRestoreFile(path)
+            onRestore: (path) => this._onRestoreFile(path),
+            onBrowse: (path) => this._browseTo(path),
+            onDetails: (path) => this._onShowDetails(path),
+            onDelete: (path) => this._onDeleteFile(path),
+            onRename: (path, newName) => this._onRenameFile(path, newName),
+            onCopy: (path, target) => this._onCopyFile(path, target),
+            onUpload: () => this._onUploadFile()
         });
 
         this.dataView = new AndroidDataView(this.querySelector('#list'));
@@ -25,12 +33,13 @@ export class FileBrowser extends HTMLElement {
                 <div class="p-8 border-b bg-slate-50/80 flex justify-between items-start backdrop-blur-md">
                     <div class="flex-1">
                         <div class="flex items-center gap-4 mb-2">
-                            <button id="back-btn" class="p-2 -ml-2 hover:bg-white rounded-xl text-slate-400 hover:text-indigo-600 transition-all flex items-center gap-2 font-bold text-xs">
+                            <button id="back-btn" class="p-2 -ml-2 hover:bg-white rounded-xl text-slate-400 hover:text-indigo-600 transition-all flex items-center gap-2 font-bold text-xs uppercase tracking-widest">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
-                                BACK TO DASHBOARD
+                                Back
                             </button>
+                            <div id="breadcrumb" class="flex items-center gap-2 text-[10px] font-black text-slate-400 font-mono uppercase truncate max-w-xl"></div>
                         </div>
-                        <h3 id="title" class="text-3xl font-black text-slate-800 tracking-tight">Data Browser</h3>
+                        <h3 id="title" class="text-3xl font-black text-slate-800 tracking-tight">File Manager</h3>
                         <p id="subtitle" class="text-[10px] text-slate-400 font-mono mt-1 uppercase tracking-[0.2em] bg-slate-200/50 w-fit px-2 py-0.5 rounded"></p>
 
                         <div class="flex gap-6 mt-8">
@@ -62,7 +71,16 @@ export class FileBrowser extends HTMLElement {
     }
 
     setupListeners() {
-        this.querySelector('#back-btn').onclick = () => window.dispatchEvent(new CustomEvent('close-browser'));
+        this.querySelector('#back-btn').onclick = () => {
+            if (this._isScanMode && this._currentPath !== "/" && this._currentPath !== "") {
+                const parts = this._currentPath.split('/');
+                parts.pop();
+                const parent = parts.join('/') || "/";
+                this._browseTo(parent);
+            } else {
+                window.dispatchEvent(new CustomEvent('close-browser'));
+            }
+        };
         this.querySelector('#tab-files').onclick = () => this.switchTab('files');
         this.querySelector('#tab-gallery').onclick = () => this.switchTab('gallery');
         this.querySelector('#tab-data').onclick = () => this.switchTab('data');
@@ -119,7 +137,7 @@ export class FileBrowser extends HTMLElement {
         this.dataView.render();
     }
 
-    show(snapshotId, files, deviceId = null, isScanMode = false) {
+    async show(snapshotId, files, deviceId = null, isScanMode = false) {
         this._snapshotId = snapshotId;
         this._files = files || [];
         this._deviceId = deviceId;
@@ -130,7 +148,94 @@ export class FileBrowser extends HTMLElement {
         this.querySelector('#subtitle').textContent = isScanMode ? `Device: ${deviceId}` : `Snapshot: ${snapshotId}`;
         this._updateCounter();
 
-        this.switchTab('files');
+        if (isScanMode && deviceId) {
+            await this._browseTo("/storage/emulated/0");
+        } else {
+            this.switchTab('files');
+        }
+    }
+
+    async _browseTo(path) {
+        this._currentPath = path;
+        this._renderBreadcrumb();
+        try {
+            const entries = await DeviceService.browse(this._deviceId, path);
+            this._files = entries;
+            this.switchTab('files');
+        } catch (e) {
+            console.error("Browse failed", e);
+        }
+    }
+
+    _renderBreadcrumb() {
+        const el = this.querySelector('#breadcrumb');
+        const parts = this._currentPath.split('/').filter(x => x);
+        el.innerHTML = `<span class="cursor-pointer hover:text-indigo-600" onclick="window.dispatchEvent(new CustomEvent('browse-path', {detail: '/'}))">ROOT</span>`;
+        let current = "";
+        parts.forEach(p => {
+            current += "/" + p;
+            const path = current;
+            el.innerHTML += ` <span class="opacity-30">/</span> <span class="cursor-pointer hover:text-indigo-600" onclick="window.dispatchEvent(new CustomEvent('browse-path', {detail: '${path}'}))">${p}</span>`;
+        });
+
+        // Add event listener for breadcrumb clicks if not already added
+        window.addEventListener('browse-path', (e) => this._browseTo(e.detail), { once: true });
+    }
+
+    async _onDeleteFile(path) {
+        try {
+            await DeviceService.deleteFile(this._deviceId, path);
+            await this._browseTo(this._currentPath);
+        } catch (e) { alert("Delete failed: " + e); }
+    }
+
+    async _onRenameFile(path, newName) {
+        try {
+            const parts = path.split('/');
+            parts.pop();
+            const newPath = parts.join('/') + "/" + newName;
+            await DeviceService.renameFile(this._deviceId, path, newPath);
+            await this._browseTo(this._currentPath);
+        } catch (e) { alert("Rename failed: " + e); }
+    }
+
+    async _onShowDetails(path) {
+        const file = this._files.find(f => f.path === path);
+        if (!file) return;
+
+        let details = `Path: ${file.path}\nName: ${file.name}\nSize: ${(file.size_bytes/1024/1024).toFixed(2)} MB\nModified: ${file.modified_at}\nMIME: ${file.mime_type}\n`;
+
+        if (file.media_info) {
+            details += `\n[Media Info]\nResolution: ${file.media_info.width}x${file.media_info.height}\n`;
+            if (file.media_info.latitude) details += `Location: ${file.media_info.latitude}, ${file.media_info.longitude}\n`;
+        }
+
+        try {
+            const hash = await DeviceService.calculateHash(this._deviceId, path);
+            details += `\n[Integrity]\nSHA-256: ${hash}`;
+        } catch (e) {
+            details += `\n[Integrity]\nSHA-256: (Calculation failed)`;
+        }
+
+        alert(details);
+    }
+
+    async _onCopyFile(path, target) {
+        try {
+            await DeviceService.copyFile(this._deviceId, path, target);
+            await this._browseTo(this._currentPath);
+        } catch (e) { alert("Copy failed: " + e); }
+    }
+
+    async _onUploadFile() {
+        const localPath = prompt("Enter local file path to upload:");
+        if (!localPath) return;
+        const remoteName = localPath.split(/[/\\]/).pop();
+        const remotePath = (this._currentPath === "/" ? "" : this._currentPath) + "/" + remoteName;
+        try {
+            await DeviceService.uploadFile(this._deviceId, localPath, remotePath);
+            await this._browseTo(this._currentPath);
+        } catch (e) { alert("Upload failed: " + e); }
     }
 
     _togglePath(path, selected) {

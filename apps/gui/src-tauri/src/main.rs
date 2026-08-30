@@ -38,6 +38,12 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             commands::device::get_devices,
             commands::device::scan_device,
+            commands::device::browse_directory,
+            commands::device::delete_device_file,
+            commands::device::rename_device_file,
+            commands::device::copy_device_file,
+            commands::device::upload_to_device,
+            commands::device::calculate_device_file_hash,
             commands::device::get_device_battery,
             commands::device::get_live_data,
             commands::backup::get_storage_stats,

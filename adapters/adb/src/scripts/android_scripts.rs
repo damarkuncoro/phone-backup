@@ -36,4 +36,26 @@ impl AndroidScripts {
     pub fn cat_file(path: &str) -> String {
         format!("cat \"{}\"", path)
     }
+
+    pub fn list_dir(path: &str) -> String {
+        // Output format: name|size|mtime|is_dir
+        // using 'stat' to get details for each entry in the directory
+        format!("ls -a1 {} | while read line; do [ \"$line\" = \".\" ] || [ \"$line\" = \"..\" ] || stat -c \"%n|%s|%Y|%F\" \"{}/$line\" 2>/dev/null; done", path, path)
+    }
+
+    pub fn rm_rf(path: &str) -> String {
+        format!("rm -rf \"{}\"", path)
+    }
+
+    pub fn mv(old: &str, new: &str) -> String {
+        format!("mv \"{}\" \"{}\"", old, new)
+    }
+
+    pub fn cp_r(source: &str, target: &str) -> String {
+        format!("cp -r \"{}\" \"{}\"", source, target)
+    }
+
+    pub fn sha256sum(path: &str) -> String {
+        format!("sha256sum \"{}\" 2>/dev/null", path)
+    }
 }

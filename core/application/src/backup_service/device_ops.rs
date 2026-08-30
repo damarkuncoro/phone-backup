@@ -37,6 +37,37 @@ impl<
     }
 
     #[instrument(skip(self))]
+    pub fn list_directory(&self, id: &DeviceId, path: &str) -> Result<Vec<FileEntry>> {
+        self.device_adapter.list_directory(id, path)
+    }
+
+    #[instrument(skip(self))]
+    pub fn delete_remote(&self, id: &DeviceId, path: &str) -> Result<()> {
+        self.device_adapter.delete_remote(id, path)
+    }
+
+    #[instrument(skip(self))]
+    pub fn rename_remote(&self, id: &DeviceId, old_path: &str, new_path: &str) -> Result<()> {
+        self.device_adapter.rename_remote(id, old_path, new_path)
+    }
+
+    #[instrument(skip(self))]
+    pub fn copy_remote(&self, id: &DeviceId, source_path: &str, target_path: &str) -> Result<()> {
+        self.device_adapter.copy_remote(id, source_path, target_path)
+    }
+
+    #[instrument(skip(self))]
+    pub fn calculate_hash(&self, id: &DeviceId, path: &str) -> Result<String> {
+        self.device_adapter.calculate_hash(id, path)
+    }
+
+    #[instrument(skip(self))]
+    pub fn upload_file(&self, id: &DeviceId, source_path: &str, target_path: &str) -> Result<()> {
+        let mut file = std::fs::File::open(source_path)?;
+        self.device_adapter.push_file(id, &mut file, target_path)
+    }
+
+    #[instrument(skip(self))]
     pub fn scan_device(&self, id: &DeviceId) -> Result<Vec<FileEntry>> {
         self.scanner_adapter.scan(id, vec![])
     }

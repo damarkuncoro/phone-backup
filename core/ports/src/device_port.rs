@@ -27,4 +27,19 @@ pub trait DevicePort: Send + Sync {
 
     /// Check device battery level and temperature.
     fn battery_status(&self, id: &DeviceId) -> Result<(u32, f32)>;
+
+    /// List entries in a specific directory.
+    fn list_directory(&self, id: &DeviceId, path: &str) -> Result<Vec<domain::FileEntry>>;
+
+    /// Delete a file or directory on the device.
+    fn delete_remote(&self, id: &DeviceId, path: &str) -> Result<()>;
+
+    /// Rename/Move a file or directory on the device.
+    fn rename_remote(&self, id: &DeviceId, old_path: &str, new_path: &str) -> Result<()>;
+
+    /// Copy a file or directory on the device.
+    fn copy_remote(&self, id: &DeviceId, source_path: &str, target_path: &str) -> Result<()>;
+
+    /// Calculate SHA-256 hash of a remote file.
+    fn calculate_hash(&self, id: &DeviceId, path: &str) -> Result<String>;
 }

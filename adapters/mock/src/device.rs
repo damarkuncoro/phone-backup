@@ -68,4 +68,24 @@ impl DevicePort for MockDeviceAdapter {
     fn battery_status(&self, _id: &DeviceId) -> Result<(u32, f32)> {
         Ok((85, 32.5))
     }
+
+    fn list_directory(&self, _id: &DeviceId, _path: &str) -> Result<Vec<domain::FileEntry>> {
+        Ok(vec![])
+    }
+
+    fn delete_remote(&self, _id: &DeviceId, _path: &str) -> Result<()> {
+        Ok(())
+    }
+
+    fn rename_remote(&self, _id: &DeviceId, _old_path: &str, _new_path: &str) -> Result<()> {
+        Ok(())
+    }
+
+    fn copy_remote(&self, _id: &DeviceId, _source_path: &str, _target_path: &str) -> Result<()> {
+        Ok(())
+    }
+
+    fn calculate_hash(&self, _id: &DeviceId, _path: &str) -> Result<String> {
+        Ok("mock-sha256-hash".to_string())
+    }
 }

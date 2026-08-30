@@ -21,6 +21,9 @@ export class EventManager {
         window.addEventListener('add-schedule', (e) => this.app.addSchedule(e.detail));
         window.addEventListener('browse-snapshot', (e) => this.app.browse(e.detail));
         window.addEventListener('close-browser', () => this.app.nav.updateSidebar('dashboard'));
+        window.addEventListener('browse-path', (e) => {
+            if (this.app.browser) this.app.browser._browseTo(e.detail);
+        });
 
         // Bridge Rust Events to Components
         api.listen('progress', (event) => {

@@ -1,6 +1,7 @@
 use crate::client::AdbClient;
 use crate::parsers::device_parser::DeviceParser;
 use crate::parsers::battery_parser::BatteryParser;
+use crate::parsers::directory_parser::DirectoryParser;
 use crate::scripts::AndroidScripts;
 use anyhow::Result;
 use domain::{CapabilityMatrix, Device, DeviceId, ConnectionType};
@@ -94,5 +95,33 @@ impl AdbDeviceRepository {
         } else {
             anyhow::bail!("Failed to parse battery status")
         }
+    }
+
+    pub fn list_directory(&self, id: &DeviceId, path: &str) -> Result<Vec<domain::FileEntry>> {
+        let script = AndroidScripts::list_dir(path);
+        let output = self.client.shell(&id.0, &script)?;
+        Ok(DirectoryParser::parse(id, &output))
+    }
+
+    pub fn delete_remote(&self, id: &DeviceId, path: &str) -> Result<()> {
+        let script = AndroidScripts::rm_rf(path);
+        self.client.shell(&id.0, &script).map(|_| ())
+    }
+
+    pub fn rename_remote(&self, id: &DeviceId, old_path: &str, new_path: &str) -> Result<()> {
+        let script = AndroidScripts::mv(old_path, new_path);
+        self.client.shell(&id.0, &script).map(|_| ())
+    }
+
+    pub fn copy_remote(&self, id: &DeviceId, source_path: &str, target_path: &str) -> Result<()> {
+        let script = AndroidScripts::cp_r(source_path, target_path);
+        self.client.shell(&id.0, &script).map(|_| ())
+    }
+
+    pub fn calculate_hash(&self, id: &DeviceId, path: &str) -> Result<String> {
+        let script = AndroidScripts::sha256sum(path);
+        let output = self.client.shell(&id.0, &script)?;
+        // Output is "hash  path"
+        Ok(output.split_whitespace().next().unwrap_or("").to_string())
     }
 }

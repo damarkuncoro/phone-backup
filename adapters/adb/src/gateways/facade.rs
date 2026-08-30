@@ -32,6 +32,12 @@ impl DevicePort for AdbAdapter {
     fn read_file(&self, id: &DeviceId, path: &str) -> Result<Box<dyn std::io::Read>> { self.device_gw.read_file(id, path) }
     fn push_file(&self, id: &DeviceId, source: &mut dyn std::io::Read, target_path: &str) -> Result<()> { self.device_gw.push_file(id, source, target_path) }
     fn battery_status(&self, id: &DeviceId) -> Result<(u32, f32)> { self.device_gw.battery_status(id) }
+
+    fn list_directory(&self, id: &DeviceId, path: &str) -> Result<Vec<FileEntry>> { self.device_gw.list_directory(id, path) }
+    fn delete_remote(&self, id: &DeviceId, path: &str) -> Result<()> { self.device_gw.delete_remote(id, path) }
+    fn rename_remote(&self, id: &DeviceId, old_path: &str, new_path: &str) -> Result<()> { self.device_gw.rename_remote(id, old_path, new_path) }
+    fn copy_remote(&self, id: &DeviceId, source_path: &str, target_path: &str) -> Result<()> { self.device_gw.copy_remote(id, source_path, target_path) }
+    fn calculate_hash(&self, id: &DeviceId, path: &str) -> Result<String> { self.device_gw.calculate_hash(id, path) }
 }
 
 impl ScannerPort for AdbAdapter {
