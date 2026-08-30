@@ -7,6 +7,7 @@ pub enum ScheduleFrequency {
     Hourly,
     Daily,
     Weekly,
+    OnConnect,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -28,6 +29,7 @@ impl BackupSchedule {
             (Some(last), ScheduleFrequency::Hourly) => now.signed_duration_since(last).num_hours() >= 1,
             (Some(last), ScheduleFrequency::Daily) => now.signed_duration_since(last).num_days() >= 1,
             (Some(last), ScheduleFrequency::Weekly) => now.signed_duration_since(last).num_days() >= 7,
+            (Some(_), ScheduleFrequency::OnConnect) => false,
         }
     }
 }

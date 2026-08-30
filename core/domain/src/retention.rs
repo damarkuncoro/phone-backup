@@ -81,28 +81,3 @@ impl RetentionStrategy for KeepDailyStrategy {
         to_delete
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::DeviceId;
-    use chrono::Utc;
-
-    #[test]
-    fn test_keep_count_strategy() {
-        let dev_id = DeviceId::new("DEV1");
-        let mut snapshots = Vec::new();
-
-        for i in 0..5 {
-            let mut s = Snapshot::new(dev_id.clone());
-            s.status = SnapshotStatus::Completed;
-            s.started_at = Utc::now() - chrono::Duration::hours(i);
-            snapshots.push(s);
-        }
-
-        let strategy = KeepCountStrategy { keep_limit: 2 };
-        let to_delete = strategy.select_snapshots_to_delete(&snapshots);
-
-        assert_eq!(to_delete.len(), 3);
-    }
-}

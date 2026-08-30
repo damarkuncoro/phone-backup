@@ -94,4 +94,31 @@ impl<
         }
         Ok(())
     }
+
+    #[instrument(skip(self, encryption))]
+    pub fn trigger_on_connect_backup(&self, device_id: &DeviceId, encryption: EncryptionMode) -> Result<bool> {
+        let schedules = self.repository.list_schedules()?;
+        if let Some(mut schedule) = schedules.into_iter().find(|s| s.device_id == *device_id && s.enabled) {
+            if schedule.frequency == ScheduleFrequency::OnConnect || schedule.is_due() {
+                info!("Auto-backup daemon: Plug & Forget triggered for device {}", device_id.0);
+                schedule.last_run_at = Some(Utc::now());
+                let _ = self.repository.save_schedule(&schedule);
+
+                self.progress.start(1, &format!("Plug & Forget Auto-backup: {}", device_id.0));
+                match self.perform_backup(device_id, encryption, None) {
+                    Ok(_) => {
+                        info!("Auto-backup on connect for {} completed successfully", device_id.0);
+                        self.progress.finish(&format!("Auto-backup for {} completed", device_id.0));
+                        return Ok(true);
+                    }
+                    Err(e) => {
+                        error!("Auto-backup on connect failed for {}: {}", device_id.0, e);
+                        self.progress.error(&format!("Auto-backup for {} failed: {}", device_id.0, e));
+                        return Err(e);
+                    }
+                }
+            }
+        }
+        Ok(false)
+    }
 }

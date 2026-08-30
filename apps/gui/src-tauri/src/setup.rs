@@ -57,7 +57,7 @@ pub fn init_infrastructure(app: &mut tauri::App, io: SocketIo) -> anyhow::Result
 
     // 5. Background Monitors
     spawn_auto_backup_monitor(engine.clone());
-    spawn_hardware_monitor(app.handle().clone(), adb_adapter.clone());
+    spawn_hardware_monitor(app.handle().clone(), engine.clone(), adb_adapter.clone());
     spawn_status_poller(app.handle().clone(), adb_adapter);
 
     // 6. Manage State
@@ -79,7 +79,7 @@ fn spawn_auto_backup_monitor(engine: Arc<crate::state::AppEngine>) {
     });
 }
 
-fn spawn_hardware_monitor(app_handle: tauri::AppHandle, adb_adapter: AdbAdapter) {
+fn spawn_hardware_monitor(app_handle: tauri::AppHandle, engine: Arc<crate::state::AppEngine>, adb_adapter: AdbAdapter) {
     let adb_monitor = adb_adapter.monitor();
     std::thread::spawn(move || {
         use adapter_adb::DeviceEvent;
@@ -89,7 +89,21 @@ fn spawn_hardware_monitor(app_handle: tauri::AppHandle, adb_adapter: AdbAdapter)
             match event {
                 DeviceEvent::Connected(device) => {
                     let _ = app_handle.emit("device-changed", "connected");
-                    let _ = app_handle.emit("device-connected", device);
+                    let _ = app_handle.emit("device-connected", device.clone());
+
+                    // Auto-Backup Daemon (Plug & Forget)
+                    let engine_clone = engine.clone();
+                    let app_handle_clone = app_handle.clone();
+                    let dev_id = device.id.clone();
+                    tauri::async_runtime::spawn(async move {
+                        let _ = app_handle_clone.emit("auto-backup-started", dev_id.0.clone());
+                        let result = engine_clone.trigger_on_connect_backup(&dev_id, domain::EncryptionMode::None);
+                        if let Ok(triggered) = result {
+                            if triggered {
+                                let _ = app_handle_clone.emit("auto-backup-finished", dev_id.0.clone());
+                            }
+                        }
+                    });
                 }
                 DeviceEvent::Disconnected(id) => {
                     let _ = app_handle.emit("device-changed", "disconnected");
