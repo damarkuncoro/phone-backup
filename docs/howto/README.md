@@ -1,91 +1,200 @@
-# How-To Guide: Menggunakan phone-backup 📱
+# Panduan Operasional Lengkap: phone-backup 📱
 
-Panduan ini menjelaskan langkah demi langkah cara mengoperasikan engine **phone-backup** melalui antarmuka **Desktop GUI** (Dashboard) maupun **CLI** (Terminal).
+Dokumen ini berisi panduan penggunaan mendalam untuk mengoperasikan platform **phone-backup** melalui **Desktop GUI (Tauri)** dan **CLI (Command Line Interface)**, lengkap dengan konfigurasi lingkungan ADB, enkripsi tingkat lanjut, dan verifikasi integritas data.
 
 ---
 
-## 🎮 Opsi A: Menggunakan Desktop GUI (Rekomendasi)
-Dashboard visual memberikan kemudahan untuk memantau kapasitas penyimpanan dan riwayat backup secara langsung dengan arsitektur modular yang responsif.
+## 🛠 1. Persiapan Lingkungan & Konfigurasi ADB
 
-### 1. Menjalankan Aplikasi
-Masuk ke root project dan jalankan perintah:
+Sebelum menghubungkan smartphone Android, pastikan `adb` (Android Debug Bridge) telah terinstal dan terdaftar dalam `PATH`.
+
+### Konfigurasi PATH (macOS / Linux)
+Tambahkan lokasi `platform-tools` ke file `.zshrc` atau `.bashrc`:
+```bash
+export PATH=$PATH:$HOME/Library/Android/sdk/platform-tools
+```
+
+Verifikasi koneksi fisik perangkat Android:
+```bash
+adb devices -l
+```
+*Contoh Output:*
+```text
+List of devices attached
+fynrorjncy6x4xib       device usb:20-2.4 product:ruby_id model:22101316G device:ruby transport_id:1
+```
+
+---
+
+## 🖥 2. Panduan Penggunaan Desktop GUI (Tauri Dashboard)
+
+Desktop GUI dikembangkan menggunakan **Tauri**, **Tailwind CSS**, dan **Native Web Components** modular.
+
+### 2.1 Menjalankan Aplikasi GUI
+Masuk ke root repository dan jalankan perintah:
 ```bash
 cargo tauri dev
 ```
 
-### 2. Memahami Dashboard
-*   **Storage Efficiency**: Menampilkan persentase ruang yang berhasil dihemat melalui deduplikasi (Content-Addressed Storage).
-*   **System Health**: Memastikan koneksi ke engine Rust dan status ADB (Android Debug Bridge) aktif.
-*   **Connected Devices**: Menampilkan daftar HP yang terhubung. Jika tidak muncul, klik **"RESCAN"**.
-
-### 3. Fitur Utama GUI
-*   **Live Device File Manager**: Akses langsung sistem file HP yang terhubung. Anda dapat menjelajahi folder, mengunduh file langsung ke komputer local via `download_from_device`, mengunggah file baru, mengganti nama, menyalin/memindahkan, menghapus file, serta menghitung hash SHA-256 file secara instan.
-*   **Scan (Dry Run)**: Klik tombol **"SCAN"** pada perangkat. Anda bisa melihat daftar file di HP tanpa mendownloadnya, lalu memilih file tertentu saja yang ingin di-backup.
-*   **Backup All**: Melakukan backup menyeluruh untuk seluruh file media di perangkat.
-*   **History & Browser**: Klik **"HISTORY"** untuk melihat riwayat backup. Anda bisa mengklik setiap baris riwayat untuk membuka **File Browser** dan melihat isi file di dalam backup tersebut.
-*   **Visual Snapshot Diffing**: Bandingkan dua snapshot secara visual. Sistem akan menandai perubahan secara otomatis dengan status **New** (Hijau), **Modified** (Kuning), **Deleted** (Merah), dan **Unchanged**.
-*   **Android Data & Apps Explorer**: Di dalam Explorer, pilih tab **"ANDROID DATA"** (Kontak, SMS, Call Logs) atau tab **"APPS"** untuk memeriksa aplikasi terinstall di HP.
-*   **Restore**: Klik ikon **Unduh (Restore)** di daftar riwayat. Sistem akan otomatis membuat folder unik di `workspace/` untuk hasil restorasi Anda.
+### 2.2 Fitur Utama GUI
+1. **Live Device File Manager**:
+   - Jelajahi folder memori internal HP secara real-time.
+   - **Download File**: Klik tombol **Download** untuk mengunduh file remote dari HP langsung ke komputer lokal via command `download_from_device`.
+   - **Upload File**: Unggah file lokal dari komputer ke lokasi direktori HP.
+   - **File Operations**: Rename (ubah nama), Copy/Move (salin/pindah), Delete (hapus), dan hitung hash SHA-256 instan.
+2. **Visual Snapshot Diffing Matrix**:
+   - Bandingkan dua snapshot secara visual.
+   - Matriks akan secara otomatis membedakan status entri:
+     - 🟢 **New** (File baru ditambahkan).
+     - 🟡 **Modified** (File diubah atau ukuran berubah).
+     - 🔴 **Deleted** (File dihapus).
+     - ⚪ **Unchanged** (File tidak berubah).
+3. **Installed Apps Explorer & APK Exporter**:
+   - Inspeksi seluruh aplikasi terinstal di smartphone Android.
+   - Ekspor file `.apk` secara individu atau batch langsung ke folder lokal.
+4. **Android Data Explorer**:
+   - Jelajahi database **Contacts**, **SMS Messages**, dan **Call Logs** yang telah di-backup dengan dukungan pencarian cepat.
+5. **Real-time Progress HUD & Safety Guard**:
+   - Progress bar melayang (HUD) menampilkan status transfer file secara real-time.
+   - Peringatan otomatis jika baterai HP $< 10\%$ atau suhu perangkat $> 45^\circ\text{C}$.
 
 ---
 
-## 💻 Opsi B: Menggunakan CLI (Untuk Expert)
-CLI sangat kuat untuk otomatisasi dan integrasi server.
+## 💻 3. Panduan Penggunaan CLI (Master Command Line)
 
-### 1. Persiapan Awal (Doctor Check)
-Pastikan lingkungan Anda sudah siap sebelum melakukan backup nyata.
+CLI menyediakan perintah yang cepat dan dapat diotomatisasi melalui skrip shell.
+
+### 3.1 Diagnostik Sistem (Doctor Check)
+Periksa kesehatan ADB, database SQLite, dan konektivitas storage:
 ```bash
 phone-backup doctor
 ```
-
-### 2. Manajemen Keamanan (Asimetris)
-Fitur ini memungkinkan backup tanpa menyimpan password di komputer backup (Zero-Knowledge).
-
-#### Langkah 1: Membuat Pasangan Kunci (Public & Secret)
-1.  **Jalankan Perintah**: `phone-backup keygen`
-2.  **Public Key**: Digunakan untuk mengunci data saat backup.
-3.  **Secret Key**: Digunakan untuk membuka data saat restorasi. **SIMPAN DI TEMPAT AMAN!**
-
-#### Langkah 2: Backup Terenkripsi
-```bash
-phone-backup --adapter adb --pubkey "age1..." backup <DEVICE_ID>
+*Output:*
+```text
+🩺 Phone Backup Doctor - System Diagnostic
+-----------------------------------------
+Checking ADB installation... ✅ FOUND (Android Debug Bridge version 1.0.41)
+Checking connected devices... ✅ 1 device(s) detected
+Checking workspace integrity... ✅ backup.db found
+Checking storage connectivity... ✅ storage reachable
 ```
 
-#### Langkah 3: Restore Cerdas
+### 3.2 Deteksi Perangkat & Matriks Kapabilitas
+Tampilkan daftar HP yang terhubung via USB/Wi-Fi:
 ```bash
-# Otomatis mencari snapshot terbaru dan memulihkannya ke folder versi
-phone-backup --privkey "AGE-SECRET-KEY-1..." restore last
+phone-backup --adapter adb devices
 ```
 
-## 🔒 Enkripsi Metadata Database & Testing
-
-### 1. Encrypted Metadata Engine (SQLCipher + Argon2id)
-Secara default, metadata catalog disimpan dalam SQLite terenkripsi dengan AES-256 via SQLCipher dan Argon2id key derivation:
+Tampilkan informasi detail perangkat dan matriks kapabilitas izin:
 ```bash
-# Pengujian pemisahan kunci enkripsi database dengan Argon2id
-cargo test -p phone-backup-application --test security_compression_test
+phone-backup --adapter adb device-info <DEVICE_ID>
+```
+*Contoh:* `phone-backup --adapter adb device-info fynrorjncy6x4xib`
+
+### 3.3 Inspeksi Aplikasi & Ekspor APK
+Tampilkan seluruh aplikasi Android terinstal di HP:
+```bash
+phone-backup --adapter adb apps <DEVICE_ID>
 ```
 
-### 2. Menguji Seluruh Workspace (100% Isolated Tests)
-Setiap crate telah memisahkan kode produksi `src/` dari file test terisolasi `tests/`:
+### 3.4 Pemindaian Sistem File Real-Time (Scan Dry-Run)
+Pindai isi memori internal HP tanpa menyimpan ke backup:
+```bash
+phone-backup --adapter adb scan <DEVICE_ID>
+```
+
+### 3.5 Eksekusi Backup (Penuh & Selektif)
+#### A. Backup Penuh (Terenkripsi Kata Sandi)
+```bash
+phone-backup --adapter adb backup -p "KataSandiSuperKuat" <DEVICE_ID>
+```
+
+#### B. Backup Selektif Folder Tertentu
+Hanya mem-backup folder tertentu (misal: `/storage/emulated/0/DCIM/Screenshots`):
+```bash
+phone-backup --adapter adb backup -i /storage/emulated/0/DCIM/Screenshots -p "KataSandiSuperKuat" <DEVICE_ID>
+```
+
+### 3.6 Manajemen Keamanan Kunci Asimetris (age X25519)
+Memungkinkan backup otomatis tanpa menyimpan kata sandi master di komputer backup (*Zero-Knowledge Storage*):
+
+1. **Generate Pasangan Kunci**:
+   ```bash
+   phone-backup keygen
+   ```
+   *Output:*
+   - **Public Key**: `age1...` (Gunakan untuk mengunci backup).
+   - **Secret Key**: `AGE-SECRET-KEY-1...` (Gunakan untuk memulihkan/dekripsi data).
+
+2. **Jalankan Backup dengan Public Key**:
+   ```bash
+   phone-backup --adapter adb backup --pubkey "age1..." <DEVICE_ID>
+   ```
+
+3. **Restorasi dengan Secret Key**:
+   ```bash
+   phone-backup --privkey "AGE-SECRET-KEY-1..." restore <SNAPSHOT_ID>
+   ```
+
+### 3.7 Verifikasi Integritas Repository (Verify)
+Pastikan tidak ada file terenkripsi yang rusak atau hilang:
+```bash
+phone-backup verify -p "KataSandiSuperKuat"
+```
+*Output:*
+```text
+Repository Verification Report
+------------------------------
+Total files in index:  142
+Verified objects:      142
+Missing objects:       0
+Corrupted files:       0
+
+STATUS: HEALTHY
+```
+
+### 3.8 Restorasi Snapshot (Restore)
+Pulihkan data dari snapshot terenkripsi ke lokasi direktori lokal:
+```bash
+phone-backup restore -p "KataSandiSuperKuat" <SNAPSHOT_ID>
+```
+*Contoh:* `phone-backup restore -p "my_secret_pass" 504f46de-2e86-4fcf-af29-68570cf8d68f`
+
+### 3.9 Full-Text Search (FTS5) & Query Global
+Cari file, kontak, atau SMS di seluruh snapshot secara cepat:
+```bash
+phone-backup search "Dokumen"
+phone-backup contacts "Budi"
+phone-backup sms "OTP"
+```
+
+### 3.10 Pemeliharaan & Garbage Collection (GC)
+Bersihkan data *orphan* yang tidak lagi dirujuk oleh snapshot manapun:
+```bash
+phone-backup gc
+```
+
+---
+
+## 🔒 4. Enkripsi Metadata Database (SQLCipher + Argon2id)
+
+Metadata katalog disembunyikan di dalam database SQLite terenkripsi **SQLCipher AES-256** menggunakan derivasi kunci **Argon2id**:
+- **Argon2id Key Derivation**: Menghasilkan kunci 256-bit aman dari kata sandi master.
+- **Connection Customizer**: Eksekusi otomatis `PRAGMA key` saat r2d2 connection pool memperoleh koneksi database.
+
+Untuk menjalankan unit & integration test terisolasi di seluruh workspace:
 ```bash
 cargo test --workspace
 ```
 
 ---
 
-## 🧹 Pemeliharaan & Efisiensi
-*   **Smart Retention**: Engine secara otomatis menghapus snapshot lama yang identik dengan snapshot terbaru agar riwayat Anda tidak penuh dengan data duplikat.
-*   **Garbage Collection (GC)**: 
-    *   **GUI**: Buka menu **Settings (ikon gerigi)** dan klik **"Run Garbage Collection"**.
-    *   **CLI**: Jalankan `phone-backup gc`.
+## 💡 5. Checksing Khusus Pengguna Xiaomi / Redmi / POCO (MIUI / HyperOS)
+
+Jika Anda menggunakan perangkat Xiaomi/Redmi/POCO, pastikan opsi berikut aktif di **Developer Options**:
+1. **USB Debugging**: Aktifkan.
+2. **USB Debugging (Security settings)**: **Wajib aktif** agar ADB diizinkan membaca database SMS, Kontak, dan Call Logs.
+3. **Install via USB**: Aktifkan untuk pengujian migrasi/ekspor APK.
 
 ---
-
-## 💡 Tips untuk Pengguna Xiaomi:
-Agar fitur **Scan**, **Contacts**, dan **SMS** berjalan lancar, pastikan Anda telah mengaktifkan:
-1.  **USB Debugging**.
-2.  **USB Debugging (Security settings)** — *Wajib di Xiaomi agar ADB bisa membaca database SMS/Kontak.*
-
----
-*Dikembangkan dengan standar kualitas tinggi untuk komunitas Android.*
+*phone-backup — Engineered with Rust, Clean Architecture, and Military-Grade Security.*
