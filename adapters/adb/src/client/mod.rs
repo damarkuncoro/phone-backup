@@ -33,7 +33,7 @@ impl AdbClient {
         AdbMonitor::new(self.adb_path.clone())
     }
 
-    pub(crate) fn find_adb() -> String {
+    pub fn find_adb() -> String {
         which::which("adb")
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_else(|_| {

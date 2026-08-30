@@ -3,7 +3,8 @@ use crate::state::{AppState, DoctorReport};
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn get_doctor_report(state: State<'_, AppState>) -> Result<DoctorReport, String> {
-    let adb_check = std::process::Command::new("adb").arg("version").output();
+    let adb_path = adapter_adb::AdbClient::find_adb();
+    let adb_check = std::process::Command::new(&adb_path).arg("version").output();
     let adb_found = adb_check.is_ok();
     let adb_version = if let Ok(out) = adb_check {
         String::from_utf8_lossy(&out.stdout).lines().next().unwrap_or("Unknown").to_string()

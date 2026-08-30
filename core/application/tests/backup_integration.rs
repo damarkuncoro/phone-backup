@@ -9,7 +9,7 @@ static TEST_LOCK: Mutex<()> = Mutex::new(());
 
 #[test]
 fn test_full_backup_restore_lifecycle() {
-    let _guard = TEST_LOCK.lock().unwrap();
+    let _guard = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     // 1. Setup temporary directories for test
     let tmp_repo_dir = TempDir::new().unwrap();
     let tmp_storage_dir = TempDir::new().unwrap();
@@ -71,7 +71,7 @@ fn test_full_backup_restore_lifecycle() {
 
 #[test]
 fn test_asymmetric_backup_restore_lifecycle() {
-    let _guard = TEST_LOCK.lock().unwrap();
+    let _guard = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let tmp_repo_dir = TempDir::new().unwrap();
     let tmp_storage_dir = TempDir::new().unwrap();
     let tmp_restore_dir = TempDir::new().unwrap();

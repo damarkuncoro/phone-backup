@@ -20,13 +20,14 @@ where
 
     // 1. Check ADB
     print!("Checking ADB installation... ");
-    let adb_check = Command::new("adb").arg("version").output();
+    let adb_path = adapter_adb::AdbClient::find_adb();
+    let adb_check = Command::new(&adb_path).arg("version").output();
     match adb_check {
         Ok(out) if out.status.success() => {
             let version = String::from_utf8_lossy(&out.stdout).lines().next().unwrap_or("Unknown").to_string();
-            println!("✅ FOUND ({})", version);
+            println!("✅ FOUND ({}) at {}", version, adb_path);
         }
-        _ => println!("❌ NOT FOUND. Please install ADB and add it to your PATH."),
+        _ => println!("❌ NOT FOUND. Please install ADB or set ANDROID_HOME."),
     }
 
     // 2. Check Device Connectivity
