@@ -7,8 +7,8 @@ authors.workspace = true
 description = "Wireless Agent Adapter for Android Companion APK"
 
 [dependencies]
-phone-backup-domain = { workspace = true }
-phone-backup-ports = { workspace = true }
+domain = { workspace = true }
+ports = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true }

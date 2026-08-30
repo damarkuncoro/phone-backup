@@ -16,6 +16,7 @@ ports.workspace = true
 application.workspace = true
 adapter-mock.workspace = true
 adapter-adb.workspace = true
+adapter-agent.workspace = true
 adapter-filesystem.workspace = true
 adapter-opendal.workspace = true
 adapter-database-sqlite.workspace = true

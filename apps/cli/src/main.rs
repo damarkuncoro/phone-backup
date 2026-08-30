@@ -58,6 +58,19 @@ fn main() -> Result<()> {
             );
             execute_command(cli, service)
         }
+        "agent" => {
+            let agent_adapter = adapter_agent::AgentAdapter::default();
+            let service = BackupService::new(
+                agent_adapter.clone(),
+                agent_adapter.clone(),
+                repository,
+                storage,
+                agent_adapter.clone(),
+                agent_adapter,
+                CliProgress::new(),
+            );
+            execute_command(cli, service)
+        }
         _ => {
             let service = BackupService::new(
                 MockDeviceAdapter::default(),

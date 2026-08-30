@@ -1,6 +1,6 @@
-use domain::{DeviceId, StructuredDataType};
+use domain::DeviceId;
 use phone_backup_adapter_agent::{
-    AgentAdapter, AgentHandshake, AgentSessionManager, AgentStructuredDataResponse,
+    AgentAdapter, AgentHandshake, AgentSessionManager,
 };
 use ports::{AppProviderPort, DataProviderPort, DevicePort, ScannerPort};
 
@@ -21,7 +21,6 @@ fn test_agent_adapter_device_lifecycle() {
         android_version: "Android 15".to_string(),
         storage_used_bytes: 50_000_000_000,
         storage_total_bytes: 512_000_000_000,
-        capabilities: vec!["ReadFiles".into(), "ReadContacts".into()],
         battery_percent: Some(88),
         temperature_c: Some(31.2),
     });

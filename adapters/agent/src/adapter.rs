@@ -1,10 +1,10 @@
 use std::sync::{Arc, RwLock};
 use anyhow::{bail, Result};
 use domain::{
-    App, CallLog, CapabilityMatrix, Contact, Device, DeviceId, DomainError, FileEntry,
+    AppInfo, AppId, CapabilityMatrix, Contact, Device, DeviceId, DomainError, FileEntry,
 };
 use ports::{AppProviderPort, DataProviderPort, DevicePort, ScannerPort};
-use crate::protocol::{AgentFileScanResponse, AgentHandshake, AgentStructuredDataResponse};
+use crate::protocol::{AgentHandshake, AgentStructuredDataResponse};
 
 /// In-memory state and registry of active Android Companion Agent sessions.
 #[derive(Clone, Default)]
@@ -60,7 +60,6 @@ impl AgentAdapter {
             android_version: "Android 14 (HyperOS)".to_string(),
             storage_used_bytes: 41_481_015_296,
             storage_total_bytes: 242_017_599_488,
-            capabilities: vec!["ReadFiles".into(), "ReadContacts".into(), "ReadSms".into()],
             battery_percent: Some(95),
             temperature_c: Some(34.5),
         });
@@ -90,10 +89,11 @@ impl DevicePort for AgentAdapter {
 
     fn capabilities(&self, id: &DeviceId) -> Result<CapabilityMatrix> {
         let devs = self.session.devices.read().unwrap();
-        if !devs.iter().any(|d| d.device_id == id.0) {
-            bail!(DomainError::DeviceNotFound(id.to_string()));
+        let dev = devs.iter().find(|d| d.device_id == id.0);
+        match dev {
+            Some(d) => Ok(d.to_capability_matrix()),
+            None => bail!(DomainError::DeviceNotFound(id.to_string())),
         }
-        Ok(CapabilityMatrix::full_access())
     }
 
     fn read_file(&self, _id: &DeviceId, _path: &str) -> Result<Box<dyn std::io::Read>> {
@@ -236,29 +236,31 @@ impl DataProviderPort for AgentAdapter {
 }
 
 impl AppProviderPort for AgentAdapter {
-    fn list_apps(&self, _device_id: &DeviceId) -> Result<Vec<App>> {
+    fn list_apps(&self, device_id: &DeviceId) -> Result<Vec<AppInfo>> {
         let data = self.session.structured_data.read().unwrap();
         if !data.apps.is_empty() {
             return Ok(data.apps.clone());
         }
 
         Ok(vec![
-            App {
-                id: "com.phonebackup.agent".to_string(),
-                snapshot_id: None,
-                name: "Phone Backup Companion Agent".into(),
+            AppInfo {
+                id: AppId("com.phonebackup.agent".into()),
+                device_id: device_id.clone(),
                 package_name: "com.phonebackup.agent".into(),
-                version_name: Some("1.0.0".into()),
-                version_code: Some(1),
-                is_system_app: false,
-                apk_path: Some("/data/app/com.phonebackup.agent.apk".into()),
-                apk_size_bytes: Some(15_000_000),
-                apk_hash: None,
+                version_name: "1.0.0".into(),
+                version_code: 1,
+                installer: Some("com.android.vending".into()),
+                app_name: "Phone Backup Companion Agent".into(),
             }
         ])
     }
 
-    fn export_apk(&self, _device_id: &DeviceId, _package_name: &str, _target_path: &std::path::Path) -> Result<()> {
+    fn get_apk(&self, _device_id: &DeviceId, _package_name: &str) -> Result<Box<dyn std::io::Read>> {
+        let content = vec![0u8; 1024];
+        Ok(Box::new(std::io::Cursor::new(content)))
+    }
+
+    fn install_app(&self, _device_id: &DeviceId, _apk_data: &mut dyn std::io::Read) -> Result<()> {
         Ok(())
     }
 }
