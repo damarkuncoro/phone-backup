@@ -13,6 +13,7 @@ use adapter_adb::{AdbAppProvider, AdbDataProvider, AdbDeviceAdapter, AdbScannerA
 use adapter_database_sqlite::SqliteRepository;
 use adapter_filesystem::LocalStorage;
 use application::BackupService;
+use ports::SettingsRepositoryPort;
 
 use crate::state::{AppState, CombinedProgress, SharedStorage, SwitchableStorage};
 
@@ -56,7 +57,7 @@ fn main() {
                 domain::StorageBackend::Local => Box::new(LocalStorage::new(storage_path).unwrap()),
                 domain::StorageBackend::Mock => Box::new(adapter_mock::MockStorage::new()),
                 domain::StorageBackend::S3 { bucket, region, endpoint, access_key, secret_key } => {
-                    match adapter_opendal::CloudStorage::new_s3(bucket, region, endpoint, access_key, secret_key) {
+                    match adapter_opendal::CloudStorage::new_s3(&bucket, &region, &endpoint, &access_key, &secret_key) {
                         Ok(s3) => Box::new(s3),
                         Err(e) => {
                             eprintln!("Failed to connect to saved S3 storage: {}. Falling back to Local.", e);

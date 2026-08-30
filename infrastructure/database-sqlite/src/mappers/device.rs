@@ -1,22 +1,30 @@
 use domain::{Device, DeviceId, ConnectionType, BackupSchedule, ScheduleFrequency};
 use rusqlite::Row;
-use chrono::{DateTime, Utc};
+use crate::mappers::parse_date;
 
 pub struct DeviceMapper;
 
 impl DeviceMapper {
     pub fn to_device(row: &Row) -> rusqlite::Result<Device> {
+        let total: u64 = row.get(5)?;
+        let used: u64 = row.get(6)?;
+        let conn_type_str: String = row.get(7)?;
+
         Ok(Device {
             id: DeviceId(row.get(0)?),
             manufacturer: row.get(1)?,
             model: row.get(2)?,
             serial: row.get(3)?,
             os_version: row.get(4)?,
-            sdk_version: None,
-            storage_total_bytes: row.get(5)?,
-            storage_used_bytes: row.get(6)?,
-            storage_free_bytes: row.get::<_, u64>(5)? - row.get::<_, u64>(6)?,
-            connection_type: ConnectionType::Usb,
+            sdk_version: None, // Optional: add to DB if needed
+            storage_total_bytes: total,
+            storage_used_bytes: used,
+            storage_free_bytes: total.saturating_sub(used),
+            connection_type: match conn_type_str.as_str() {
+                "Usb" => ConnectionType::Usb,
+                "Wifi" => ConnectionType::Wifi,
+                _ => ConnectionType::Unknown,
+            },
         })
     }
 
@@ -32,7 +40,7 @@ impl DeviceMapper {
                 "Weekly" => ScheduleFrequency::Weekly,
                 _ => ScheduleFrequency::Daily,
             },
-            last_run_at: last_run_at_str.map(|s| DateTime::parse_from_rfc3339(&s).unwrap().with_timezone(&Utc)),
+            last_run_at: last_run_at_str.and_then(|s| parse_date(&s).ok()),
             enabled: enabled == 1,
         })
     }

@@ -71,6 +71,69 @@ fn test_contact_complex_persistence() {
 }
 
 #[test]
+fn test_contact_bulk_performance() {
+    let repo = setup_test_repo();
+    let device_id = DeviceId::new("dev-bulk");
+    let snap_id = SnapshotId("snap-bulk".to_string());
+
+    repo.save_device(&Device {
+        id: device_id.clone(),
+        manufacturer: "X".to_string(), model: "Y".to_string(), serial: "Z".to_string(),
+        os_version: "13".to_string(), sdk_version: None,
+        storage_total_bytes: 0, storage_used_bytes: 0, storage_free_bytes: 0,
+        connection_type: ConnectionType::Usb,
+    }).unwrap();
+
+    repo.create_snapshot(&Snapshot {
+        id: snap_id.clone(), device_id: device_id.clone(), started_at: Utc::now(),
+        finished_at: None, status: SnapshotStatus::Pending, total_files: 0,
+        total_bytes: 0, deduped_bytes: 0,
+    }).unwrap();
+
+    // Insert 100 contacts, each with several sub-items
+    for i in 0..100 {
+        let contact = Contact {
+            id: format!("c-{}", i),
+            snapshot_id: None,
+            source_id: None,
+            display_name: format!("Contact {}", i),
+            notes: None,
+            source: "test".to_string(),
+            source_account: None,
+            content_hash: None,
+            metadata_json: None,
+            names: vec![],
+            phones: vec![
+                ContactPhone { raw_value: "123".to_string(), normalized_value: None, phone_type: None, label: None, is_primary: true },
+            ],
+            emails: vec![
+                ContactEmail { value: "a@b.com".to_string(), email_type: None, label: None, is_primary: true },
+            ],
+            addresses: vec![],
+            organizations: vec![],
+            urls: vec![],
+            events: vec![],
+            photos: vec![],
+            labels: vec!["L1".to_string(), "L2".to_string()],
+        };
+        repo.save_contact(&snap_id, &contact).unwrap();
+    }
+
+    let start = std::time::Instant::now();
+    let contacts = repo.get_snapshot_contacts(&snap_id).unwrap();
+    let duration = start.elapsed();
+
+    assert_eq!(contacts.len(), 100);
+    // Each contact should have its details
+    assert_eq!(contacts[0].phones.len(), 1);
+    assert_eq!(contacts[0].emails.len(), 1);
+    assert_eq!(contacts[0].labels.len(), 2);
+
+    println!("Fetched 100 contacts with all details in {:?}", duration);
+    // With JSON aggregation, this should be extremely fast (< 10ms on modern hardware)
+}
+
+#[test]
 fn test_contact_search() {
     let repo = setup_test_repo();
     let snap_id = SnapshotId("s1".to_string());
