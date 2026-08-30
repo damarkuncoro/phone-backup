@@ -187,3 +187,21 @@ fn test_structured_data_type_formatting() {
     assert_eq!(StructuredDataType::Applications.as_str(), "apps");
     assert_eq!(format!("{}", StructuredDataType::Contacts), "contacts");
 }
+
+#[test]
+fn test_snapshot_state_machine_transitions() {
+    use phone_backup_domain::{DeviceId, Snapshot, SnapshotStatus};
+
+    let mut snapshot = Snapshot::new(DeviceId::new("DEV1"));
+    assert_eq!(snapshot.status, SnapshotStatus::Pending);
+
+    assert!(snapshot.start().is_ok());
+    assert_eq!(snapshot.status, SnapshotStatus::Running);
+
+    assert!(snapshot.complete().is_ok());
+    assert_eq!(snapshot.status, SnapshotStatus::Completed);
+    assert!(snapshot.finished_at.is_some());
+
+    // Invalid transition from Completed -> Running
+    assert!(snapshot.start().is_err());
+}

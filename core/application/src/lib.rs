@@ -11,6 +11,7 @@ pub mod object_manager;
 pub mod object_store;
 mod progress_estimator;
 mod backup_planner;
+mod snapshot_guard;
 
 pub use backup_service::{BackupService, StorageStats, VerificationReport};
 pub use compression::CompressionEngine;
@@ -18,3 +19,4 @@ pub use object_store::ObjectStoreKey;
 pub use security::EncryptionEngine;
 pub use progress_estimator::ProgressEstimator;
 pub use backup_planner::BackupPlanner;
+pub use snapshot_guard::SnapshotGuard;

@@ -1,5 +1,4 @@
 use anyhow::Result;
-use chrono::Utc;
 use domain::{BackupPolicy, DeviceId, FileEntry, Snapshot, SnapshotStatus, EncryptionMode};
 use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort};
 
@@ -79,21 +78,23 @@ impl<
 
         self.check_available_disk_space(plan.upload_bytes)?;
 
-        // 4. UPLOAD CHANGED FILES
-        snapshot.status = SnapshotStatus::Running;
+        // 4. UPLOAD CHANGED FILES (STATE TRANSITION GUARDED)
+        snapshot.start()?;
         self.repository
             .create_snapshot(&snapshot)
             .or_else(|_| self.repository.update_snapshot(&snapshot))?;
 
-        self.upload_files(id, &plan.upload, &previous_files, &already_backed_up, &mut snapshot, &encryption)?;
+        let mut guard = crate::SnapshotGuard::new(&self.repository, &mut snapshot);
+
+        self.upload_files(id, &plan.upload, &previous_files, &already_backed_up, guard.snapshot, &encryption)?;
 
         // 5. BACKUP STRUCTURED DATA (Apps, SMS, etc.)
-        self.backup_metadata_and_structured_data(id, &mut snapshot, &encryption)?;
+        self.backup_metadata_and_structured_data(id, guard.snapshot, &encryption)?;
 
         // 6. FINALIZE SNAPSHOT
-        snapshot.status = SnapshotStatus::Completed;
-        snapshot.finished_at = Some(Utc::now());
-        self.repository.update_snapshot(&snapshot)?;
+        guard.snapshot.complete()?;
+        self.repository.update_snapshot(guard.snapshot)?;
+        guard.mark_completed();
 
         // --- SMART RETENTION ---
         let _ = self.apply_retention_strategy(id, &domain::KeepCountStrategy { keep_limit: 10 });

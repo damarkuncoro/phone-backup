@@ -26,6 +26,8 @@ pub struct Snapshot {
     pub deduped_bytes: u64,
 }
 
+use crate::DomainError;
+
 impl Snapshot {
     pub fn new(device_id: DeviceId) -> Self {
         let id = SnapshotId(uuid::Uuid::new_v4().to_string());
@@ -38,6 +40,57 @@ impl Snapshot {
             total_files: 0,
             total_bytes: 0,
             deduped_bytes: 0,
+        }
+    }
+
+    pub fn start(&mut self) -> Result<(), DomainError> {
+        match self.status {
+            SnapshotStatus::Pending | SnapshotStatus::Interrupted => {
+                self.status = SnapshotStatus::Running;
+                Ok(())
+            }
+            _ => Err(DomainError::InvalidState(format!(
+                "Invalid snapshot transition to Running from {:?}",
+                self.status
+            ))),
+        }
+    }
+
+    pub fn complete(&mut self) -> Result<(), DomainError> {
+        match self.status {
+            SnapshotStatus::Running => {
+                self.status = SnapshotStatus::Completed;
+                self.finished_at = Some(Utc::now());
+                Ok(())
+            }
+            _ => Err(DomainError::InvalidState(format!(
+                "Invalid snapshot transition to Completed from {:?}",
+                self.status
+            ))),
+        }
+    }
+
+    pub fn interrupt(&mut self) -> Result<(), DomainError> {
+        match self.status {
+            SnapshotStatus::Pending | SnapshotStatus::Running => {
+                self.status = SnapshotStatus::Interrupted;
+                Ok(())
+            }
+            SnapshotStatus::Completed => Err(DomainError::InvalidState(
+                "Cannot interrupt a completed snapshot".to_string(),
+            )),
+            SnapshotStatus::Interrupted | SnapshotStatus::Failed => Ok(()),
+        }
+    }
+
+    pub fn fail(&mut self) -> Result<(), DomainError> {
+        if self.status != SnapshotStatus::Completed {
+            self.status = SnapshotStatus::Failed;
+            Ok(())
+        } else {
+            Err(DomainError::InvalidState(
+                "Cannot fail a completed snapshot".to_string(),
+            ))
         }
     }
 }
