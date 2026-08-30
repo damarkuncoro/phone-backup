@@ -10,6 +10,7 @@ A high-performance, secure, and professional Android backup platform written in 
 
 ### 🖥 Desktop GUI & Dashboard
 - **Modern Dashboard**: Visual summary of storage efficiency, engine health, and snapshot history built with Tauri, Tailwind CSS, and Chart.js.
+- **Modular UI Architecture**: Highly fragmented and maintainable frontend using **Native Web Components** and specialized managers (Navigation, Search, Events).
 - **Reactive Monitoring**: Instantly detects when a phone is plugged in or unplugged.
 - **Full-Page Explorers**: Comprehensive views for File Browsing and Android Data (Contacts, SMS, Call Logs).
 - **Global Smart Search**: Instant Full-Text Search (FTS5) across all snapshots, messages, and contacts.

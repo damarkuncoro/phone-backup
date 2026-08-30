@@ -1,11 +1,25 @@
-import { BackupService } from '../services/BackupService.js';
-import { DeviceService } from '../services/DeviceService.js';
-import { renderers } from '../core/renderers.js';
+import { FileListView } from './browser/FileListView.js';
+import { AndroidDataView } from './browser/AndroidDataView.js';
 import './MediaGallery.js';
 
 export class FileBrowser extends HTMLElement {
     constructor() {
         super();
+        this.renderBase();
+
+        this._selectedPaths = new Set();
+        this._files = [];
+        this._currentTab = 'files';
+
+        this.listView = new FileListView(this.querySelector('#list'), {
+            onToggle: (path, selected) => this._togglePath(path, selected),
+            onRestore: (path) => this._onRestoreFile(path)
+        });
+
+        this.dataView = new AndroidDataView(this.querySelector('#list'));
+    }
+
+    renderBase() {
         this.innerHTML = `
             <div id="container" class="bg-white rounded-3xl shadow-xl flex flex-col overflow-hidden ring-1 ring-slate-200 min-h-[700px]">
                 <div class="p-8 border-b bg-slate-50/80 flex justify-between items-start backdrop-blur-md">
@@ -44,20 +58,11 @@ export class FileBrowser extends HTMLElement {
                 </div>
             </div>
         `;
-
         this.setupListeners();
-        this._selectedPaths = new Set();
-        this._files = [];
-        this._currentTab = 'files';
-        this._currentDataTab = 'contacts';
-        this._dataCache = { contacts: [], sms: [], calls: [] };
     }
 
     setupListeners() {
-        this.querySelector('#back-btn').onclick = () => {
-            window.dispatchEvent(new CustomEvent('close-browser'));
-        };
-
+        this.querySelector('#back-btn').onclick = () => window.dispatchEvent(new CustomEvent('close-browser'));
         this.querySelector('#tab-files').onclick = () => this.switchTab('files');
         this.querySelector('#tab-gallery').onclick = () => this.switchTab('gallery');
         this.querySelector('#tab-data').onclick = () => this.switchTab('data');
@@ -77,29 +82,24 @@ export class FileBrowser extends HTMLElement {
 
     async switchTab(tab) {
         this._currentTab = tab;
-        const tFiles = this.querySelector('#tab-files');
-        const tGallery = this.querySelector('#tab-gallery');
-        const tData = this.querySelector('#tab-data');
         const subTabs = this.querySelector('#data-tabs-bar');
 
-        [tFiles, tGallery, tData].forEach(t => {
-            if (t) t.className = "text-[11px] font-black tracking-[0.3em] text-slate-400 hover:text-slate-600 pb-2 transition-all border-b-4 border-transparent";
+        this.querySelectorAll('#tab-files, #tab-gallery, #tab-data').forEach(t => {
+            t.className = "text-[11px] font-black tracking-[0.3em] text-slate-400 hover:text-slate-600 pb-2 transition-all border-b-4 border-transparent";
         });
-
-        const activeClass = "text-[11px] font-black tracking-[0.3em] text-indigo-600 border-b-4 border-indigo-600 pb-2 transition-all";
+        this.querySelector(`#tab-${tab}`).className = "text-[11px] font-black tracking-[0.3em] text-indigo-600 border-b-4 border-indigo-600 pb-2 transition-all";
 
         if (tab === 'files') {
-            tFiles.className = activeClass;
             subTabs.classList.add('hidden');
-            this.renderFileList(this._files);
+            this.listView.isScanMode = this._isScanMode;
+            this.listView.selectedPaths = this._selectedPaths;
+            this.listView.render(this._files);
         } else if (tab === 'gallery') {
-            tGallery.className = activeClass;
             subTabs.classList.add('hidden');
             this.renderGallery(this._files);
         } else {
-            tData.className = activeClass;
             subTabs.classList.remove('hidden');
-            await this.refreshAndroidData();
+            await this.dataView.refresh(this._deviceId, this._snapshotId, this._isScanMode);
         }
     }
 
@@ -110,99 +110,13 @@ export class FileBrowser extends HTMLElement {
     }
 
     async switchDataTab(subtab) {
-        this._currentDataTab = subtab;
+        this.dataView.currentSubTab = subtab;
         this.querySelectorAll('[data-subtab]').forEach(btn => {
-            if (btn.dataset.subtab === subtab) {
-                btn.className = "text-[10px] font-black tracking-[0.2em] text-indigo-600 border-b-2 border-indigo-600 pb-1";
-            } else {
-                btn.className = "text-[10px] font-black tracking-[0.2em] text-slate-400 hover:text-slate-600 pb-1 border-b-2 border-transparent";
-            }
+            btn.className = (btn.dataset.subtab === subtab)
+                ? "text-[10px] font-black tracking-[0.2em] text-indigo-600 border-b-2 border-indigo-600 pb-1"
+                : "text-[10px] font-black tracking-[0.2em] text-slate-400 hover:text-slate-600 pb-1 border-b-2 border-transparent";
         });
-        this.renderActiveDataTab();
-    }
-
-    async refreshAndroidData() {
-        const container = this.querySelector('#list');
-        container.innerHTML = `
-            <div class="flex flex-col items-center justify-center p-32">
-                <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-                <div class="text-indigo-600 font-black text-xs uppercase tracking-[0.3em] animate-pulse">Syncing Secure Data...</div>
-            </div>
-        `;
-
-        try {
-            if (this._isScanMode) {
-                const [c, s, l] = await Promise.all([
-                    DeviceService.getLiveData(this._deviceId, 'contacts').catch(() => []),
-                    DeviceService.getLiveData(this._deviceId, 'sms').catch(() => []),
-                    DeviceService.getLiveData(this._deviceId, 'call_logs').catch(() => [])
-                ]);
-                this._dataCache = { contacts: c, sms: s, calls: l };
-            } else {
-                const [c, s, l] = await Promise.all([
-                    BackupService.getStructuredData(this._snapshotId, 'contacts').catch(() => []),
-                    BackupService.getStructuredData(this._snapshotId, 'sms').catch(() => []),
-                    BackupService.getStructuredData(this._snapshotId, 'call_logs').catch(() => [])
-                ]);
-                this._dataCache = { contacts: c, sms: s, calls: l };
-            }
-            this.renderActiveDataTab();
-        } catch (e) {
-            container.innerHTML = `<div class="p-20 text-center text-red-500 font-black text-xs uppercase tracking-widest">Connection Failed</div>`;
-        }
-    }
-
-    renderActiveDataTab(filteredData = null) {
-        const container = this.querySelector('#list');
-        const colors = ['bg-blue-500', 'bg-purple-500', 'bg-indigo-500', 'bg-pink-500', 'bg-teal-500'];
-        const data = filteredData || this._dataCache;
-
-        let contentHtml = "";
-        let count = 0;
-
-        if (this._currentDataTab === 'contacts') {
-            contentHtml = renderers.contacts(data.contacts, colors);
-            count = (data.contacts || []).length;
-        } else if (this._currentDataTab === 'messages') {
-            contentHtml = renderers.messages(data.sms);
-            count = (data.sms || []).length;
-        } else {
-            contentHtml = renderers.calls(data.calls);
-            count = (data.calls || []).length;
-        }
-
-        container.innerHTML = `
-            <div class="p-6 border-b bg-white/50 sticky top-0 z-10 backdrop-blur-md">
-                <input type="text" id="data-search" placeholder="Search ${this._currentDataTab}..." class="w-full px-8 py-4 bg-slate-50 border-2 border-transparent rounded-2xl text-sm outline-none focus:border-indigo-100 focus:bg-white transition-all font-medium">
-            </div>
-            <div class="p-8 bg-slate-50/30 min-h-full">
-                <div class="max-w-6xl mx-auto">
-                    <div class="flex items-center justify-between mb-8">
-                        <h4 class="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
-                            <span class="w-2 h-2 bg-indigo-600 rounded-full"></span>
-                            Showing ${count} ${this._currentDataTab}
-                        </h4>
-                    </div>
-                    <div class="${this._currentDataTab === 'messages' ? 'space-y-4' : 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6'}">
-                        ${contentHtml}
-                    </div>
-                </div>
-            </div>
-        `;
-
-        const search = this.querySelector('#data-search');
-        search.oninput = (e) => {
-            const q = e.target.value.toLowerCase();
-            const filtered = {
-                contacts: this._dataCache.contacts.filter(c => (c.name || "").toLowerCase().includes(q) || (c.phones || []).some(p => p.includes(q))),
-                sms: this._dataCache.sms.filter(m => (m.address || "").toLowerCase().includes(q) || (m.body || "").toLowerCase().includes(q)),
-                calls: this._dataCache.calls.filter(l => (l.name || "").toLowerCase().includes(q) || (l.number || "").includes(q))
-            };
-            this.renderActiveDataTab(filtered);
-            const input = this.querySelector('#data-search');
-            input.focus();
-            input.value = e.target.value;
-        };
+        this.dataView.render();
     }
 
     show(snapshotId, files, deviceId = null, isScanMode = false) {
@@ -214,97 +128,21 @@ export class FileBrowser extends HTMLElement {
 
         this.querySelector('#footer').style.display = isScanMode ? 'flex' : 'none';
         this.querySelector('#subtitle').textContent = isScanMode ? `Device: ${deviceId}` : `Snapshot: ${snapshotId}`;
+        this._updateCounter();
 
         this.switchTab('files');
-    }
-
-    renderFileList(files) {
-        const container = this.querySelector('#list');
-        if (!files || files.length === 0) {
-            container.innerHTML = `
-                <div class="p-32 text-center text-slate-300 flex flex-col items-center">
-                    <svg class="w-16 h-16 mb-6 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="1.5" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9l-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                    <div class="font-black text-[10px] uppercase tracking-[0.4em]">No Media Files found</div>
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = `
-            <div class="p-6 border-b bg-white/80 sticky top-0 z-10 backdrop-blur-md">
-                <input type="text" id="file-search" placeholder="Search files in this set..." class="w-full px-8 py-4 bg-slate-100 border-none rounded-2xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium">
-            </div>
-            <div class="divide-y divide-slate-50 p-4">
-                ${files.map(f => `
-                    <div class="flex items-center justify-between p-5 hover:bg-slate-50 rounded-3xl transition-all group cursor-pointer" data-path="${f.path}">
-                        <div class="flex items-center gap-6 min-w-0">
-                            ${this._isScanMode ? `<input type="checkbox" class="file-check w-6 h-6 rounded-xl border-slate-300 text-indigo-600 focus:ring-indigo-500 transition-all" ${this._selectedPaths.has(f.path) ? 'checked' : ''}>` : ''}
-                            <div class="truncate">
-                                <div class="flex items-center gap-2">
-                                    <div class="font-bold text-slate-700 text-sm truncate group-hover:text-indigo-600 transition-colors uppercase tracking-tight">${f.name}</div>
-                                    ${f.media_info?.width ? `<span class="text-[8px] bg-slate-100 text-slate-500 px-1 rounded font-black">${f.media_info.width}x${f.media_info.height}</span>` : ''}
-                                    ${f.media_info?.latitude ? `<span class="text-[8px] bg-indigo-50 text-indigo-500 px-1 rounded font-black">📍 GPS</span>` : ''}
-                                </div>
-                                <div class="text-[10px] text-slate-400 font-mono truncate mt-1 tracking-tighter">${f.path}</div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-4 ml-6 flex-shrink-0">
-                            <div class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">${(f.size_bytes/1024/1024).toFixed(2)} MB</div>
-                            ${!this._isScanMode ? `
-                                <button class="restore-single-btn p-2 bg-indigo-50 text-indigo-600 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-indigo-600 hover:text-white" title="Restore this file" data-path="${f.path}">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M4 16v1a2 2 0 002 2h10a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                </button>
-                            ` : ''}
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        `;
-
-        const search = container.querySelector('#file-search');
-        if (search) {
-            search.oninput = (e) => {
-                const q = e.target.value.toLowerCase();
-                const items = container.querySelectorAll('[data-path]');
-                items.forEach(item => {
-                    const path = item.getAttribute('data-path').toLowerCase();
-                    const name = item.querySelector('.font-bold').textContent.toLowerCase();
-                    if (path.includes(q) || name.includes(q)) item.style.display = 'flex';
-                    else item.style.display = 'none';
-                });
-            };
-        }
-
-        container.querySelectorAll('[data-path]').forEach(row => {
-            row.onclick = (e) => {
-                if (e.target.type === 'checkbox' || e.target.closest('button')) return;
-                const checkbox = row.querySelector('.file-check');
-                if (checkbox) {
-                    checkbox.checked = !checkbox.checked;
-                    this._togglePath(row.getAttribute('data-path'), checkbox.checked);
-                }
-            };
-            const checkbox = row.querySelector('.file-check');
-            if (checkbox) {
-                checkbox.onchange = (e) => this._togglePath(row.getAttribute('data-path'), e.target.checked);
-            }
-
-            const restoreBtn = row.querySelector('.restore-single-btn');
-            if (restoreBtn) {
-                restoreBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    window.dispatchEvent(new CustomEvent('restore-file', {
-                        detail: { snapshotId: this._snapshotId, path: row.getAttribute('data-path') }
-                    }));
-                };
-            }
-        });
     }
 
     _togglePath(path, selected) {
         if (selected) this._selectedPaths.add(path);
         else this._selectedPaths.delete(path);
         this._updateCounter();
+    }
+
+    _onRestoreFile(path) {
+        window.dispatchEvent(new CustomEvent('restore-file', {
+            detail: { snapshotId: this._snapshotId, path }
+        }));
     }
 
     _updateCounter() {

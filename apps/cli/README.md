@@ -6,9 +6,9 @@ The primary user interface for the phone-backup platform.
 
 This crate is the **Composition Root** of the application. Its responsibilities include:
 
-1. **CLI Parsing**: Defining the command-line interface using `clap` in `cli.rs`, with support for environment variables.
-2. **Factory Pattern**: Constructing storage backends (`StorageFactory` in `factory.rs`) dynamically based on user parameters (`"local"` vs `"s3"`).
-3. **Command Router**: Routing CLI commands (`commands/mod.rs`) to modular handlers (`commands/device.rs`, `commands/backup.rs`, `commands/restore.rs`, `commands/schedule.rs`, `commands/stats.rs`).
+1. **CLI Parsing**: Defining the command-line interface using `clap` with support for environment variables.
+2. **Facade Integration**: Simplified hardware orchestration using the unified **`AdbAdapter`** facade.
+3. **Storage Orchestration**: Constructing storage backends dynamically based on user parameters.
 4. **Builder Pattern Usage**: Constructing `BackupPolicy` using `BackupPolicyBuilder` for customized backup inclusions/exclusions.
 5. **Formatting**: Presenting backup reports, photo galleries, and statistics in a human-readable format.
 
