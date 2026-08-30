@@ -10,7 +10,7 @@ The `BackupService` is the primary entry point for all business operations. It c
 - **`restore`**: Recover files from content-addressed object storage with filtering support.
 - **`verify`**: Scan repository integrity to detect missing objects or corrupted files.
 - **`schedule_runner`**: Run automated scheduled backups and apply snapshot retention policies.
-- **`device_ops`**: Device info, scanning, app listing, file search, and high-speed device-to-device migration/cloning.
+- **`device_ops`**: Live device file management (`download_file`, `upload_file`), device scanning, app listing, live search, and file management operations.
 
 ## 🏗 Modular Architecture & Design Patterns
 

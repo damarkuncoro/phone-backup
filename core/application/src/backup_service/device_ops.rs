@@ -68,6 +68,14 @@ impl<
     }
 
     #[instrument(skip(self))]
+    pub fn download_file(&self, id: &DeviceId, remote_path: &str, local_path: &str) -> Result<()> {
+        let mut reader = self.device_adapter.read_file(id, remote_path)?;
+        let mut file = std::fs::File::create(local_path)?;
+        std::io::copy(&mut reader, &mut file)?;
+        Ok(())
+    }
+
+    #[instrument(skip(self))]
     pub fn scan_device(&self, id: &DeviceId) -> Result<Vec<FileEntry>> {
         self.scanner_adapter.scan(id, vec![])
     }

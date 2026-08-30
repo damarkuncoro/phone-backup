@@ -51,6 +51,12 @@ pub async fn upload_to_device(state: State<'_, AppState>, device_id: String, loc
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub async fn download_from_device(state: State<'_, AppState>, device_id: String, remote_path: String, local_path: String) -> Result<(), String> {
+    let id = DeviceId::new(device_id);
+    state.engine.download_file(&id, &remote_path, &local_path).map_err(|e| e.to_string())
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub async fn calculate_device_file_hash(state: State<'_, AppState>, device_id: String, path: String) -> Result<String, String> {
     let id = DeviceId::new(device_id);
     state.engine.calculate_hash(&id, &path).map_err(|e| e.to_string())

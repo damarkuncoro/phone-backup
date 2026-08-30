@@ -44,6 +44,7 @@ fn main() {
             commands::device::rename_device_file,
             commands::device::copy_device_file,
             commands::device::upload_to_device,
+            commands::device::download_from_device,
             commands::device::calculate_device_file_hash,
             commands::device::get_device_battery,
             commands::device::get_live_data,

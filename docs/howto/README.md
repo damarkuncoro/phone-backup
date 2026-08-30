@@ -19,10 +19,12 @@ cargo tauri dev
 *   **Connected Devices**: Menampilkan daftar HP yang terhubung. Jika tidak muncul, klik **"RESCAN"**.
 
 ### 3. Fitur Utama GUI
+*   **Live Device File Manager**: Akses langsung sistem file HP yang terhubung. Anda dapat menjelajahi folder, mengunduh file langsung ke komputer local via `download_from_device`, mengunggah file baru, mengganti nama, menyalin/memindahkan, menghapus file, serta menghitung hash SHA-256 file secara instan.
 *   **Scan (Dry Run)**: Klik tombol **"SCAN"** pada perangkat. Anda bisa melihat daftar file di HP tanpa mendownloadnya, lalu memilih file tertentu saja yang ingin di-backup.
 *   **Backup All**: Melakukan backup menyeluruh untuk seluruh file media di perangkat.
 *   **History & Browser**: Klik **"HISTORY"** untuk melihat riwayat backup. Anda bisa mengklik setiap baris riwayat untuk membuka **File Browser** dan melihat isi file di dalam backup tersebut.
-*   **Android Data Explorer**: Di dalam File Browser, pilih tab **"ANDROID DATA"** untuk melihat **Kontak** dan **SMS** yang berhasil di-backup.
+*   **Visual Snapshot Diffing**: Bandingkan dua snapshot secara visual. Sistem akan menandai perubahan secara otomatis dengan status **New** (Hijau), **Modified** (Kuning), **Deleted** (Merah), dan **Unchanged**.
+*   **Android Data & Apps Explorer**: Di dalam Explorer, pilih tab **"ANDROID DATA"** (Kontak, SMS, Call Logs) atau tab **"APPS"** untuk memeriksa aplikasi terinstall di HP.
 *   **Restore**: Klik ikon **Unduh (Restore)** di daftar riwayat. Sistem akan otomatis membuat folder unik di `workspace/` untuk hasil restorasi Anda.
 
 ---

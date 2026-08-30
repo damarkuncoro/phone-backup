@@ -23,6 +23,7 @@ commands.allow = [
     "rename_device_file",
     "copy_device_file",
     "upload_to_device",
+    "download_from_device",
     "calculate_device_file_hash",
     "get_snapshot_apps",
     "get_file_diff",
