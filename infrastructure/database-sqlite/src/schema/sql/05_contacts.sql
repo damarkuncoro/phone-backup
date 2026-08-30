@@ -1,23 +1,32 @@
-CREATE TABLE IF NOT EXISTS contacts (
+-- Contact Objects (Deduplicated storage)
+CREATE TABLE IF NOT EXISTS contact_objects (
     id TEXT PRIMARY KEY,
-    snapshot_id TEXT NOT NULL,
     source_id TEXT,
     display_name TEXT NOT NULL,
     notes TEXT,
     source TEXT NOT NULL DEFAULT 'unknown',
     source_account TEXT,
-    content_hash TEXT,
+    content_hash TEXT UNIQUE, -- Used for deduplication
     metadata_json TEXT,
-    created_at TEXT NOT NULL,
-    updated_at TEXT,
-    FOREIGN KEY(snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT
 );
 
-CREATE INDEX IF NOT EXISTS idx_contacts_snapshot_id ON contacts(snapshot_id);
-CREATE INDEX IF NOT EXISTS idx_contacts_display_name ON contacts(display_name);
-CREATE INDEX IF NOT EXISTS idx_contacts_source ON contacts(source, source_id);
-CREATE INDEX IF NOT EXISTS idx_contacts_content_hash ON contacts(content_hash);
+CREATE INDEX IF NOT EXISTS idx_contact_objects_display_name ON contact_objects(display_name);
+CREATE INDEX IF NOT EXISTS idx_contact_objects_source ON contact_objects(source, source_id);
 
+-- Junction table linking snapshots to contacts
+CREATE TABLE IF NOT EXISTS snapshot_contacts (
+    snapshot_id TEXT NOT NULL,
+    contact_id TEXT NOT NULL,
+    PRIMARY KEY(snapshot_id, contact_id),
+    FOREIGN KEY(snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE,
+    FOREIGN KEY(contact_id) REFERENCES contact_objects(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_snapshot_contacts_snapshot_id ON snapshot_contacts(snapshot_id);
+
+-- Relational details linking to contact_objects
 CREATE TABLE IF NOT EXISTS contact_names (
     id TEXT PRIMARY KEY,
     contact_id TEXT NOT NULL UNIQUE,
@@ -27,10 +36,8 @@ CREATE TABLE IF NOT EXISTS contact_names (
     family_name TEXT,
     prefix TEXT,
     suffix TEXT,
-    FOREIGN KEY(contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+    FOREIGN KEY(contact_id) REFERENCES contact_objects(id) ON DELETE CASCADE
 );
-
-CREATE INDEX IF NOT EXISTS idx_contact_names_contact_id ON contact_names(contact_id);
 
 CREATE TABLE IF NOT EXISTS contact_phones (
     id TEXT PRIMARY KEY,
@@ -40,11 +47,9 @@ CREATE TABLE IF NOT EXISTS contact_phones (
     type TEXT,
     label TEXT,
     is_primary INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY(contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+    FOREIGN KEY(contact_id) REFERENCES contact_objects(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_contact_phones_contact_id ON contact_phones(contact_id);
-CREATE INDEX IF NOT EXISTS idx_contact_phones_normalized_value ON contact_phones(normalized_value);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_one_primary_phone ON contact_phones(contact_id) WHERE is_primary = 1;
 
 CREATE TABLE IF NOT EXISTS contact_emails (
@@ -54,11 +59,9 @@ CREATE TABLE IF NOT EXISTS contact_emails (
     type TEXT,
     label TEXT,
     is_primary INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY(contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+    FOREIGN KEY(contact_id) REFERENCES contact_objects(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_contact_emails_contact_id ON contact_emails(contact_id);
-CREATE INDEX IF NOT EXISTS idx_contact_emails_value ON contact_emails(value);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_one_primary_email ON contact_emails(contact_id) WHERE is_primary = 1;
 
 CREATE TABLE IF NOT EXISTS contact_addresses (
@@ -73,10 +76,8 @@ CREATE TABLE IF NOT EXISTS contact_addresses (
     country_code TEXT,
     type TEXT,
     label TEXT,
-    FOREIGN KEY(contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+    FOREIGN KEY(contact_id) REFERENCES contact_objects(id) ON DELETE CASCADE
 );
-
-CREATE INDEX IF NOT EXISTS idx_contact_addresses_contact_id ON contact_addresses(contact_id);
 
 CREATE TABLE IF NOT EXISTS contact_organizations (
     id TEXT PRIMARY KEY,
@@ -87,10 +88,8 @@ CREATE TABLE IF NOT EXISTS contact_organizations (
     job_description TEXT,
     type TEXT,
     label TEXT,
-    FOREIGN KEY(contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+    FOREIGN KEY(contact_id) REFERENCES contact_objects(id) ON DELETE CASCADE
 );
-
-CREATE INDEX IF NOT EXISTS idx_contact_organizations_contact_id ON contact_organizations(contact_id);
 
 CREATE TABLE IF NOT EXISTS contact_urls (
     id TEXT PRIMARY KEY,
@@ -98,10 +97,8 @@ CREATE TABLE IF NOT EXISTS contact_urls (
     url TEXT NOT NULL,
     type TEXT,
     label TEXT,
-    FOREIGN KEY(contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+    FOREIGN KEY(contact_id) REFERENCES contact_objects(id) ON DELETE CASCADE
 );
-
-CREATE INDEX IF NOT EXISTS idx_contact_urls_contact_id ON contact_urls(contact_id);
 
 CREATE TABLE IF NOT EXISTS contact_events (
     id TEXT PRIMARY KEY,
@@ -109,10 +106,8 @@ CREATE TABLE IF NOT EXISTS contact_events (
     event_type TEXT NOT NULL,
     event_date TEXT NOT NULL,
     label TEXT,
-    FOREIGN KEY(contact_id) REFERENCES contacts(id) ON DELETE CASCADE
+    FOREIGN KEY(contact_id) REFERENCES contact_objects(id) ON DELETE CASCADE
 );
-
-CREATE INDEX IF NOT EXISTS idx_contact_events_contact_id ON contact_events(contact_id);
 
 CREATE TABLE IF NOT EXISTS contact_photos (
     id TEXT PRIMARY KEY,
@@ -121,10 +116,11 @@ CREATE TABLE IF NOT EXISTS contact_photos (
     photo_hash TEXT,
     mime_type TEXT,
     is_primary INTEGER NOT NULL DEFAULT 1,
-    FOREIGN KEY(contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
+    FOREIGN KEY(contact_id) REFERENCES contact_objects(id) ON DELETE CASCADE,
     FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE SET NULL
 );
 
+-- Labels are still per snapshot context as they often change/are user-defined per device state
 CREATE TABLE IF NOT EXISTS contact_labels (
     id TEXT PRIMARY KEY,
     snapshot_id TEXT NOT NULL,
@@ -135,13 +131,11 @@ CREATE TABLE IF NOT EXISTS contact_labels (
     FOREIGN KEY(snapshot_id) REFERENCES snapshots(id) ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_contact_labels_snapshot_id ON contact_labels(snapshot_id);
-
 CREATE TABLE IF NOT EXISTS contact_label_members (
     contact_id TEXT NOT NULL,
     label_id TEXT NOT NULL,
     PRIMARY KEY(contact_id, label_id),
-    FOREIGN KEY(contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
+    FOREIGN KEY(contact_id) REFERENCES contact_objects(id) ON DELETE CASCADE,
     FOREIGN KEY(label_id) REFERENCES contact_labels(id) ON DELETE CASCADE
 );
 
@@ -152,20 +146,20 @@ CREATE VIRTUAL TABLE IF NOT EXISTS contacts_fts USING fts5(
     id UNINDEXED,
     display_name,
     notes,
-    content='contacts',
+    content='contact_objects',
     content_rowid='rowid'
 );
 
 -- Triggers to keep FTS in sync
-CREATE TRIGGER IF NOT EXISTS contacts_ai AFTER INSERT ON contacts BEGIN
+CREATE TRIGGER IF NOT EXISTS contacts_ai AFTER INSERT ON contact_objects BEGIN
   INSERT INTO contacts_fts(rowid, id, display_name, notes) VALUES (new.rowid, new.id, new.display_name, new.notes);
 END;
 
-CREATE TRIGGER IF NOT EXISTS contacts_ad AFTER DELETE ON contacts BEGIN
+CREATE TRIGGER IF NOT EXISTS contacts_ad AFTER DELETE ON contact_objects BEGIN
   INSERT INTO contacts_fts(contacts_fts, rowid, id, display_name, notes) VALUES('delete', old.rowid, old.id, old.display_name, old.notes);
 END;
 
-CREATE TRIGGER IF NOT EXISTS contacts_au AFTER UPDATE ON contacts BEGIN
+CREATE TRIGGER IF NOT EXISTS contacts_au AFTER UPDATE ON contact_objects BEGIN
   INSERT INTO contacts_fts(contacts_fts, rowid, id, display_name, notes) VALUES('delete', old.rowid, old.id, old.display_name, old.notes);
   INSERT INTO contacts_fts(rowid, id, display_name, notes) VALUES (new.rowid, new.id, new.display_name, new.notes);
 END;

@@ -119,3 +119,10 @@ pub enum StructuredData {
     SmsMessages(Vec<Sms>),
     CallLogs(Vec<CallLog>),
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ContactDiff {
+    pub added: Vec<Contact>,
+    pub removed: Vec<Contact>,
+    pub modified: Vec<Contact>,
+}

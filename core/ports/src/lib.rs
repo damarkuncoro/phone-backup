@@ -18,6 +18,7 @@ pub use repository_port::{
     RepositoryPort, DeviceRepositoryPort, SnapshotRepositoryPort, FileRepositoryPort,
     AppRepositoryPort, ContactRepositoryPort, ScheduleRepositoryPort,
     SettingsRepositoryPort, MaintenanceRepositoryPort,
+    SmsRepositoryPort, CallLogRepositoryPort,
 };
 pub use scanner_port::ScannerPort;
 pub use storage_port::StoragePort;

@@ -6,3 +6,4 @@ pub mod contact_repo;
 pub mod schedule_repo;
 pub mod maintenance_repo;
 pub mod settings_repo;
+pub mod communication_repo;

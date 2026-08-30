@@ -104,6 +104,8 @@ impl<
 
         // We need a thread-safe way to update the snapshot if interrupted
         let snapshot_mutex = Mutex::new(snapshot);
+        // We need a thread-safe way to collect processed files for batch linking
+        let processed_ids = Mutex::new(Vec::with_capacity(files.len()));
 
         let result: Result<()> = files.into_par_iter().try_for_each(|file| {
             if already_backed_up.contains(&file.path) {
@@ -128,8 +130,10 @@ impl<
 
             match processor.process_file(id, file_to_process, skip_content) {
                 Ok(processed_file) => {
-                    let snap = snapshot_mutex.lock().unwrap();
-                    let _ = self.repository.link_file_to_snapshot(&snap.id, &processed_file.id);
+                    {
+                        let mut ids = processed_ids.lock().unwrap();
+                        ids.push(processed_file.id.clone());
+                    }
                     self.progress.inc(1, &format!("Completed {}", processed_file.name));
                     Ok(())
                 }
@@ -146,6 +150,15 @@ impl<
         });
 
         result?;
+
+        // Batch link all processed files to the snapshot
+        {
+            let ids = processed_ids.into_inner().unwrap();
+            let snap = snapshot_mutex.lock().unwrap();
+            if !ids.is_empty() {
+                self.repository.link_files_to_snapshot_batch(&snap.id, &ids)?;
+            }
+        }
 
         self.progress.finish("File backup finished.");
 

@@ -74,6 +74,50 @@ fn test_file_search() {
 }
 
 #[test]
+fn test_media_queries() {
+    let repo = setup_test_repo();
+    let device_id = DeviceId::new("dev-media");
+
+    repo.save_device(&Device {
+        id: device_id.clone(),
+        manufacturer: "A".to_string(), model: "B".to_string(), serial: "C".to_string(),
+        os_version: "D".to_string(), sdk_version: None,
+        storage_total_bytes: 0, storage_used_bytes: 0, storage_free_bytes: 0,
+        connection_type: ConnectionType::Usb,
+    }).unwrap();
+
+    // 1. Image
+    repo.save_file(&FileEntry {
+        id: FileId("m1".to_string()), device_id: device_id.clone(),
+        path: "p1.jpg".to_string(), name: "n1.jpg".to_string(), size_bytes: 10,
+        modified_at: Utc::now(), mime_type: "image/jpeg".to_string(), permissions: "p".to_string(),
+        hash_sha256: None, media_info: None,
+    }).unwrap();
+
+    // 2. Video
+    repo.save_file(&FileEntry {
+        id: FileId("m2".to_string()), device_id: device_id.clone(),
+        path: "p2.mp4".to_string(), name: "n2.mp4".to_string(), size_bytes: 20,
+        modified_at: Utc::now(), mime_type: "video/mp4".to_string(), permissions: "p".to_string(),
+        hash_sha256: None, media_info: None,
+    }).unwrap();
+
+    // 3. Non-media
+    repo.save_file(&FileEntry {
+        id: FileId("doc1".to_string()), device_id: device_id.clone(),
+        path: "p3.txt".to_string(), name: "n3.txt".to_string(), size_bytes: 5,
+        modified_at: Utc::now(), mime_type: "text/plain".to_string(), permissions: "p".to_string(),
+        hash_sha256: None, media_info: None,
+    }).unwrap();
+
+    let media = repo.list_media_files(&device_id).unwrap();
+    assert_eq!(media.len(), 2);
+
+    let recent = repo.get_recent_media(1).unwrap();
+    assert_eq!(recent.len(), 1);
+}
+
+#[test]
 fn test_file_chunk_management() {
     let repo = setup_test_repo();
     let file_id = FileId("chunked-file".to_string());

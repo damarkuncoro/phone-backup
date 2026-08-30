@@ -10,10 +10,13 @@ repository.workspace = true
 domain = { workspace = true }
 ports = { workspace = true }
 anyhow.workspace = true
-rusqlite.workspace = true
+rusqlite = { workspace = true, features = ["backup"] }
 chrono.workspace = true
 serde_json.workspace = true
 tracing.workspace = true
 uuid = { workspace = true, features = ["v4"] }
 r2d2 = "0.8"
 r2d2_sqlite = "0.24"
+
+[dev-dependencies]
+tempfile.workspace = true

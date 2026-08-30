@@ -25,10 +25,16 @@ pub trait SnapshotRepositoryPort: Send + Sync {
 
 pub trait FileRepositoryPort: Send + Sync {
     fn save_file(&self, file: &FileEntry) -> Result<()>;
+    fn save_files_batch(&self, files: &[FileEntry]) -> Result<()>;
     fn list_files(&self, device_id: &DeviceId) -> Result<Vec<FileEntry>>;
     fn get_snapshot_files(&self, snapshot_id: &SnapshotId) -> Result<Vec<FileEntry>>;
     fn link_file_to_snapshot(&self, snapshot_id: &SnapshotId, file_id: &FileId) -> Result<()>;
+    fn link_files_to_snapshot_batch(&self, snapshot_id: &SnapshotId, file_ids: &[FileId]) -> Result<()>;
     fn search_files(&self, query: &str) -> Result<Vec<FileEntry>>;
+    /// List all files that are identified as media (images/videos).
+    fn list_media_files(&self, device_id: &DeviceId) -> Result<Vec<FileEntry>>;
+    /// Get recent media files across all devices.
+    fn get_recent_media(&self, limit: u32) -> Result<Vec<FileEntry>>;
     fn save_file_chunk(&self, file_id: &FileId, chunk_hash: &str, offset: u64, length: u32, sequence: u32) -> Result<()>;
     fn get_file_chunks(&self, file_id: &FileId) -> Result<Vec<(String, u64, u32)>>;
 }
@@ -43,6 +49,8 @@ pub trait ContactRepositoryPort: Send + Sync {
     fn save_contact(&self, snapshot_id: &SnapshotId, contact: &Contact) -> Result<()>;
     fn get_snapshot_contacts(&self, snapshot_id: &SnapshotId) -> Result<Vec<Contact>>;
     fn search_contacts(&self, query: &str) -> Result<Vec<(SnapshotId, Contact)>>;
+    /// Get differences between two contact snapshots.
+    fn get_contact_diff(&self, old_snapshot_id: &SnapshotId, new_snapshot_id: &SnapshotId) -> Result<domain::ContactDiff>;
 }
 
 pub trait ScheduleRepositoryPort: Send + Sync {
@@ -60,6 +68,21 @@ pub trait MaintenanceRepositoryPort: Send + Sync {
     fn get_all_referenced_hashes(&self) -> Result<HashSet<String>>;
     /// Optimize database storage and update query statistics.
     fn optimize(&self) -> Result<()>;
+    /// Remove objects (files, contacts) that are no longer referenced by any snapshot.
+    fn prune_orphans(&self) -> Result<u64>;
+    /// Create a live backup of the database to the specified path.
+    fn create_database_backup(&self, destination_path: &str) -> Result<()>;
+}
+
+pub trait SmsRepositoryPort: Send + Sync {
+    fn save_sms(&self, snapshot_id: &SnapshotId, sms: &domain::Sms) -> Result<()>;
+    fn get_snapshot_sms(&self, snapshot_id: &SnapshotId) -> Result<Vec<domain::Sms>>;
+    fn search_sms(&self, query: &str) -> Result<Vec<(SnapshotId, domain::Sms)>>;
+}
+
+pub trait CallLogRepositoryPort: Send + Sync {
+    fn save_call_log(&self, snapshot_id: &SnapshotId, log: &domain::CallLog) -> Result<()>;
+    fn get_snapshot_call_logs(&self, snapshot_id: &SnapshotId) -> Result<Vec<domain::CallLog>>;
 }
 
 pub trait RepositoryPort:
@@ -71,4 +94,6 @@ pub trait RepositoryPort:
     ScheduleRepositoryPort +
     SettingsRepositoryPort +
     MaintenanceRepositoryPort +
+    SmsRepositoryPort +
+    CallLogRepositoryPort +
     Send + Sync {}

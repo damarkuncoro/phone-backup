@@ -32,11 +32,15 @@ pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
             "CREATE TRIGGER IF NOT EXISTS files_ai AFTER INSERT ON files BEGIN INSERT INTO files_fts(rowid, id, name, path) VALUES (new.rowid, new.id, new.name, new.path); END;",
             "CREATE TRIGGER IF NOT EXISTS files_ad AFTER DELETE ON files BEGIN INSERT INTO files_fts(files_fts, rowid, id, name, path) VALUES('delete', old.rowid, old.id, old.name, old.path); END;",
             "CREATE TRIGGER IF NOT EXISTS files_au AFTER UPDATE ON files BEGIN INSERT INTO files_fts(files_fts, rowid, id, name, path) VALUES('delete', old.rowid, old.id, old.name, old.path); INSERT INTO files_fts(rowid, id, name, path) VALUES (new.rowid, new.id, new.name, new.path); END;",
-            "CREATE VIRTUAL TABLE IF NOT EXISTS contacts_fts USING fts5(id UNINDEXED, display_name, notes, content='contacts', content_rowid='rowid');",
-            "INSERT INTO contacts_fts(rowid, id, display_name, notes) SELECT rowid, id, display_name, notes FROM contacts;",
-            "CREATE TRIGGER IF NOT EXISTS contacts_ai AFTER INSERT ON contacts BEGIN INSERT INTO contacts_fts(rowid, id, display_name, notes) VALUES (new.rowid, new.id, new.display_name, new.notes); END;",
-            "CREATE TRIGGER IF NOT EXISTS contacts_ad AFTER DELETE ON contacts BEGIN INSERT INTO contacts_fts(contacts_fts, rowid, id, display_name, notes) VALUES('delete', old.rowid, old.id, old.display_name, old.notes); END;",
-            "CREATE TRIGGER IF NOT EXISTS contacts_au AFTER UPDATE ON contacts BEGIN INSERT INTO contacts_fts(contacts_fts, rowid, id, display_name, notes) VALUES('delete', old.rowid, old.id, old.display_name, old.notes); INSERT INTO contacts_fts(rowid, id, display_name, notes) VALUES (new.rowid, new.id, new.display_name, new.notes); END;",
+            "CREATE VIRTUAL TABLE IF NOT EXISTS contacts_fts USING fts5(id UNINDEXED, display_name, notes, content='contact_objects', content_rowid='rowid');",
+            "INSERT INTO contacts_fts(rowid, id, display_name, notes) SELECT rowid, id, display_name, notes FROM contact_objects;",
+            "CREATE TRIGGER IF NOT EXISTS contacts_ai AFTER INSERT ON contact_objects BEGIN INSERT INTO contacts_fts(rowid, id, display_name, notes) VALUES (new.rowid, new.id, new.display_name, new.notes); END;",
+            "CREATE TRIGGER IF NOT EXISTS contacts_ad AFTER DELETE ON contact_objects BEGIN INSERT INTO contacts_fts(contacts_fts, rowid, id, display_name, notes) VALUES('delete', old.rowid, old.id, old.display_name, old.notes); END;",
+            "CREATE TRIGGER IF NOT EXISTS contacts_au AFTER UPDATE ON contact_objects BEGIN INSERT INTO contacts_fts(contacts_fts, rowid, id, display_name, notes) VALUES('delete', old.rowid, old.id, old.display_name, old.notes); INSERT INTO contacts_fts(rowid, id, display_name, notes) VALUES (new.rowid, new.id, new.display_name, new.notes); END;",
+        ]),
+        (3, "Add SMS and Call Log tables", vec![
+            include_str!("schema/sql/07_messages.sql"),
+            include_str!("schema/sql/08_call_logs.sql"),
         ]),
     ];
 

@@ -33,6 +33,31 @@ impl FileRepositoryPort for FileRepository {
         Ok(())
     }
 
+    fn save_files_batch(&self, files: &[FileEntry]) -> anyhow::Result<()> {
+        let mut conn = self.pool.get()?;
+        let tx = conn.transaction()?;
+
+        {
+            let mut stmt = tx.prepare_cached(
+                "INSERT OR REPLACE INTO files
+                (id, device_id, path, name, size_bytes, modified_at, mime_type, permissions, hash_sha256, media_info)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)"
+            )?;
+
+            for file in files {
+                let media_info_json = file.media_info.as_ref().map(|m| serde_json::to_string(m).unwrap());
+                stmt.execute(params![
+                    file.id.0, file.device_id.0, file.path, file.name, file.size_bytes,
+                    file.modified_at.to_rfc3339(), file.mime_type, file.permissions,
+                    file.hash_sha256, media_info_json
+                ])?;
+            }
+        }
+
+        tx.commit()?;
+        Ok(())
+    }
+
     fn list_files(&self, device_id: &DeviceId) -> anyhow::Result<Vec<FileEntry>> {
         let conn = self.pool.get()?;
         let mut stmt = conn.prepare("SELECT * FROM files WHERE device_id = ?1")?;
@@ -64,6 +89,24 @@ impl FileRepositoryPort for FileRepository {
         Ok(())
     }
 
+    fn link_files_to_snapshot_batch(&self, snapshot_id: &SnapshotId, file_ids: &[FileId]) -> anyhow::Result<()> {
+        let mut conn = self.pool.get()?;
+        let tx = conn.transaction()?;
+
+        {
+            let mut stmt = tx.prepare_cached(
+                "INSERT OR IGNORE INTO snapshot_files (snapshot_id, file_id) VALUES (?1, ?2)"
+            )?;
+
+            for file_id in file_ids {
+                stmt.execute(params![snapshot_id.0, file_id.0])?;
+            }
+        }
+
+        tx.commit()?;
+        Ok(())
+    }
+
     fn search_files(&self, query: &str) -> anyhow::Result<Vec<FileEntry>> {
         let conn = self.pool.get()?;
         let mut stmt = conn.prepare(
@@ -71,13 +114,11 @@ impl FileRepositoryPort for FileRepository {
              JOIN files_fts fts ON f.rowid = fts.rowid
              WHERE files_fts MATCH ?1 ORDER BY rank"
         )?;
-        // Sanitize query for FTS5 (basic wrap in quotes or add * for prefix)
         let fts_query = format!("\"{}\"*", query.replace("\"", "\"\""));
         let file_iter = stmt.query_map([fts_query], BackupMapper::to_file)?;
         let mut files = Vec::new();
         for f in file_iter { files.push(f?); }
 
-        // Fallback to LIKE if FTS returns nothing (for very short queries or special chars)
         if files.is_empty() {
             let mut stmt_like = conn.prepare("SELECT * FROM files WHERE name LIKE ?1 OR path LIKE ?1 LIMIT 100")?;
             let pattern = format!("%{}%", query);
@@ -85,6 +126,33 @@ impl FileRepositoryPort for FileRepository {
             for f in file_iter { files.push(f?); }
         }
 
+        Ok(files)
+    }
+
+    fn list_media_files(&self, device_id: &DeviceId) -> anyhow::Result<Vec<FileEntry>> {
+        let conn = self.pool.get()?;
+        let mut stmt = conn.prepare(
+            "SELECT * FROM files
+             WHERE device_id = ?1
+             AND (mime_type LIKE 'image/%' OR mime_type LIKE 'video/%')
+             ORDER BY modified_at DESC"
+        )?;
+        let file_iter = stmt.query_map([&device_id.0], BackupMapper::to_file)?;
+        let mut files = Vec::new();
+        for f in file_iter { files.push(f?); }
+        Ok(files)
+    }
+
+    fn get_recent_media(&self, limit: u32) -> anyhow::Result<Vec<FileEntry>> {
+        let conn = self.pool.get()?;
+        let mut stmt = conn.prepare(
+            "SELECT * FROM files
+             WHERE mime_type LIKE 'image/%' OR mime_type LIKE 'video/%'
+             ORDER BY modified_at DESC LIMIT ?1"
+        )?;
+        let file_iter = stmt.query_map([limit], BackupMapper::to_file)?;
+        let mut files = Vec::new();
+        for f in file_iter { files.push(f?); }
         Ok(files)
     }
 
