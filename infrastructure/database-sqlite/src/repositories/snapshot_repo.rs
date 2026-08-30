@@ -79,6 +79,10 @@ impl SnapshotRepositoryPort for SnapshotRepository {
         if let Some(s) = snapshot_iter.next() { Ok(Some(s?)) } else { Ok(None) }
     }
 
+    fn get_latest_completed_snapshot(&self, device_id: &DeviceId) -> anyhow::Result<Option<Snapshot>> {
+        self.get_latest_snapshot(device_id)
+    }
+
     fn get_incomplete_snapshot(&self, device_id: &DeviceId) -> anyhow::Result<Option<Snapshot>> {
         let conn = self.pool.get()?;
         let mut stmt = conn.prepare(
@@ -86,6 +90,10 @@ impl SnapshotRepositoryPort for SnapshotRepository {
         )?;
         let mut snapshot_iter = stmt.query_map([&device_id.0], BackupMapper::to_snapshot)?;
         if let Some(s) = snapshot_iter.next() { Ok(Some(s?)) } else { Ok(None) }
+    }
+
+    fn get_resumable_snapshot(&self, device_id: &DeviceId) -> anyhow::Result<Option<Snapshot>> {
+        self.get_incomplete_snapshot(device_id)
     }
 
     fn save_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: &str, object_id: &str) -> anyhow::Result<()> {

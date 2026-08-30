@@ -54,4 +54,8 @@ impl StoragePort for CloudStorage {
         }
         Ok(results)
     }
+
+    fn available_space(&self) -> Result<u64> {
+        Ok(u64::MAX)
+    }
 }

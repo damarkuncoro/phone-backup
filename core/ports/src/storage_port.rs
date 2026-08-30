@@ -17,6 +17,9 @@ pub trait StoragePort: Send + Sync {
 
     /// List all blob IDs in the storage.
     fn list(&self) -> Result<Vec<String>>;
+
+    /// Return available free space in bytes on target storage.
+    fn available_space(&self) -> Result<u64>;
 }
 
 impl<S: StoragePort + ?Sized> StoragePort for Box<S> {
@@ -38,5 +41,9 @@ impl<S: StoragePort + ?Sized> StoragePort for Box<S> {
 
     fn list(&self) -> Result<Vec<String>> {
         (**self).list()
+    }
+
+    fn available_space(&self) -> Result<u64> {
+        (**self).available_space()
     }
 }

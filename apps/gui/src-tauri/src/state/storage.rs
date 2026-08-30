@@ -36,6 +36,9 @@ impl StoragePort for SwitchableStorage {
     fn list(&self) -> anyhow::Result<Vec<String>> {
         self.current.read().unwrap().list()
     }
+    fn available_space(&self) -> anyhow::Result<u64> {
+        self.current.read().unwrap().available_space()
+    }
 }
 
 /// Newtype wrapper to satisfy orphan rules for Arc + Trait
@@ -57,5 +60,8 @@ impl StoragePort for SharedStorage {
     }
     fn list(&self) -> anyhow::Result<Vec<String>> {
         self.0.list()
+    }
+    fn available_space(&self) -> anyhow::Result<u64> {
+        self.0.available_space()
     }
 }

@@ -17,7 +17,9 @@ pub trait SnapshotRepositoryPort: Send + Sync {
     fn list_snapshots(&self, device_id: &DeviceId) -> Result<Vec<Snapshot>>;
     fn list_all_snapshots(&self) -> Result<Vec<Snapshot>>;
     fn get_latest_snapshot(&self, device_id: &DeviceId) -> Result<Option<Snapshot>>;
+    fn get_latest_completed_snapshot(&self, device_id: &DeviceId) -> Result<Option<Snapshot>>;
     fn get_incomplete_snapshot(&self, device_id: &DeviceId) -> Result<Option<Snapshot>>;
+    fn get_resumable_snapshot(&self, device_id: &DeviceId) -> Result<Option<Snapshot>>;
     fn delete_snapshot(&self, snapshot_id: &SnapshotId) -> Result<()>;
     fn save_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: &str, object_id: &str) -> Result<()>;
     fn get_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: &str) -> Result<Option<String>>;

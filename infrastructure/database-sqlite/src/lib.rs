@@ -160,7 +160,9 @@ impl SnapshotRepositoryPort for SqliteRepository {
     fn list_snapshots(&self, device_id: &DeviceId) -> anyhow::Result<Vec<Snapshot>> { self.snapshots().list_snapshots(device_id) }
     fn list_all_snapshots(&self) -> anyhow::Result<Vec<Snapshot>> { self.snapshots().list_all_snapshots() }
     fn get_latest_snapshot(&self, device_id: &DeviceId) -> anyhow::Result<Option<Snapshot>> { self.snapshots().get_latest_snapshot(device_id) }
+    fn get_latest_completed_snapshot(&self, device_id: &DeviceId) -> anyhow::Result<Option<Snapshot>> { self.snapshots().get_latest_completed_snapshot(device_id) }
     fn get_incomplete_snapshot(&self, device_id: &DeviceId) -> anyhow::Result<Option<Snapshot>> { self.snapshots().get_incomplete_snapshot(device_id) }
+    fn get_resumable_snapshot(&self, device_id: &DeviceId) -> anyhow::Result<Option<Snapshot>> { self.snapshots().get_resumable_snapshot(device_id) }
     fn delete_snapshot(&self, snapshot_id: &SnapshotId) -> anyhow::Result<()> { self.snapshots().delete_snapshot(snapshot_id) }
     fn save_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: &str, object_id: &str) -> anyhow::Result<()> {
         self.snapshots().save_structured_data_ref(snapshot_id, data_type, object_id)

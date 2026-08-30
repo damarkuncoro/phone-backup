@@ -44,16 +44,16 @@ impl<
             .collect();
         info!("📋 Manifest built with {} files", manifest_files.len());
 
-        // 3. COMPARE PREVIOUS BACKUP (DIFFING)
-        let latest_snapshot = self.repository.get_latest_snapshot(id)?;
+        // 3. COMPARE PREVIOUS COMPLETED BACKUP (DIFFING)
+        let latest_completed_snapshot = self.repository.get_latest_completed_snapshot(id)?;
         let mut previous_files = std::collections::HashMap::new();
-        if let Some(ref snapshot) = latest_snapshot {
+        if let Some(ref snapshot) = latest_completed_snapshot {
             for f in self.repository.get_snapshot_files(&snapshot.id)? {
                 previous_files.insert(f.path.clone(), f);
             }
         }
 
-        let mut snapshot = if let Some(incomplete) = self.repository.get_incomplete_snapshot(id)? {
+        let mut snapshot = if let Some(incomplete) = self.repository.get_resumable_snapshot(id)? {
             info!("🔄 Resuming interrupted snapshot: {}", incomplete.id.0);
             incomplete
         } else {
@@ -136,25 +136,19 @@ impl<
     }
 
     pub(crate) fn check_available_disk_space(&self, required_bytes: u64) -> Result<()> {
-        use sysinfo::Disks;
-        let mut disks = Disks::new();
-        disks.refresh_list();
-
-        if let Some(disk) = disks.iter().next() {
-            let available = disk.available_space();
-            if available < required_bytes {
-                anyhow::bail!(
-                    "Insufficient disk space. Required: {:.2} MB, Available: {:.2} MB",
-                    required_bytes as f64 / 1024.0 / 1024.0,
-                    available as f64 / 1024.0 / 1024.0
-                );
-            }
-            info!(
-                "Storage Check: OK (Available: {:.2} MB, Required: {:.2} MB)",
-                available as f64 / 1024.0 / 1024.0,
-                required_bytes as f64 / 1024.0 / 1024.0
+        let available = self.storage.available_space()?;
+        if available < required_bytes {
+            anyhow::bail!(
+                "Insufficient disk space on target storage. Required: {:.2} MB, Available: {:.2} MB",
+                required_bytes as f64 / 1024.0 / 1024.0,
+                available as f64 / 1024.0 / 1024.0
             );
         }
+        info!(
+            "Target Storage Capacity Check: OK (Available: {:.2} MB, Required: {:.2} MB)",
+            available as f64 / 1024.0 / 1024.0,
+            required_bytes as f64 / 1024.0 / 1024.0
+        );
         Ok(())
     }
 

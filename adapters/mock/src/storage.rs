@@ -42,4 +42,8 @@ impl StoragePort for MockStorage {
     fn list(&self) -> Result<Vec<String>> {
         Ok(self.data.lock().unwrap().keys().cloned().collect())
     }
+
+    fn available_space(&self) -> Result<u64> {
+        Ok(100 * 1024 * 1024 * 1024)
+    }
 }

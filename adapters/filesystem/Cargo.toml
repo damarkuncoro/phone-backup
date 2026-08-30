@@ -13,6 +13,7 @@ anyhow.workspace = true
 chrono.workspace = true
 walkdir.workspace = true
 mime_guess.workspace = true
+sysinfo.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

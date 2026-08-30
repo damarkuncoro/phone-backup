@@ -58,4 +58,18 @@ impl StoragePort for LocalStorage {
         }
         Ok(results)
     }
+
+    fn available_space(&self) -> Result<u64> {
+        let disks = sysinfo::Disks::new_with_refreshed_list();
+        let canonical_base = self.base_dir.canonicalize().unwrap_or_else(|_| self.base_dir.clone());
+        let target_disk = disks.iter().find(|d| {
+            canonical_base.starts_with(d.mount_point())
+        }).or_else(|| disks.iter().next());
+
+        if let Some(disk) = target_disk {
+            Ok(disk.available_space())
+        } else {
+            Ok(10 * 1024 * 1024 * 1024)
+        }
+    }
 }
