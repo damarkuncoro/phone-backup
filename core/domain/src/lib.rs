@@ -18,6 +18,8 @@ mod retention;
 mod error;
 mod settings;
 mod value_objects;
+mod events;
+mod event_bus;
 
 pub use capability::{Capability, CapabilityStatus, CapabilityMatrix};
 pub use device::{ConnectionType, Device, DeviceId};
@@ -33,3 +35,5 @@ pub use retention::{KeepCountStrategy, KeepDailyStrategy, RetentionPolicy, Reten
 pub use error::DomainError;
 pub use settings::{AppSettings, StorageBackend};
 pub use value_objects::{Checksum, DevicePath, StorageSize};
+pub use events::DomainEvent;
+pub use event_bus::{DomainEventBus, DomainEventHandler, EventHandlerRef};

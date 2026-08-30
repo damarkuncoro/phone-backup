@@ -122,3 +122,40 @@ fn test_device_path_security() {
     let traversal = DevicePath::new("sdcard/DCIM/../../../etc/passwd");
     assert!(traversal.is_err());
 }
+
+struct TestEventHandler {
+    received_events: std::sync::Arc<std::sync::Mutex<Vec<phone_backup_domain::DomainEvent>>>,
+}
+
+impl phone_backup_domain::DomainEventHandler for TestEventHandler {
+    fn handle(&self, event: &phone_backup_domain::DomainEvent) {
+        self.received_events.lock().unwrap().push(event.clone());
+    }
+}
+
+#[test]
+fn test_domain_event_bus_pub_sub() {
+    use phone_backup_domain::{DomainEvent, DomainEventBus, EventHandlerRef};
+    use std::sync::{Arc, Mutex};
+
+    let bus = DomainEventBus::new();
+    let events = Arc::new(Mutex::new(Vec::new()));
+
+    let handler: EventHandlerRef = Arc::new(TestEventHandler {
+        received_events: events.clone(),
+    });
+
+    bus.subscribe(handler);
+    assert_eq!(bus.handler_count(), 1);
+
+    let event = DomainEvent::DeviceConnected {
+        device_id: DeviceId::new("DEV_PUB_SUB"),
+        timestamp: Utc::now(),
+    };
+
+    bus.publish(&event);
+
+    let received = events.lock().unwrap();
+    assert_eq!(received.len(), 1);
+    assert_eq!(received[0], event);
+}
