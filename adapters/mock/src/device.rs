@@ -10,9 +10,15 @@ pub struct MockDeviceAdapter {
 
 impl Default for MockDeviceAdapter {
     fn default() -> Self {
+        Self::with_device_id("A1B2C3D4")
+    }
+}
+
+impl MockDeviceAdapter {
+    pub fn with_device_id(id: impl Into<String>) -> Self {
         Self {
             devices: vec![Device {
-                id: DeviceId::new("A1B2C3D4"),
+                id: DeviceId::new(id),
                 manufacturer: "Google".into(),
                 model: "Pixel 8".into(),
                 serial: "A1B2C3D4".into(),

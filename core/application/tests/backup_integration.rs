@@ -79,7 +79,7 @@ fn test_asymmetric_backup_restore_lifecycle() {
     let repository = SqliteRepository::new(db_path.to_str().unwrap()).unwrap();
     let storage = LocalStorage::new(storage_path).unwrap();
     let service = BackupService::new(
-        MockDeviceAdapter::default(),
+        MockDeviceAdapter::with_device_id("DEV_ASYM"),
         MockScannerAdapter::default(),
         repository,
         storage,

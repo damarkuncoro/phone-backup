@@ -57,6 +57,21 @@ phone-backup --adapter adb --pubkey "age1..." backup <DEVICE_ID>
 phone-backup --privkey "AGE-SECRET-KEY-1..." restore last
 ```
 
+## 🔒 Enkripsi Metadata Database & Testing
+
+### 1. Encrypted Metadata Engine (SQLCipher + Argon2id)
+Secara default, metadata catalog disimpan dalam SQLite terenkripsi dengan AES-256 via SQLCipher dan Argon2id key derivation:
+```bash
+# Pengujian pemisahan kunci enkripsi database dengan Argon2id
+cargo test -p phone-backup-application --test security_compression_test
+```
+
+### 2. Menguji Seluruh Workspace (100% Isolated Tests)
+Setiap crate telah memisahkan kode produksi `src/` dari file test terisolasi `tests/`:
+```bash
+cargo test --workspace
+```
+
 ---
 
 ## 🧹 Pemeliharaan & Efisiensi

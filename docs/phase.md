@@ -143,6 +143,10 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 *   **Argon2id Key Derivation**: Fungsi `derive_database_key` pada `EncryptionEngine` untuk menghasilkan kunci enkripsi 256-bit dari kata sandi pengguna.
 *   **Encrypted Repository Factory**: `SqliteRepositoryFactory::create_encrypted` dengan inisialisasi `PRAGMA key` otomatis pada connection customizer pool.
 
+## ✅ PHASE 42 — Workspace Source & Test Isolation (src/ vs tests/)
+*   **Pure Production Code**: Menghapus seluruh blok `#[cfg(test)]` dari folder `src/` seluruh crate workspace (`core/domain`, `core/application`, `adapters/filesystem`, `adapters/mock`, `infrastructure/database-sqlite`).
+*   **Dedicated Test Suites**: Memisahkan test suite terisolasi ke direktori `tests/` (`domain_tests.rs`, `security_compression_test.rs`, `filesystem_adapter_test.rs`, `mock_adapter_test.rs`, `encrypted_repo_test.rs`).
+
 ---
 
 # NEXT GOALS (v1.0.0 Roadmap)
