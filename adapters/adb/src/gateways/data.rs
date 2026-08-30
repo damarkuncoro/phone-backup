@@ -6,6 +6,7 @@ use anyhow::Result;
 use domain::{CallLog, Contact, DeviceId, Sms};
 use ports::DataProviderPort;
 
+#[derive(Clone)]
 pub struct AdbDataGateway {
     client: AdbClient,
 }

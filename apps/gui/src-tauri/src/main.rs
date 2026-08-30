@@ -9,7 +9,7 @@ use tauri::Manager;
 use socketioxide::SocketIo;
 use tower_http::cors::CorsLayer;
 
-use adapter_adb::{AdbAppProvider, AdbDataProvider, AdbDeviceAdapter, AdbScannerAdapter, AdbClient};
+use adapter_adb::{AdbAdapter, AdbClient};
 use adapter_database_sqlite::SqliteRepository;
 use adapter_filesystem::LocalStorage;
 use application::BackupService;
@@ -71,13 +71,14 @@ fn main() {
 
             // 3. Initialize Core Engine
             let adb_client = AdbClient::new();
+            let adb_adapter = AdbAdapter::new(adb_client);
             let engine = Arc::new(BackupService::new(
-                AdbDeviceAdapter::new(adb_client.clone()),
-                AdbScannerAdapter::new(adb_client.clone()),
+                adb_adapter.clone(),
+                adb_adapter.clone(),
                 repository,
                 SharedStorage(switcher.clone()),
-                AdbAppProvider::new(adb_client.clone()),
-                AdbDataProvider::new(adb_client),
+                adb_adapter.clone(),
+                adb_adapter,
                 CombinedProgress {
                     app_handle: app.handle().clone(),
                     io: io_clone

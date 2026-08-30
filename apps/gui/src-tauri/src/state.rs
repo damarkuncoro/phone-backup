@@ -1,6 +1,6 @@
 use std::sync::{Arc, RwLock};
 use application::BackupService;
-use adapter_adb::{AdbAppProvider, AdbDataProvider, AdbDeviceAdapter, AdbScannerAdapter};
+use adapter_adb::AdbAdapter;
 use adapter_database_sqlite::SqliteRepository;
 use ports::{ProgressPort, StoragePort};
 use socketioxide::SocketIo;
@@ -108,12 +108,12 @@ pub struct DoctorReport {
 }
 
 pub type AppEngine = BackupService<
-    AdbDeviceAdapter,
-    AdbScannerAdapter,
+    AdbAdapter,
+    AdbAdapter,
     SqliteRepository,
     SharedStorage,
-    AdbAppProvider,
-    AdbDataProvider,
+    AdbAdapter,
+    AdbAdapter,
     CombinedProgress,
 >;
 

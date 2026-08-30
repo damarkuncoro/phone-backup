@@ -11,7 +11,7 @@ mod commands;
 mod factory;
 mod progress;
 
-use adapter_adb::{AdbAppProvider, AdbDataProvider, AdbDeviceAdapter, AdbScannerAdapter, AdbClient};
+use adapter_adb::{AdbAdapter, AdbClient};
 use adapter_database_sqlite::SqliteRepository;
 use adapter_mock::{MockAppProvider, MockDataProvider, MockDeviceAdapter, MockScannerAdapter};
 use anyhow::Result;
@@ -46,13 +46,14 @@ fn main() -> Result<()> {
     match cli.adapter.as_str() {
         "adb" => {
             let adb_client = AdbClient::new();
+            let adb_adapter = AdbAdapter::new(adb_client);
             let service = BackupService::new(
-                AdbDeviceAdapter::new(adb_client.clone()),
-                AdbScannerAdapter::new(adb_client.clone()),
+                adb_adapter.clone(),
+                adb_adapter.clone(),
                 repository,
                 storage,
-                AdbAppProvider::new(adb_client.clone()),
-                AdbDataProvider::new(adb_client),
+                adb_adapter.clone(),
+                adb_adapter,
                 CliProgress::new(),
             );
             execute_command(cli, service)

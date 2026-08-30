@@ -13,6 +13,7 @@ const DEFAULT_SCAN_ROOTS: &[&str] = &[
     "/storage/emulated/0/WhatsApp/Media",
 ];
 
+#[derive(Clone)]
 pub struct AdbScannerGateway {
     client: AdbClient,
 }

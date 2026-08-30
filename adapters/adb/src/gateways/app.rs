@@ -5,6 +5,7 @@ use anyhow::Result;
 use domain::DeviceId;
 use ports::AppProviderPort;
 
+#[derive(Clone)]
 pub struct AdbAppGateway {
     client: AdbClient,
 }
