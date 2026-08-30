@@ -6,3 +6,4 @@ Cargo.lock
 # Abaikan seluruh folder data lokal dan hasil backup
 workspace/
 backup.db
+restored_real_device/

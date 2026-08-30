@@ -28,6 +28,7 @@ rayon.workspace = true
 indicatif.workspace = true
 tracing.workspace = true
 fastcdc.workspace = true
+image = { version = "0.24", default-features = false, features = ["jpeg", "png"] }
 
 [dev-dependencies]
 tempfile.workspace = true

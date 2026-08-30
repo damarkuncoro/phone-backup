@@ -22,6 +22,7 @@ impl ScannerPort for MockScannerAdapter {
                 mime_type: "image/jpeg".into(),
                 permissions: "rw-".into(),
                 hash_sha256: Some("abc123hash".into()),
+                thumbnail_hash: None,
                 media_info: None,
             },
             FileEntry {
@@ -34,6 +35,7 @@ impl ScannerPort for MockScannerAdapter {
                 mime_type: "application/pdf".into(),
                 permissions: "rw-".into(),
                 hash_sha256: Some("def456hash".into()),
+                thumbnail_hash: None,
                 media_info: None,
             },
             FileEntry {
@@ -46,6 +48,7 @@ impl ScannerPort for MockScannerAdapter {
                 mime_type: "text/plain".into(),
                 permissions: "rw-".into(),
                 hash_sha256: None,
+                thumbnail_hash: None,
                 media_info: None,
             },
         ])

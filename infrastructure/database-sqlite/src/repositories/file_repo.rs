@@ -40,8 +40,8 @@ impl FileRepositoryPort for FileRepository {
         {
             let mut stmt = tx.prepare_cached(
                 "INSERT OR REPLACE INTO files
-                (id, device_id, path, name, size_bytes, modified_at, mime_type, permissions, hash_sha256, media_info)
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)"
+                (id, device_id, path, name, size_bytes, modified_at, mime_type, permissions, hash_sha256, thumbnail_hash, media_info)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)"
             )?;
 
             for file in files {
@@ -49,7 +49,7 @@ impl FileRepositoryPort for FileRepository {
                 stmt.execute(params![
                     file.id.0, file.device_id.0, file.path, file.name, file.size_bytes,
                     file.modified_at.to_rfc3339(), file.mime_type, file.permissions,
-                    file.hash_sha256, media_info_json
+                    file.hash_sha256, file.thumbnail_hash, media_info_json
                 ])?;
             }
         }

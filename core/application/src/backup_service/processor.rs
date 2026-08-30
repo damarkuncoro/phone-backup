@@ -43,6 +43,20 @@ where
 
             file.media_info = MediaAnalyzer::extract_info(&content_buf, &file.mime_type);
 
+            // Generate Thumbnail for images
+            if file.mime_type.starts_with("image/") && content_buf.len() > 0 {
+                if let Ok(img) = image::load_from_memory(&content_buf) {
+                    let thumbnail = img.thumbnail(256, 256);
+                    let mut thumb_buf = std::io::Cursor::new(Vec::new());
+                    if let Ok(_) = thumbnail.write_to(&mut thumb_buf, image::ImageFormat::Jpeg) {
+                        let data = thumb_buf.into_inner();
+                        if let Ok((hash, _, _)) = self.object_manager.put_object(&data, Some("image/jpeg")) {
+                            file.thumbnail_hash = Some(hash);
+                        }
+                    }
+                }
+            }
+
             if file.size_bytes > 4 * 1024 * 1024 {
                 let chunks = self.object_manager.chunk_and_put(&content_buf)?;
                 file.hash_sha256 = Some(crate::hashing::calculate_hash(&content_buf));

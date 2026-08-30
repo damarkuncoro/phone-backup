@@ -55,6 +55,7 @@ impl ScannerPort for FilesystemScanner {
                         mime_type,
                         permissions: format!("{:?}", metadata.permissions()),
                         hash_sha256: None,
+                        thumbnail_hash: None,
                         media_info: None,
                     });
                 }

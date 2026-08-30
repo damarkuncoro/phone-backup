@@ -16,5 +16,6 @@ pub struct FileEntry {
     pub mime_type: String,
     pub permissions: String,
     pub hash_sha256: Option<String>,
+    pub thumbnail_hash: Option<String>,
     pub media_info: Option<MediaInfo>,
 }

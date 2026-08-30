@@ -31,6 +31,7 @@ fn test_file_persistence_and_linking() {
         path: "/sdcard/photo.jpg".to_string(), name: "photo.jpg".to_string(),
         size_bytes: 1024, modified_at: Utc::now(), mime_type: "image/jpeg".to_string(),
         permissions: "-rw-".to_string(), hash_sha256: Some("hash123".to_string()),
+        thumbnail_hash: None,
         media_info: None,
     }).unwrap();
 
@@ -65,7 +66,9 @@ fn test_file_search() {
             id: FileId(id.to_string()), device_id: device_id.clone(),
             path: path.to_string(), name: name.to_string(),
             size_bytes: 100, modified_at: Utc::now(), mime_type: "any".to_string(),
-            permissions: "---".to_string(), hash_sha256: None, media_info: None,
+            permissions: "---".to_string(), hash_sha256: None,
+            thumbnail_hash: None,
+            media_info: None,
         }).unwrap();
     }
 
@@ -91,7 +94,9 @@ fn test_media_queries() {
         id: FileId("m1".to_string()), device_id: device_id.clone(),
         path: "p1.jpg".to_string(), name: "n1.jpg".to_string(), size_bytes: 10,
         modified_at: Utc::now(), mime_type: "image/jpeg".to_string(), permissions: "p".to_string(),
-        hash_sha256: None, media_info: None,
+        hash_sha256: None,
+        thumbnail_hash: None,
+        media_info: None,
     }).unwrap();
 
     // 2. Video
@@ -99,7 +104,9 @@ fn test_media_queries() {
         id: FileId("m2".to_string()), device_id: device_id.clone(),
         path: "p2.mp4".to_string(), name: "n2.mp4".to_string(), size_bytes: 20,
         modified_at: Utc::now(), mime_type: "video/mp4".to_string(), permissions: "p".to_string(),
-        hash_sha256: None, media_info: None,
+        hash_sha256: None,
+        thumbnail_hash: None,
+        media_info: None,
     }).unwrap();
 
     // 3. Non-media
@@ -107,7 +114,9 @@ fn test_media_queries() {
         id: FileId("doc1".to_string()), device_id: device_id.clone(),
         path: "p3.txt".to_string(), name: "n3.txt".to_string(), size_bytes: 5,
         modified_at: Utc::now(), mime_type: "text/plain".to_string(), permissions: "p".to_string(),
-        hash_sha256: None, media_info: None,
+        hash_sha256: None,
+        thumbnail_hash: None,
+        media_info: None,
     }).unwrap();
 
     let media = repo.list_media_files(&device_id).unwrap();
@@ -135,6 +144,7 @@ fn test_file_chunk_management() {
         id: file_id.clone(), device_id, path: "p".to_string(), name: "n".to_string(),
         size_bytes: 1000, modified_at: Utc::now(), mime_type: "t".to_string(),
         permissions: "p".to_string(), hash_sha256: Some("full-hash".to_string()),
+        thumbnail_hash: None,
         media_info: None,
     }).unwrap();
 

@@ -23,7 +23,9 @@ fn test_maintenance_referenced_hashes() {
         id: FileId("f1".to_string()), device_id: device_id.clone(),
         path: "p1".to_string(), name: "n1".to_string(), size_bytes: 10,
         modified_at: Utc::now(), mime_type: "t".to_string(), permissions: "p".to_string(),
-        hash_sha256: Some("hash-file-1".to_string()), media_info: None,
+        hash_sha256: Some("hash-file-1".to_string()),
+        thumbnail_hash: None,
+        media_info: None,
     }).unwrap();
 
     // 2. Hash from a chunk
@@ -31,7 +33,9 @@ fn test_maintenance_referenced_hashes() {
         id: FileId("f2".to_string()), device_id: device_id.clone(),
         path: "p2".to_string(), name: "n2".to_string(), size_bytes: 10,
         modified_at: Utc::now(), mime_type: "t".to_string(), permissions: "p".to_string(),
-        hash_sha256: None, media_info: None,
+        hash_sha256: None,
+        thumbnail_hash: None,
+        media_info: None,
     }).unwrap();
     repo.save_file_chunk(&FileId("f2".to_string()), "hash-chunk-1", 0, 10, 0).unwrap();
 

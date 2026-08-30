@@ -42,6 +42,9 @@ pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
             include_str!("schema/sql/07_messages.sql"),
             include_str!("schema/sql/08_call_logs.sql"),
         ]),
+        (4, "Add thumbnail_hash to files", vec![
+            "ALTER TABLE files ADD COLUMN thumbnail_hash TEXT",
+        ]),
     ];
 
     for (version, description, scripts) in migrations {

@@ -7,7 +7,7 @@ pub struct BackupMapper;
 impl BackupMapper {
     pub fn to_file(row: &Row) -> rusqlite::Result<FileEntry> {
         let modified_at_str: String = row.get(5)?;
-        let media_info_str: Option<String> = row.get(9)?;
+        let media_info_str: Option<String> = row.get(10)?;
 
         let media_info = media_info_str.and_then(|s| {
             serde_json::from_str(&s).ok()
@@ -23,6 +23,7 @@ impl BackupMapper {
             mime_type: row.get(6)?,
             permissions: row.get(7)?,
             hash_sha256: row.get(8)?,
+            thumbnail_hash: row.get(9)?,
             media_info,
         })
     }
