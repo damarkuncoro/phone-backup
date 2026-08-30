@@ -1,6 +1,8 @@
 use phone_backup_adapter_adb::parsers::device_parser::DeviceParser;
 use phone_backup_adapter_adb::parsers::app_parser::AppParser;
-use phone_backup_adapter_adb::parsers::data_parser::DataParser;
+use phone_backup_adapter_adb::parsers::contact_parser::ContactParser;
+use phone_backup_adapter_adb::parsers::communication_parser::CommunicationParser;
+use phone_backup_adapter_adb::parsers::media_parser::MediaParser;
 use domain::DeviceId;
 
 #[test]
@@ -46,7 +48,7 @@ fn test_parse_sms() {
     let output = "Row: 0 address=+628123456, body=Hello Test, date=1725000000000, type=1\n\
                   Row: 1 address=MyBank, body=Your OTP is 1234, date=1725000060000, type=1";
 
-    let sms = DataParser::parse_sms(output);
+    let sms = CommunicationParser::parse_sms(output);
     assert_eq!(sms.len(), 2);
     assert_eq!(sms[0].address, "MyBank"); // Sorted by date desc
     assert_eq!(sms[0].body, "Your OTP is 1234");
@@ -58,7 +60,7 @@ fn test_parse_contacts() {
     let output = "Row: 0 contact_id=1, display_name=John Doe, mimetype=vnd.android.cursor.item/name, data1=John Doe, data2=John, data3=Doe\n\
                   Row: 1 contact_id=1, display_name=John Doe, mimetype=vnd.android.cursor.item/phone_v2, data1=0812345, data2=2";
 
-    let contacts = DataParser::parse_contacts(&device_id, output);
+    let contacts = ContactParser::parse(&device_id, output);
     assert_eq!(contacts.len(), 1);
     assert_eq!(contacts[0].display_name, "John Doe");
     assert_eq!(contacts[0].phones.len(), 1);
@@ -70,7 +72,7 @@ fn test_parse_mediastore() {
     let device_id = DeviceId::new("test");
     let output = "Row: 0 _data=/sdcard/img.jpg, _size=1024, date_modified=1725000000, mime_type=image/jpeg, width=1920, height=1080, datetaken=1725000000000, latitude=-6.2, longitude=106.8\n";
 
-    let entries = DataParser::parse_mediastore(&device_id, output);
+    let entries = MediaParser::parse_mediastore(&device_id, output);
     assert_eq!(entries.len(), 1);
     let f = &entries[0];
     assert_eq!(f.path, "/sdcard/img.jpg");
@@ -79,4 +81,28 @@ fn test_parse_mediastore() {
     let info = f.media_info.as_ref().unwrap();
     assert_eq!(info.width, Some(1920));
     assert_eq!(info.latitude, Some(-6.2));
+}
+
+#[test]
+fn test_parse_battery() {
+    let output = "Current Battery Service state:\n\
+                    AC powered: false\n\
+                    USB powered: true\n\
+                    Wireless powered: false\n\
+                    Max charging current: 500000\n\
+                    Max charging voltage: 5000000\n\
+                    Charge counter: 4500000\n\
+                    status: 2\n\
+                    health: 2\n\
+                    present: true\n\
+                    level: 85\n\
+                    scale: 100\n\
+                    voltage: 4100\n\
+                    temperature: 325\n\
+                    technology: Li-ion";
+
+    let status = phone_backup_adapter_adb::parsers::battery_parser::BatteryParser::parse(output).unwrap();
+    assert_eq!(status.level, 85);
+    assert!(status.is_charging);
+    assert_eq!(status.temperature, 32.5);
 }

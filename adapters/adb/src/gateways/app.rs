@@ -24,8 +24,7 @@ impl AppProviderPort for AdbAppGateway {
     fn get_apk(&self, device_id: &DeviceId, package_name: &str) -> Result<Box<dyn std::io::Read>> {
         let stdout = self.client.shell(&device_id.0, &format!("pm path {}", package_name))?;
         if let Some(path) = stdout.lines().next().and_then(|l| l.strip_prefix("package:")) {
-            let content = self.client.pull_file(&device_id.0, path)?;
-            Ok(Box::new(std::io::Cursor::new(content)))
+            self.client.stream_file(&device_id.0, path)
         } else {
             anyhow::bail!("Package not found: {}", package_name)
         }

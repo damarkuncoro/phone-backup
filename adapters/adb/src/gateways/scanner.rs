@@ -1,5 +1,5 @@
 use crate::client::AdbClient;
-use crate::parsers::data_parser::DataParser;
+use crate::parsers::media_parser::MediaParser;
 use crate::scripts::AndroidScripts;
 use anyhow::Result;
 use domain::{DeviceId, FileEntry};
@@ -35,12 +35,12 @@ impl AdbScannerGateway {
 
         // Query Images
         if let Ok(out) = self.client.shell(&device_id.0, &AndroidScripts::query_mediastore("image")) {
-            all_media.extend(DataParser::parse_mediastore(device_id, &out));
+            all_media.extend(MediaParser::parse_mediastore(device_id, &out));
         }
 
         // Query Videos
         if let Ok(out) = self.client.shell(&device_id.0, &AndroidScripts::query_mediastore("video")) {
-            all_media.extend(DataParser::parse_mediastore(device_id, &out));
+            all_media.extend(MediaParser::parse_mediastore(device_id, &out));
         }
 
         all_media
@@ -60,7 +60,7 @@ impl ScannerPort for AdbScannerGateway {
         let script = AndroidScripts::find_files(&scan_roots);
 
         if let Ok(stdout) = self.client.shell(&device_id.0, &script) {
-            let fs_entries = DataParser::parse_filesystem_scan(device_id, &stdout);
+            let fs_entries = MediaParser::parse_filesystem_scan(device_id, &stdout);
 
             for fs_file in fs_entries {
                 // If we already have this file from MediaStore, keep the one with rich metadata.

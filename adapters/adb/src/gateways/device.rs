@@ -1,5 +1,6 @@
 use crate::client::AdbClient;
 use crate::parsers::device_parser::DeviceParser;
+use crate::parsers::battery_parser::BatteryParser;
 use crate::scripts::AndroidScripts;
 use anyhow::Result;
 use domain::{CapabilityMatrix, Device, DeviceId, ConnectionType};
@@ -66,14 +67,21 @@ impl DevicePort for AdbDeviceGateway {
     }
 
     fn read_file(&self, id: &DeviceId, path: &str) -> Result<Box<dyn std::io::Read>> {
-        let child = self.client.exec_out(&id.0, &AndroidScripts::cat_file(path))?;
-        let stdout = child.stdout.ok_or_else(|| anyhow::anyhow!("Failed to open adb stdout"))?;
-        Ok(Box::new(stdout))
+        self.client.stream_file(&id.0, path)
     }
 
     fn push_file(&self, id: &DeviceId, source: &mut dyn std::io::Read, target_path: &str) -> Result<()> {
         let mut buffer = Vec::new();
         source.read_to_end(&mut buffer)?;
         self.client.push_file(&id.0, &buffer, target_path)
+    }
+
+    fn battery_status(&self, id: &DeviceId) -> Result<(u32, f32)> {
+        let output = self.client.shell(&id.0, AndroidScripts::BATTERY_STATUS)?;
+        if let Some(status) = BatteryParser::parse(&output) {
+            Ok((status.level, status.temperature))
+        } else {
+            anyhow::bail!("Failed to parse battery status")
+        }
     }
 }

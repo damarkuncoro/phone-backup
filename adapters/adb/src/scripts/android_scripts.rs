@@ -8,6 +8,8 @@ impl AndroidScripts {
 
     pub const LIST_APPS: &'static str = "pm list packages --show-versioncode --user 0";
 
+    pub const BATTERY_STATUS: &'static str = "dumpsys battery";
+
     pub fn get_prop(prop: &str) -> String {
         format!("getprop {}", prop)
     }

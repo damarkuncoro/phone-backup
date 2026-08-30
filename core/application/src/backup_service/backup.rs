@@ -34,6 +34,17 @@ impl<
         let device = self.device_adapter.info(id)?;
         self.repository.save_device(&device)?;
 
+        // --- BATTERY GUARD ---
+        if let Ok((level, temp)) = self.device_adapter.battery_status(id) {
+            if level < 10 {
+                anyhow::bail!("Battery too low ({}%). Please charge your device before backup.", level);
+            }
+            if temp > 45.0 {
+                anyhow::bail!("Device temperature too high ({:.1}°C). Please let it cool down.", temp);
+            }
+            info!("Battery check: {}% ({}°C) - OK", level, temp);
+        }
+
         let latest_snapshot = self.repository.get_latest_snapshot(id)?;
         let mut previous_files = std::collections::HashMap::new();
         if let Some(ref snapshot) = latest_snapshot {

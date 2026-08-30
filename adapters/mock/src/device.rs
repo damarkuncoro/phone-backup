@@ -64,4 +64,8 @@ impl DevicePort for MockDeviceAdapter {
     fn push_file(&self, _id: &DeviceId, _source: &mut dyn std::io::Read, _target_path: &str) -> Result<()> {
         Ok(())
     }
+
+    fn battery_status(&self, _id: &DeviceId) -> Result<(u32, f32)> {
+        Ok((85, 32.5))
+    }
 }
