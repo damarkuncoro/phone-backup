@@ -12,6 +12,7 @@ pub mod object_store;
 mod progress_estimator;
 mod backup_planner;
 mod snapshot_guard;
+pub mod vcard;
 
 pub use backup_service::{BackupService, StorageStats, VerificationReport};
 pub use compression::CompressionEngine;
@@ -20,3 +21,4 @@ pub use security::EncryptionEngine;
 pub use progress_estimator::ProgressEstimator;
 pub use backup_planner::BackupPlanner;
 pub use snapshot_guard::SnapshotGuard;
+pub use vcard::VCardEngine;

@@ -82,3 +82,23 @@ pub async fn delete_snapshot(state: State<'_, AppState>, snapshot_id: String) ->
     let id = SnapshotId(snapshot_id);
     state.engine.delete_snapshot(&id).map_err(|e| e.to_string())
 }
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn get_contact_diff(
+    state: State<'_, AppState>,
+    old_snapshot_id: String,
+    new_snapshot_id: String,
+) -> Result<domain::ContactDiff, String> {
+    let old_id = SnapshotId(old_snapshot_id);
+    let new_id = SnapshotId(new_snapshot_id);
+    state.engine.get_contact_diff(&old_id, &new_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn export_contacts_vcard(
+    state: State<'_, AppState>,
+    snapshot_id: String,
+) -> Result<String, String> {
+    let id = SnapshotId(snapshot_id);
+    state.engine.export_contacts_vcard(&id).map_err(|e| e.to_string())
+}

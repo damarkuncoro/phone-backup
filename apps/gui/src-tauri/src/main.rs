@@ -54,6 +54,8 @@ fn main() {
             commands::backup::get_snapshot_files,
             commands::backup::get_snapshot_apps,
             commands::backup::get_file_diff,
+            commands::backup::get_contact_diff,
+            commands::backup::export_contacts_vcard,
             commands::backup::get_structured_data,
             commands::backup::restore_snapshot,
             commands::backup::delete_snapshot,

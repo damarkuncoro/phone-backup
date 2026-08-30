@@ -84,7 +84,7 @@ impl<
             .create_snapshot(&snapshot)
             .or_else(|_| self.repository.update_snapshot(&snapshot))?;
 
-        let mut guard = crate::SnapshotGuard::new(&self.repository, &mut snapshot);
+        let guard = crate::SnapshotGuard::new(&self.repository, &mut snapshot);
 
         self.upload_files(id, &plan.upload, &previous_files, &already_backed_up, guard.snapshot, &encryption)?;
 

@@ -264,4 +264,15 @@ impl<
         info!("✨ Migration completed!");
         Ok(())
     }
+
+    #[instrument(skip(self))]
+    pub fn get_contact_diff(&self, old_snapshot_id: &SnapshotId, new_snapshot_id: &SnapshotId) -> Result<domain::ContactDiff> {
+        self.repository.get_contact_diff(old_snapshot_id, new_snapshot_id)
+    }
+
+    #[instrument(skip(self))]
+    pub fn export_contacts_vcard(&self, snapshot_id: &SnapshotId) -> Result<String> {
+        let contacts = self.repository.get_snapshot_contacts(snapshot_id)?;
+        Ok(crate::VCardEngine::export_to_vcard(&contacts))
+    }
 }
