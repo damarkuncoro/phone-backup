@@ -1,6 +1,7 @@
 import { BackupService } from '../services/BackupService.js';
 import { DeviceService } from '../services/DeviceService.js';
 import { renderers } from '../core/renderers.js';
+import './MediaGallery.js';
 
 export class FileBrowser extends HTMLElement {
     constructor() {
@@ -20,6 +21,7 @@ export class FileBrowser extends HTMLElement {
 
                         <div class="flex gap-6 mt-8">
                             <button id="tab-files" class="text-[11px] font-black tracking-[0.3em] text-indigo-600 border-b-4 border-indigo-600 pb-2 transition-all">FILES</button>
+                            <button id="tab-gallery" class="text-[11px] font-black tracking-[0.3em] text-slate-400 hover:text-slate-600 pb-2 transition-all border-b-4 border-transparent">GALLERY</button>
                             <button id="tab-data" class="text-[11px] font-black tracking-[0.3em] text-slate-400 hover:text-slate-600 pb-2 transition-all border-b-4 border-transparent">ANDROID DATA</button>
                         </div>
                     </div>
@@ -57,6 +59,7 @@ export class FileBrowser extends HTMLElement {
         };
 
         this.querySelector('#tab-files').onclick = () => this.switchTab('files');
+        this.querySelector('#tab-gallery').onclick = () => this.switchTab('gallery');
         this.querySelector('#tab-data').onclick = () => this.switchTab('data');
 
         this.querySelectorAll('[data-subtab]').forEach(btn => {
@@ -75,20 +78,35 @@ export class FileBrowser extends HTMLElement {
     async switchTab(tab) {
         this._currentTab = tab;
         const tFiles = this.querySelector('#tab-files');
+        const tGallery = this.querySelector('#tab-gallery');
         const tData = this.querySelector('#tab-data');
         const subTabs = this.querySelector('#data-tabs-bar');
 
+        [tFiles, tGallery, tData].forEach(t => {
+            if (t) t.className = "text-[11px] font-black tracking-[0.3em] text-slate-400 hover:text-slate-600 pb-2 transition-all border-b-4 border-transparent";
+        });
+
+        const activeClass = "text-[11px] font-black tracking-[0.3em] text-indigo-600 border-b-4 border-indigo-600 pb-2 transition-all";
+
         if (tab === 'files') {
-            tFiles.className = "text-[11px] font-black tracking-[0.3em] text-indigo-600 border-b-4 border-indigo-600 pb-2";
-            tData.className = "text-[11px] font-black tracking-[0.3em] text-slate-400 hover:text-slate-600 pb-2 border-b-4 border-transparent";
+            tFiles.className = activeClass;
             subTabs.classList.add('hidden');
             this.renderFileList(this._files);
+        } else if (tab === 'gallery') {
+            tGallery.className = activeClass;
+            subTabs.classList.add('hidden');
+            this.renderGallery(this._files);
         } else {
-            tData.className = "text-[11px] font-black tracking-[0.3em] text-indigo-600 border-b-4 border-indigo-600 pb-2";
-            tFiles.className = "text-[11px] font-black tracking-[0.3em] text-slate-400 hover:text-slate-600 pb-2 border-b-4 border-transparent";
+            tData.className = activeClass;
             subTabs.classList.remove('hidden');
             await this.refreshAndroidData();
         }
+    }
+
+    renderGallery(files) {
+        const container = this.querySelector('#list');
+        container.innerHTML = `<pb-media-grid></pb-media-grid>`;
+        container.querySelector('pb-media-grid').media = files;
     }
 
     async switchDataTab(subtab) {
@@ -195,7 +213,6 @@ export class FileBrowser extends HTMLElement {
         this._selectedPaths.clear();
 
         this.querySelector('#footer').style.display = isScanMode ? 'flex' : 'none';
-        this.querySelector('#title').textContent = isScanMode ? "Select Media to Backup" : "Snapshot Explorer";
         this.querySelector('#subtitle').textContent = isScanMode ? `Device: ${deviceId}` : `Snapshot: ${snapshotId}`;
 
         this.switchTab('files');
@@ -227,8 +244,13 @@ export class FileBrowser extends HTMLElement {
                                 <div class="text-[10px] text-slate-400 font-mono truncate mt-1 tracking-tighter">${f.path}</div>
                             </div>
                         </div>
-                        <div class="text-right ml-6 flex-shrink-0">
+                        <div class="flex items-center gap-4 ml-6 flex-shrink-0">
                             <div class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">${(f.size_bytes/1024/1024).toFixed(2)} MB</div>
+                            ${!this._isScanMode ? `
+                                <button class="restore-single-btn p-2 bg-indigo-50 text-indigo-600 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-indigo-600 hover:text-white" title="Restore this file" data-path="${f.path}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M4 16v1a2 2 0 002 2h10a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
                 `).join('')}
@@ -251,7 +273,7 @@ export class FileBrowser extends HTMLElement {
 
         container.querySelectorAll('[data-path]').forEach(row => {
             row.onclick = (e) => {
-                if (e.target.type === 'checkbox') return;
+                if (e.target.type === 'checkbox' || e.target.closest('button')) return;
                 const checkbox = row.querySelector('.file-check');
                 if (checkbox) {
                     checkbox.checked = !checkbox.checked;
@@ -261,6 +283,16 @@ export class FileBrowser extends HTMLElement {
             const checkbox = row.querySelector('.file-check');
             if (checkbox) {
                 checkbox.onchange = (e) => this._togglePath(row.getAttribute('data-path'), e.target.checked);
+            }
+
+            const restoreBtn = row.querySelector('.restore-single-btn');
+            if (restoreBtn) {
+                restoreBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    window.dispatchEvent(new CustomEvent('restore-file', {
+                        detail: { snapshotId: this._snapshotId, path: row.getAttribute('data-path') }
+                    }));
+                };
             }
         });
     }

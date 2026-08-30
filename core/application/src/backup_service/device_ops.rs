@@ -95,6 +95,12 @@ impl<
     #[instrument(skip(self))]
     pub fn get_structured_data(&self, snapshot_id: &SnapshotId, data_type: &str) -> Result<serde_json::Value> {
         tracing::info!("Fetching structured data '{}' for snapshot {}", data_type, snapshot_id.0);
+
+        if data_type == "contacts" {
+            let contacts = self.repository.get_snapshot_contacts(snapshot_id)?;
+            return Ok(serde_json::to_value(contacts)?);
+        }
+
         let object_path = self.repository.get_structured_data_ref(snapshot_id, data_type)?
             .ok_or_else(|| {
                 tracing::warn!("Structured data '{}' reference not found in database", data_type);

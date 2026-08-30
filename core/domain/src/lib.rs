@@ -16,6 +16,7 @@ mod schedule;
 mod policy;
 mod retention;
 mod error;
+mod settings;
 
 pub use capability::{Capability, CapabilityStatus, CapabilityMatrix};
 pub use device::{ConnectionType, Device, DeviceId};
@@ -29,3 +30,4 @@ pub use schedule::{BackupSchedule, ScheduleFrequency};
 pub use policy::BackupPolicy;
 pub use retention::{KeepCountStrategy, KeepDailyStrategy, RetentionPolicy, RetentionStrategy};
 pub use error::DomainError;
+pub use settings::{AppSettings, StorageBackend};

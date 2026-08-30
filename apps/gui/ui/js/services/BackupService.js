@@ -23,10 +23,11 @@ export class BackupService extends BaseService {
         });
     }
 
-    static async restore(snapshotId, targetDir = "") {
+    static async restore(snapshotId, targetDir = "", filter = null) {
         return await this.call('restore_snapshot', {
             snapshot_id: snapshotId,
-            target_dir: targetDir
+            target_dir: targetDir,
+            filter: filter
         });
     }
 

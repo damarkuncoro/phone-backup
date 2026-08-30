@@ -92,6 +92,11 @@ impl ProgressPort for CombinedProgress {
         let _ = self.app_handle.emit("progress", &payload);
         let _ = self.io.emit("progress", &payload);
     }
+    fn log(&self, message: &str) {
+        let payload = serde_json::json!({ "type": "log", "message": message });
+        let _ = self.app_handle.emit("progress", &payload);
+        let _ = self.io.emit("progress", &payload);
+    }
 }
 
 #[derive(Serialize)]

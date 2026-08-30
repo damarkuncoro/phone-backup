@@ -12,6 +12,7 @@ import './components/SnapshotList.js';
 import './components/FileBrowser.js';
 import './components/SettingsModal.js';
 import './components/Notification.js';
+import './components/LogHUD.js';
 
 class App {
     constructor() {
@@ -38,13 +39,17 @@ class App {
 
     async init() {
         this.hud = document.getElementById('global-progress');
+        this.logHud = document.getElementById('log-hud');
         this.browser = document.getElementById('file-browser');
         this.settings = document.getElementById('settings-modal');
         this.notifier = document.getElementById('notifier');
 
         // Setup UI Listeners
         const testBtn = document.getElementById('test-js-btn');
-        if (testBtn) testBtn.onclick = () => this.notifier.show("Modular UI Core: Active", "success");
+        if (testBtn) testBtn.onclick = () => {
+            this.notifier.show("Modular UI Core: Active", "success");
+            if (this.logHud) this.logHud.add("User initiated system self-test");
+        };
 
         const settingsBtn = document.getElementById('settings-btn');
         if (settingsBtn) settingsBtn.onclick = () => this.settings && this.settings.show();
@@ -68,6 +73,7 @@ class App {
         window.addEventListener('view-history', (e) => this.loadHistory(e.detail));
         window.addEventListener('scan-device', (e) => this.runScan(e.detail));
         window.addEventListener('restore-snapshot', (e) => this.runRestore(e.detail));
+        window.addEventListener('restore-file', (e) => this.runRestore(e.detail.snapshotId, e.detail.path));
         window.addEventListener('add-schedule', (e) => this.addSchedule(e.detail));
         window.addEventListener('browse-snapshot', (e) => this.browse(e.detail));
         window.addEventListener('close-browser', () => this.updateSidebar('dashboard'));
@@ -102,11 +108,17 @@ class App {
             };
         }
 
-        // Bridge Rust Events to HUD
+        // Bridge Rust Events to HUD & Logger
         api.listen('progress', (event) => {
-            if (this.hud) this.hud.update(event.payload);
-            if (event.payload.type === 'error' && this.notifier) {
-                this.notifier.show(event.payload.message, "error");
+            const payload = event.payload;
+            if (this.hud && payload.type !== 'log') this.hud.update(payload);
+
+            if (payload.type === 'log' && this.logHud) {
+                this.logHud.add(payload.message);
+            }
+
+            if (payload.type === 'error' && this.notifier) {
+                this.notifier.show(payload.message, "error");
             }
         });
 
@@ -256,14 +268,15 @@ class App {
         }
     }
 
-    async runRestore(id) {
+    async runRestore(id, filter = null) {
+        const msg = filter ? `Restoring file: ${filter.split('/').pop()}...` : "Preparing full restore...";
         const target = prompt("Target path (optional):");
         try {
-            await BackupService.restore(id, target || "");
-            if (this.notifier) this.notifier.show("Restore Success", "success");
+            this.notifier.show(msg, "info");
+            await BackupService.restore(id, target || "", filter);
+            this.notifier.show("Restore Success", "success");
         } catch (e) {
-            if (this.notifier) this.notifier.show("Restore Failed", "error");
-            else console.error("Restore failed:", e);
+            this.notifier.show("Restore Failed: " + e, "error");
         }
     }
 

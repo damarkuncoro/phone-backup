@@ -539,6 +539,16 @@ pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
             REFERENCES contact_labels(id)
             ON DELETE CASCADE
     );
+
+    -- =========================================================
+    -- SETTINGS
+    -- =========================================================
+
+    CREATE TABLE IF NOT EXISTS settings (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        json_data TEXT NOT NULL,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
     "#,
     )?;
 

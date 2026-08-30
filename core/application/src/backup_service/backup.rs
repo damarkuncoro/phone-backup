@@ -111,7 +111,7 @@ impl<
                 return Ok(());
             }
 
-            self.progress.inc(0, &format!("Processing {}", file.name));
+            self.progress.log(&format!("Processing: {}", file.name));
             let mut skip_content = false;
             let mut file_to_process = file;
 
@@ -242,7 +242,9 @@ impl<
 
             // Also index contacts in database for global search
             for contact in contacts {
-                let _ = self.repository.save_contact(snapshot_id, &contact);
+                if let Err(e) = self.repository.save_contact(snapshot_id, &contact) {
+                    tracing::error!("Failed to index contact {}: {}", contact.display_name, e);
+                }
             }
         }
 

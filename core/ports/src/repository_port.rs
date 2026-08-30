@@ -62,6 +62,9 @@ pub trait RepositoryPort: Send + Sync {
     /// Save a contact entry for a specific snapshot.
     fn save_contact(&self, snapshot_id: &SnapshotId, contact: &domain::Contact) -> Result<()>;
 
+    /// Get all contacts for a specific snapshot.
+    fn get_snapshot_contacts(&self, snapshot_id: &SnapshotId) -> Result<Vec<domain::Contact>>;
+
     /// Search for contacts across all snapshots.
     fn search_contacts(&self, query: &str) -> Result<Vec<(SnapshotId, domain::Contact)>>;
 
@@ -88,4 +91,10 @@ pub trait RepositoryPort: Send + Sync {
 
     /// Get all unique hashes (file hashes and chunk hashes) currently referenced in the database.
     fn get_all_referenced_hashes(&self) -> Result<std::collections::HashSet<String>>;
+
+    /// Save application settings.
+    fn save_settings(&self, settings: &domain::AppSettings) -> Result<()>;
+
+    /// Get current application settings.
+    fn get_settings(&self) -> Result<Option<domain::AppSettings>>;
 }

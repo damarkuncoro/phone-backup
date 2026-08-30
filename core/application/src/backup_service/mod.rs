@@ -4,6 +4,7 @@ pub mod processor;
 pub mod restore;
 pub mod schedule_runner;
 pub mod verify;
+pub mod settings_ops;
 
 pub use verify::{StorageStats, VerificationReport};
 

@@ -61,3 +61,13 @@ pub async fn search_files(state: State<'_, AppState>, query: String) -> Result<V
 pub async fn add_schedule(state: State<'_, AppState>, device_id: String) -> Result<(), String> {
     state.engine.add_schedule(domain::DeviceId(device_id), domain::ScheduleFrequency::Daily).map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub async fn get_settings(state: State<'_, AppState>) -> Result<domain::AppSettings, String> {
+    state.engine.get_settings().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn save_settings(state: State<'_, AppState>, settings: domain::AppSettings) -> Result<(), String> {
+    state.engine.save_settings(&settings).map_err(|e| e.to_string())
+}

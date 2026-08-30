@@ -38,9 +38,17 @@ pub async fn get_structured_data(
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn restore_snapshot(state: State<'_, AppState>, snapshot_id: String, target_dir: String) -> Result<(), String> {
+pub async fn restore_snapshot(
+    state: State<'_, AppState>,
+    snapshot_id: String,
+    target_dir: String,
+    filter: Option<String>,
+) -> Result<(), String> {
     let id = SnapshotId(snapshot_id);
-    state.engine.perform_restore(&id, &target_dir, domain::EncryptionMode::None, None).map_err(|e| e.to_string())
+    state
+        .engine
+        .perform_restore(&id, &target_dir, domain::EncryptionMode::None, filter.as_deref())
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command(rename_all = "snake_case")]

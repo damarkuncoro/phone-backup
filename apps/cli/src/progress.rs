@@ -49,4 +49,13 @@ impl ProgressPort for CliProgress {
             eprintln!("❌ Error: {}", message);
         }
     }
+
+    fn log(&self, message: &str) {
+        let guard = self.pb.lock().unwrap();
+        if let Some(pb) = guard.as_ref() {
+            pb.set_message(message.to_string());
+        } else {
+            println!("LOG: {}", message);
+        }
+    }
 }

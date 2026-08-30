@@ -49,7 +49,24 @@ fn main() {
             let storage_path = workspace_path.join("backups");
 
             let repository = SqliteRepository::new(db_path.to_str().unwrap()).unwrap();
-            let switcher = Arc::new(SwitchableStorage::new(Box::new(LocalStorage::new(storage_path).unwrap())));
+
+            // Load settings and apply storage backend
+            let settings = repository.get_settings().unwrap().unwrap_or_default();
+            let initial_storage: Box<dyn ports::StoragePort> = match &settings.storage_backend {
+                domain::StorageBackend::Local => Box::new(LocalStorage::new(storage_path).unwrap()),
+                domain::StorageBackend::Mock => Box::new(adapter_mock::MockStorage::new()),
+                domain::StorageBackend::S3 { bucket, region, endpoint, access_key, secret_key } => {
+                    match adapter_opendal::CloudStorage::new_s3(bucket, region, endpoint, access_key, secret_key) {
+                        Ok(s3) => Box::new(s3),
+                        Err(e) => {
+                            eprintln!("Failed to connect to saved S3 storage: {}. Falling back to Local.", e);
+                            Box::new(LocalStorage::new(storage_path).unwrap())
+                        }
+                    }
+                }
+            };
+
+            let switcher = Arc::new(SwitchableStorage::new(initial_storage));
 
             // 3. Initialize Core Engine
             let engine = Arc::new(BackupService::new(
@@ -102,6 +119,8 @@ fn main() {
             commands::system::switch_to_s3_storage,
             commands::system::search_files,
             commands::system::add_schedule,
+            commands::system::get_settings,
+            commands::system::save_settings,
             commands::contact::search_contacts
         ])
         .run(tauri::generate_context!())
