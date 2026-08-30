@@ -67,22 +67,17 @@ impl<
             .map(|f| f.path)
             .collect();
 
-        // Determine what actually needs uploading
-        let files_to_upload: Vec<FileEntry> = manifest_files
-            .iter()
-            .cloned()
-            .filter(|f| !already_backed_up.contains(&f.path))
-            .filter(|f| {
-                if let Some(prev) = previous_files.get(&f.path) {
-                    !(prev.size_bytes == f.size_bytes && prev.modified_at == f.modified_at)
-                } else {
-                    true
-                }
-            })
-            .collect();
+        // Determine what actually needs uploading via BackupPlanner
+        let plan = crate::BackupPlanner::build_plan(&manifest_files, &previous_files, &already_backed_up);
+        info!(
+            "📊 Backup Plan: {} to upload ({:.2} MB), {} reused, {} deleted",
+            plan.upload_count(),
+            plan.upload_bytes as f64 / 1024.0 / 1024.0,
+            plan.reuse_count(),
+            plan.deleted_count()
+        );
 
-        let total_required: u64 = files_to_upload.iter().map(|f| f.size_bytes).sum();
-        self.check_available_disk_space(total_required)?;
+        self.check_available_disk_space(plan.upload_bytes)?;
 
         // 4. UPLOAD CHANGED FILES
         snapshot.status = SnapshotStatus::Running;
@@ -90,7 +85,7 @@ impl<
             .create_snapshot(&snapshot)
             .or_else(|_| self.repository.update_snapshot(&snapshot))?;
 
-        self.upload_files(id, &manifest_files, &previous_files, &already_backed_up, &mut snapshot, &encryption)?;
+        self.upload_files(id, &plan.upload, &previous_files, &already_backed_up, &mut snapshot, &encryption)?;
 
         // 5. BACKUP STRUCTURED DATA (Apps, SMS, etc.)
         self.backup_metadata_and_structured_data(id, &mut snapshot, &encryption)?;
