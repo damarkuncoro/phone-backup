@@ -39,27 +39,37 @@ export class DeviceItem extends HTMLElement {
         this.querySelector('#backup-btn').onclick = () => {
             window.dispatchEvent(new CustomEvent('run-backup', { detail: id }));
         };
+
+        window.addEventListener('device-status-update', (e) => {
+            if (e.detail.device_id === id) {
+                this.renderBattery(e.detail.battery_level, e.detail.temperature);
+            }
+        });
     }
 
     async updateBattery(id) {
         try {
             const [level, temp] = await DeviceService.getBattery(id);
-            const indicator = this.querySelector('#battery-indicator');
-            if (indicator) {
-                indicator.textContent = `${level}%`;
-                indicator.title = `${temp}°C`;
-                indicator.classList.remove('opacity-0');
-
-                if (level < 20) {
-                    indicator.className = "text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-black transition-all";
-                } else if (level > 80) {
-                    indicator.className = "text-[10px] bg-green-100 text-green-600 px-2 py-0.5 rounded-full font-black transition-all";
-                } else {
-                    indicator.className = "text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-black transition-all";
-                }
-            }
+            this.renderBattery(level, temp);
         } catch (e) {
             console.warn("Could not fetch battery for", id);
+        }
+    }
+
+    renderBattery(level, temp) {
+        const indicator = this.querySelector('#battery-indicator');
+        if (indicator) {
+            indicator.textContent = `${level}%`;
+            indicator.title = `${temp}°C`;
+            indicator.classList.remove('opacity-0');
+
+            if (level < 20) {
+                indicator.className = "text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-black transition-all";
+            } else if (level > 80) {
+                indicator.className = "text-[10px] bg-green-100 text-green-600 px-2 py-0.5 rounded-full font-black transition-all";
+            } else {
+                indicator.className = "text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-black transition-all";
+            }
         }
     }
 }

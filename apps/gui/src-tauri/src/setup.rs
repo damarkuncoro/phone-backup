@@ -57,7 +57,8 @@ pub fn init_infrastructure(app: &mut tauri::App, io: SocketIo) -> anyhow::Result
 
     // 5. Background Monitors
     spawn_auto_backup_monitor(engine.clone());
-    spawn_hardware_monitor(app.handle().clone(), adb_adapter);
+    spawn_hardware_monitor(app.handle().clone(), adb_adapter.clone());
+    spawn_status_poller(app.handle().clone(), adb_adapter);
 
     // 6. Manage State
     app.manage(AppState {
@@ -96,5 +97,28 @@ fn spawn_hardware_monitor(app_handle: tauri::AppHandle, adb_adapter: AdbAdapter)
                 }
             }
         });
+    });
+}
+
+fn spawn_status_poller(app_handle: tauri::AppHandle, adb_adapter: AdbAdapter) {
+    use ports::DevicePort;
+    use tauri::Emitter;
+
+    std::thread::spawn(move || {
+        loop {
+            if let Ok(devices) = adb_adapter.discover() {
+                for device in devices {
+                    if let Ok((level, temp)) = adb_adapter.battery_status(&device.id) {
+                        let payload = serde_json::json!({
+                            "device_id": device.id.0,
+                            "battery_level": level,
+                            "temperature": temp
+                        });
+                        let _ = app_handle.emit("device-status-update", payload);
+                    }
+                }
+            }
+            std::thread::sleep(std::time::Duration::from_secs(30));
+        }
     });
 }

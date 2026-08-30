@@ -49,6 +49,10 @@ export class EventManager {
             this.app.refreshAll();
         });
 
+        api.listen('device-status-update', (event) => {
+            window.dispatchEvent(new CustomEvent('device-status-update', { detail: event.payload }));
+        });
+
         // Listen for internal state changes
         store.addEventListener('change', (e) => this.app.handleStateChange(e.detail));
     }
