@@ -151,5 +151,10 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 
 # NEXT GOALS (v1.0.0 Roadmap)
 
-1.  **Cloud Sync GUI**: Pengaturan S3/Google Drive langsung dari panel Settings.
-2.  **iOS Support**: Eksplorasi adapter Apple via `libimobiledevice`.
+1.  **Android Companion Agent APK (Wireless Zero-Debugging Backup)**:
+    *   Aplikasi Android native (Kotlin + Jetpack Compose) untuk backup nirkabel via Wi-Fi lokal.
+    *   Discovery otomatis via mDNS/NSD dan Zero-Trust Pairing (QR Code / mTLS).
+    *   Izin runtime standar tanpa memerlukan *Developer Options* atau *USB Debugging*.
+    *   Dokumen detail: [**`docs/SAD/COMPANION_AGENT_ROADMAP.md`**](SAD/COMPANION_AGENT_ROADMAP.md).
+2.  **Cloud Sync GUI**: Pengaturan S3/Google Drive langsung dari panel Settings.
+3.  **iOS Support**: Eksplorasi adapter Apple via `libimobiledevice`.
