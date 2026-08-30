@@ -2,6 +2,7 @@ pub mod client;
 pub mod gateways;
 pub mod parsers;
 pub mod scripts;
+pub mod repositories;
 
 // Re-export core types
 pub use client::{AdbClient, AdbClientBuilder, AdbMonitor, DeviceEvent};

@@ -13,6 +13,10 @@ use anyhow::Result;
 use domain::{Device, DeviceId, CapabilityMatrix, FileEntry, AppInfo, Contact, Sms, CallLog};
 use ports::{DevicePort, ScannerPort, AppProviderPort, DataProviderPort};
 
+use crate::repositories::{
+    AdbDeviceRepository, AdbAppRepository, AdbScannerRepository, AdbDataRepository
+};
+
 /// FACTORY Pattern: Centralizes the creation of ADB-related gateways.
 pub struct AdbGatewayFactory {
     client: AdbClient,
@@ -24,19 +28,19 @@ impl AdbGatewayFactory {
     }
 
     pub fn create_device_gateway(&self) -> AdbDeviceGateway {
-        AdbDeviceGateway::new(self.client.clone())
+        AdbDeviceGateway::new(AdbDeviceRepository::new(self.client.clone()))
     }
 
     pub fn create_app_gateway(&self) -> AdbAppGateway {
-        AdbAppGateway::new(self.client.clone())
+        AdbAppGateway::new(AdbAppRepository::new(self.client.clone()))
     }
 
     pub fn create_scanner_gateway(&self) -> AdbScannerGateway {
-        AdbScannerGateway::new(self.client.clone())
+        AdbScannerGateway::new(AdbScannerRepository::new(self.client.clone()))
     }
 
     pub fn create_data_gateway(&self) -> AdbDataGateway {
-        AdbDataGateway::new(self.client.clone())
+        AdbDataGateway::new(AdbDataRepository::new(self.client.clone()))
     }
 
     /// Creates the main Facade containing all gateways.
