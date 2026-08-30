@@ -17,6 +17,7 @@ mod policy;
 mod retention;
 mod error;
 mod settings;
+mod value_objects;
 
 pub use capability::{Capability, CapabilityStatus, CapabilityMatrix};
 pub use device::{ConnectionType, Device, DeviceId};
@@ -31,3 +32,4 @@ pub use policy::BackupPolicy;
 pub use retention::{KeepCountStrategy, KeepDailyStrategy, RetentionPolicy, RetentionStrategy};
 pub use error::DomainError;
 pub use settings::{AppSettings, StorageBackend};
+pub use value_objects::{Checksum, DevicePath, StorageSize};

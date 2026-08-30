@@ -23,6 +23,9 @@ pub enum DomainError {
     #[error("encryption error: {0}")]
     Encryption(String),
 
+    #[error("validation error: {0}")]
+    ValidationError(String),
+
     #[error("unauthorized access")]
     Unauthorized,
 }

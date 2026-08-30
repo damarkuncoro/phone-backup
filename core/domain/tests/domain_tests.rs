@@ -1,7 +1,7 @@
 use chrono::Utc;
 use phone_backup_domain::{
-    BackupPolicy, BackupSchedule, DeviceId, KeepCountStrategy, KeepDailyStrategy,
-    RetentionStrategy, ScheduleFrequency, Snapshot, SnapshotStatus,
+    BackupPolicy, BackupSchedule, Checksum, DeviceId, DevicePath, KeepCountStrategy,
+    KeepDailyStrategy, RetentionStrategy, ScheduleFrequency, Snapshot, SnapshotStatus, StorageSize,
 };
 
 #[test]
@@ -89,4 +89,36 @@ fn test_schedule_on_connect() {
         enabled: true,
     };
     assert!(!schedule_ran.is_due());
+}
+
+#[test]
+fn test_checksum_value_object() {
+    let valid = Checksum::new("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+    assert!(valid.is_ok());
+    assert_eq!(valid.unwrap().as_str(), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+
+    let invalid_short = Checksum::new("invalid_hex");
+    assert!(invalid_short.is_err());
+}
+
+#[test]
+fn test_storage_size_formatting() {
+    let bytes = StorageSize::from_bytes(1024);
+    assert_eq!(bytes.format_human_readable(), "1.00 KB");
+
+    let mb = StorageSize::from_bytes(1024 * 1024 * 5);
+    assert_eq!(mb.format_human_readable(), "5.00 MB");
+
+    let gb = StorageSize::from_bytes(1024 * 1024 * 1024 * 2);
+    assert_eq!(gb.format_human_readable(), "2.00 GB");
+}
+
+#[test]
+fn test_device_path_security() {
+    let valid = DevicePath::new("sdcard/DCIM/Camera/photo.jpg");
+    assert!(valid.is_ok());
+    assert_eq!(valid.unwrap().as_str(), "/sdcard/DCIM/Camera/photo.jpg");
+
+    let traversal = DevicePath::new("sdcard/DCIM/../../../etc/passwd");
+    assert!(traversal.is_err());
 }
