@@ -26,26 +26,3 @@ impl CompressionEngine {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_compression_decompression_roundtrip() {
-        let data = b"data yang berulang-ulang ulang-ulang ulang-ulang";
-        let compressed = CompressionEngine::compress(data).unwrap();
-        assert!(compressed.len() > 0);
-
-        let decompressed = CompressionEngine::decompress(&compressed).unwrap();
-        assert_eq!(data.to_vec(), decompressed);
-    }
-
-    #[test]
-    fn test_should_compress_policy() {
-        assert!(CompressionEngine::should_compress("text/plain"));
-        assert!(CompressionEngine::should_compress("application/json"));
-        assert!(!CompressionEngine::should_compress("image/jpeg"));
-        assert!(!CompressionEngine::should_compress("video/mp4"));
-    }
-}

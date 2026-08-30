@@ -11,5 +11,6 @@ pub mod object_manager;
 pub mod object_store;
 
 pub use backup_service::{BackupService, StorageStats, VerificationReport};
+pub use compression::CompressionEngine;
 pub use object_store::ObjectStoreKey;
 pub use security::EncryptionEngine;

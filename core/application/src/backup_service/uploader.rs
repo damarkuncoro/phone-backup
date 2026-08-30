@@ -59,9 +59,16 @@ impl<
                     && prev.modified_at == file_to_process.modified_at
                     && prev.hash_sha256.is_some()
                 {
-                    file_to_process.hash_sha256 = prev.hash_sha256.clone();
-                    skip_content = true;
-                    deduped_bytes_atomic.fetch_add(file_to_process.size_bytes, Ordering::Relaxed);
+                    let hash = prev.hash_sha256.as_ref().unwrap();
+                    let is_encrypted = encryption.is_encrypted();
+                    let object_id = crate::object_store::ObjectStoreKey::compute_object_id(hash, Some(&file_to_process.mime_type), is_encrypted);
+                    let object_path = crate::object_store::ObjectStoreKey::compute_object_path(hash, &object_id);
+
+                    if self.storage.exists(&object_path).unwrap_or(false) {
+                        file_to_process.hash_sha256 = prev.hash_sha256.clone();
+                        skip_content = true;
+                        deduped_bytes_atomic.fetch_add(file_to_process.size_bytes, Ordering::Relaxed);
+                    }
                 }
             }
 
