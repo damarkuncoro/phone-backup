@@ -78,7 +78,7 @@ fn main() {
                 repository,
                 SharedStorage(switcher.clone()),
                 adb_adapter.clone(),
-                adb_adapter,
+                adb_adapter.clone(),
                 CombinedProgress {
                     app_handle: app.handle().clone(),
                     io: io_clone
@@ -101,11 +101,35 @@ fn main() {
                 }
             });
 
+            // 6. Reactive Device Hardware Monitor
+            let adb_monitor = adb_adapter.monitor();
+            let app_handle = app.handle().clone();
+            std::thread::spawn(move || {
+                use adapter_adb::DeviceEvent;
+                use tauri::Emitter;
+
+                let _ = adb_monitor.track_devices(|event| {
+                    match event {
+                        DeviceEvent::Connected(device) => {
+                            println!("📱 Device Connected: {}", device.serial);
+                            let _ = app_handle.emit("device-changed", "connected");
+                            let _ = app_handle.emit("device-connected", device);
+                        }
+                        DeviceEvent::Disconnected(id) => {
+                            println!("🔌 Device Disconnected: {}", id.0);
+                            let _ = app_handle.emit("device-changed", "disconnected");
+                            let _ = app_handle.emit("device-disconnected", id.0);
+                        }
+                    }
+                });
+            });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             commands::device::get_devices,
             commands::device::scan_device,
+            commands::device::get_device_battery,
             commands::device::get_live_data,
             commands::backup::get_storage_stats,
             commands::backup::start_backup,

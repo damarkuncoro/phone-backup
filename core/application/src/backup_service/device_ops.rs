@@ -32,6 +32,11 @@ impl<
     }
 
     #[instrument(skip(self))]
+    pub fn get_device_battery(&self, id: &DeviceId) -> Result<(u32, f32)> {
+        self.device_adapter.battery_status(id)
+    }
+
+    #[instrument(skip(self))]
     pub fn scan_device(&self, id: &DeviceId) -> Result<Vec<FileEntry>> {
         self.scanner_adapter.scan(id, vec![])
     }

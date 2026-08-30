@@ -240,7 +240,11 @@ export class FileBrowser extends HTMLElement {
                         <div class="flex items-center gap-6 min-w-0">
                             ${this._isScanMode ? `<input type="checkbox" class="file-check w-6 h-6 rounded-xl border-slate-300 text-indigo-600 focus:ring-indigo-500 transition-all" ${this._selectedPaths.has(f.path) ? 'checked' : ''}>` : ''}
                             <div class="truncate">
-                                <div class="font-bold text-slate-700 text-sm truncate group-hover:text-indigo-600 transition-colors uppercase tracking-tight">${f.name}</div>
+                                <div class="flex items-center gap-2">
+                                    <div class="font-bold text-slate-700 text-sm truncate group-hover:text-indigo-600 transition-colors uppercase tracking-tight">${f.name}</div>
+                                    ${f.media_info?.width ? `<span class="text-[8px] bg-slate-100 text-slate-500 px-1 rounded font-black">${f.media_info.width}x${f.media_info.height}</span>` : ''}
+                                    ${f.media_info?.latitude ? `<span class="text-[8px] bg-indigo-50 text-indigo-500 px-1 rounded font-black">📍 GPS</span>` : ''}
+                                </div>
                                 <div class="text-[10px] text-slate-400 font-mono truncate mt-1 tracking-tighter">${f.path}</div>
                             </div>
                         </div>

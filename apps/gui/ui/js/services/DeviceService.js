@@ -23,4 +23,8 @@ export class DeviceService extends BaseService {
     static async getStatus() {
         return await this.call('get_doctor_report');
     }
+
+    static async getBattery(deviceId) {
+        return await this.call('get_device_battery', { device_id: deviceId });
+    }
 }

@@ -122,6 +122,19 @@ class App {
             }
         });
 
+        // Reactive Hardware Events
+        api.listen('device-connected', (event) => {
+            const d = event.payload;
+            this.notifier.show(`📱 Device Connected: ${d.model || d.serial}`, "success");
+            this.refreshAll();
+        });
+
+        api.listen('device-disconnected', (event) => {
+            const serial = event.payload;
+            this.notifier.show(`🔌 Device Disconnected: ${serial}`, "warning");
+            this.refreshAll();
+        });
+
         await this.refreshAll();
     }
 

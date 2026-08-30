@@ -15,6 +15,12 @@ pub async fn scan_device(state: State<'_, AppState>, device_id: String) -> Resul
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub async fn get_device_battery(state: State<'_, AppState>, device_id: String) -> Result<(u32, f32), String> {
+    let id = DeviceId::new(device_id);
+    state.engine.get_device_battery(&id).map_err(|e| e.to_string())
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_live_data(
     state: State<'_, AppState>,
     device_id: String,
