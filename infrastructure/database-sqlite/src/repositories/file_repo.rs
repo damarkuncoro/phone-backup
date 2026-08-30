@@ -1,11 +1,24 @@
-use rusqlite::{params, Connection};
-use domain::{DeviceId, FileEntry, FileId};
+use rusqlite::params;
+use std::sync::Arc;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
+use domain::{DeviceId, FileEntry, FileId, SnapshotId};
+use ports::FileRepositoryPort;
 use crate::mappers::BackupMapper;
 
-pub struct FileRepository;
+pub struct FileRepository {
+    pool: Arc<Pool<SqliteConnectionManager>>,
+}
 
 impl FileRepository {
-    pub fn save(conn: &Connection, file: &FileEntry) -> anyhow::Result<()> {
+    pub fn new(pool: Arc<Pool<SqliteConnectionManager>>) -> Self {
+        Self { pool }
+    }
+}
+
+impl FileRepositoryPort for FileRepository {
+    fn save_file(&self, file: &FileEntry) -> anyhow::Result<()> {
+        let conn = self.pool.get()?;
         let media_info_json = file.media_info.as_ref().map(|m| serde_json::to_string(m).unwrap());
         conn.execute(
             "INSERT OR REPLACE INTO files
@@ -20,7 +33,8 @@ impl FileRepository {
         Ok(())
     }
 
-    pub fn list_by_device(conn: &Connection, device_id: &DeviceId) -> anyhow::Result<Vec<FileEntry>> {
+    fn list_files(&self, device_id: &DeviceId) -> anyhow::Result<Vec<FileEntry>> {
+        let conn = self.pool.get()?;
         let mut stmt = conn.prepare("SELECT * FROM files WHERE device_id = ?1")?;
         let file_iter = stmt.query_map([&device_id.0], BackupMapper::to_file)?;
         let mut files = Vec::new();
@@ -28,16 +42,54 @@ impl FileRepository {
         Ok(files)
     }
 
-    pub fn search(conn: &Connection, query: &str) -> anyhow::Result<Vec<FileEntry>> {
-        let mut stmt = conn.prepare("SELECT * FROM files WHERE name LIKE ?1 OR path LIKE ?1")?;
-        let pattern = format!("%{}%", query);
-        let file_iter = stmt.query_map([pattern], BackupMapper::to_file)?;
+    fn get_snapshot_files(&self, snapshot_id: &SnapshotId) -> anyhow::Result<Vec<FileEntry>> {
+        let conn = self.pool.get()?;
+        let mut stmt = conn.prepare(
+            "SELECT f.* FROM files f
+             JOIN snapshot_files sf ON f.id = sf.file_id
+             WHERE sf.snapshot_id = ?1"
+        )?;
+        let file_iter = stmt.query_map([&snapshot_id.0], BackupMapper::to_file)?;
         let mut files = Vec::new();
         for f in file_iter { files.push(f?); }
         Ok(files)
     }
 
-    pub fn save_chunk(conn: &Connection, file_id: &FileId, chunk_hash: &str, offset: u64, length: u32, sequence: u32) -> anyhow::Result<()> {
+    fn link_file_to_snapshot(&self, snapshot_id: &SnapshotId, file_id: &FileId) -> anyhow::Result<()> {
+        let conn = self.pool.get()?;
+        conn.execute(
+            "INSERT OR IGNORE INTO snapshot_files (snapshot_id, file_id) VALUES (?1, ?2)",
+            params![snapshot_id.0, file_id.0],
+        )?;
+        Ok(())
+    }
+
+    fn search_files(&self, query: &str) -> anyhow::Result<Vec<FileEntry>> {
+        let conn = self.pool.get()?;
+        let mut stmt = conn.prepare(
+            "SELECT f.* FROM files f
+             JOIN files_fts fts ON f.rowid = fts.rowid
+             WHERE files_fts MATCH ?1 ORDER BY rank"
+        )?;
+        // Sanitize query for FTS5 (basic wrap in quotes or add * for prefix)
+        let fts_query = format!("\"{}\"*", query.replace("\"", "\"\""));
+        let file_iter = stmt.query_map([fts_query], BackupMapper::to_file)?;
+        let mut files = Vec::new();
+        for f in file_iter { files.push(f?); }
+
+        // Fallback to LIKE if FTS returns nothing (for very short queries or special chars)
+        if files.is_empty() {
+            let mut stmt_like = conn.prepare("SELECT * FROM files WHERE name LIKE ?1 OR path LIKE ?1 LIMIT 100")?;
+            let pattern = format!("%{}%", query);
+            let file_iter = stmt_like.query_map([pattern], BackupMapper::to_file)?;
+            for f in file_iter { files.push(f?); }
+        }
+
+        Ok(files)
+    }
+
+    fn save_file_chunk(&self, file_id: &FileId, chunk_hash: &str, offset: u64, length: u32, sequence: u32) -> anyhow::Result<()> {
+        let conn = self.pool.get()?;
         conn.execute(
             "INSERT OR REPLACE INTO file_chunks (file_id, chunk_hash, chunk_offset, chunk_length, sequence)
              VALUES (?1, ?2, ?3, ?4, ?5)",
@@ -46,7 +98,8 @@ impl FileRepository {
         Ok(())
     }
 
-    pub fn get_chunks(conn: &Connection, file_id: &FileId) -> anyhow::Result<Vec<(String, u64, u32)>> {
+    fn get_file_chunks(&self, file_id: &FileId) -> anyhow::Result<Vec<(String, u64, u32)>> {
+        let conn = self.pool.get()?;
         let mut stmt = conn.prepare(
             "SELECT chunk_hash, chunk_offset, chunk_length FROM file_chunks
              WHERE file_id = ?1 ORDER BY sequence ASC"

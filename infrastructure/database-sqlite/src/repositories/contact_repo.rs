@@ -1,12 +1,81 @@
 use rusqlite::{params, Connection};
+use std::sync::Arc;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
 use domain::{SnapshotId, Contact};
+use ports::ContactRepositoryPort;
 use crate::mappers::AndroidMapper;
 use chrono::Utc;
 
-pub struct ContactRepository;
+pub struct ContactRepository {
+    pool: Arc<Pool<SqliteConnectionManager>>,
+}
 
 impl ContactRepository {
-    pub fn save(conn: &Connection, snapshot_id: &SnapshotId, contact: &Contact) -> anyhow::Result<()> {
+    pub fn new(pool: Arc<Pool<SqliteConnectionManager>>) -> Self {
+        Self { pool }
+    }
+
+    fn get_full_details(conn: &Connection, db_id: &str, snapshot_id: Option<&str>) -> anyhow::Result<Option<Contact>> {
+        let mut stmt = conn.prepare("SELECT * FROM contacts WHERE id = ?1")?;
+        let mut contact_row = stmt.query_map([db_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?, // id
+                row.get::<_, Option<String>>(2)?, // source_id
+                row.get::<_, String>(3)?, // display_name
+                row.get::<_, Option<String>>(4)?, // notes
+                row.get::<_, String>(5)?, // source
+                row.get::<_, Option<String>>(6)?, // source_account
+                row.get::<_, Option<String>>(7)?, // content_hash
+                row.get::<_, Option<String>>(8)?, // metadata_json
+            ))
+        })?;
+
+        if let Some(Ok((id, source_id, display_name, notes, source, source_account, content_hash, metadata_json))) = contact_row.next() {
+            let names = conn.prepare("SELECT * FROM contact_names WHERE contact_id = ?1")?.query_map([db_id], AndroidMapper::to_contact_name)?.collect::<rusqlite::Result<Vec<_>>>()?;
+            let phones = conn.prepare("SELECT * FROM contact_phones WHERE contact_id = ?1")?.query_map([db_id], AndroidMapper::to_contact_phone)?.collect::<rusqlite::Result<Vec<_>>>()?;
+            let emails = conn.prepare("SELECT * FROM contact_emails WHERE contact_id = ?1")?.query_map([db_id], AndroidMapper::to_contact_email)?.collect::<rusqlite::Result<Vec<_>>>()?;
+            let addresses = conn.prepare("SELECT * FROM contact_addresses WHERE contact_id = ?1")?.query_map([db_id], AndroidMapper::to_contact_address)?.collect::<rusqlite::Result<Vec<_>>>()?;
+            let organizations = conn.prepare("SELECT * FROM contact_organizations WHERE contact_id = ?1")?.query_map([db_id], AndroidMapper::to_contact_organization)?.collect::<rusqlite::Result<Vec<_>>>()?;
+            let urls = conn.prepare("SELECT * FROM contact_urls WHERE contact_id = ?1")?.query_map([db_id], AndroidMapper::to_contact_url)?.collect::<rusqlite::Result<Vec<_>>>()?;
+            let events = conn.prepare("SELECT * FROM contact_events WHERE contact_id = ?1")?.query_map([db_id], AndroidMapper::to_contact_event)?.collect::<rusqlite::Result<Vec<_>>>()?;
+            let photos = conn.prepare("SELECT * FROM contact_photos WHERE contact_id = ?1")?.query_map([db_id], AndroidMapper::to_contact_photo)?.collect::<rusqlite::Result<Vec<_>>>()?;
+
+            let labels = conn.prepare(
+                "SELECT cl.name FROM contact_labels cl
+                 JOIN contact_label_members clm ON cl.id = clm.label_id
+                 WHERE clm.contact_id = ?1"
+            )?.query_map([db_id], |row| row.get(0))?.collect::<rusqlite::Result<Vec<_>>>()?;
+
+            Ok(Some(Contact {
+                id,
+                snapshot_id: snapshot_id.map(|s| s.to_string()),
+                source_id,
+                display_name,
+                notes,
+                source,
+                source_account,
+                content_hash,
+                metadata_json,
+                names,
+                phones,
+                emails,
+                addresses,
+                organizations,
+                urls,
+                events,
+                photos,
+                labels,
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
+impl ContactRepositoryPort for ContactRepository {
+    fn save_contact(&self, snapshot_id: &SnapshotId, contact: &Contact) -> anyhow::Result<()> {
+        let conn = self.pool.get()?;
         let db_id = uuid::Uuid::new_v4().to_string();
         let created_at = Utc::now().to_rfc3339();
 
@@ -126,92 +195,58 @@ impl ContactRepository {
         Ok(())
     }
 
-    pub fn list_by_snapshot(conn: &Connection, snapshot_id: &SnapshotId) -> anyhow::Result<Vec<Contact>> {
+    fn get_snapshot_contacts(&self, snapshot_id: &SnapshotId) -> anyhow::Result<Vec<Contact>> {
+        let conn = self.pool.get()?;
         let mut stmt = conn.prepare("SELECT id FROM contacts WHERE snapshot_id = ?1")?;
         let contact_ids: Vec<String> = stmt.query_map([&snapshot_id.0], |row| row.get(0))?
             .collect::<rusqlite::Result<Vec<_>>>()?;
 
         let mut contacts = Vec::new();
         for id in contact_ids {
-            if let Some(c) = Self::get_full_details(conn, &id, Some(&snapshot_id.0))? {
+            if let Some(c) = Self::get_full_details(&conn, &id, Some(&snapshot_id.0))? {
                 contacts.push(c);
             }
         }
         Ok(contacts)
     }
 
-    pub fn search(conn: &Connection, query: &str) -> anyhow::Result<Vec<(SnapshotId, Contact)>> {
+    fn search_contacts(&self, query: &str) -> anyhow::Result<Vec<(SnapshotId, Contact)>> {
+        let conn = self.pool.get()?;
         let mut stmt = conn.prepare(
-            "SELECT id, snapshot_id FROM contacts WHERE display_name LIKE ?1"
+            "SELECT c.id, c.snapshot_id FROM contacts c
+             JOIN contacts_fts fts ON c.rowid = fts.rowid
+             WHERE contacts_fts MATCH ?1 ORDER BY rank"
         )?;
-        let pattern = format!("%{}%", query);
+        let fts_query = format!("\"{}\"*", query.replace("\"", "\"\""));
 
-        let rows: Vec<(String, String)> = stmt.query_map([pattern], |row| {
+        let rows: Vec<(String, String)> = stmt.query_map([fts_query], |row| {
             Ok((row.get(0)?, row.get(1)?))
         })?.collect::<rusqlite::Result<Vec<_>>>()?;
 
         let mut results = Vec::new();
         for (id, s_id) in rows {
-            if let Some(c) = Self::get_full_details(conn, &id, Some(&s_id))? {
+            if let Some(c) = Self::get_full_details(&conn, &id, Some(&s_id))? {
                 results.push((SnapshotId(s_id), c));
             }
         }
-        Ok(results)
-    }
 
-    fn get_full_details(conn: &Connection, db_id: &str, snapshot_id: Option<&str>) -> anyhow::Result<Option<Contact>> {
-        let mut stmt = conn.prepare("SELECT * FROM contacts WHERE id = ?1")?;
-        let mut contact_row = stmt.query_map([db_id], |row| {
-            Ok((
-                row.get::<_, String>(0)?, // id
-                row.get::<_, Option<String>>(2)?, // source_id
-                row.get::<_, String>(3)?, // display_name
-                row.get::<_, Option<String>>(4)?, // notes
-                row.get::<_, String>(5)?, // source
-                row.get::<_, Option<String>>(6)?, // source_account
-                row.get::<_, Option<String>>(7)?, // content_hash
-                row.get::<_, Option<String>>(8)?, // metadata_json
-            ))
-        })?;
+        // Fallback to LIKE
+        if results.is_empty() {
+            let mut stmt_like = conn.prepare(
+                "SELECT id, snapshot_id FROM contacts WHERE display_name LIKE ?1 OR notes LIKE ?1"
+            )?;
+            let pattern = format!("%{}%", query);
+            let rows_like: Vec<(String, String)> = stmt_like.query_map([pattern], |row| {
+                Ok((row.get(0)?, row.get(1)?))
+            })?.collect::<rusqlite::Result<Vec<_>>>()?;
 
-        if let Some(Ok((id, source_id, display_name, notes, source, source_account, content_hash, metadata_json))) = contact_row.next() {
-            let names = conn.prepare("SELECT * FROM contact_names WHERE contact_id = ?1")?.query_map([db_id], AndroidMapper::to_contact_name)?.collect::<rusqlite::Result<Vec<_>>>()?;
-            let phones = conn.prepare("SELECT * FROM contact_phones WHERE contact_id = ?1")?.query_map([db_id], AndroidMapper::to_contact_phone)?.collect::<rusqlite::Result<Vec<_>>>()?;
-            let emails = conn.prepare("SELECT * FROM contact_emails WHERE contact_id = ?1")?.query_map([db_id], AndroidMapper::to_contact_email)?.collect::<rusqlite::Result<Vec<_>>>()?;
-            let addresses = conn.prepare("SELECT * FROM contact_addresses WHERE contact_id = ?1")?.query_map([db_id], AndroidMapper::to_contact_address)?.collect::<rusqlite::Result<Vec<_>>>()?;
-            let organizations = conn.prepare("SELECT * FROM contact_organizations WHERE contact_id = ?1")?.query_map([db_id], AndroidMapper::to_contact_organization)?.collect::<rusqlite::Result<Vec<_>>>()?;
-            let urls = conn.prepare("SELECT * FROM contact_urls WHERE contact_id = ?1")?.query_map([db_id], AndroidMapper::to_contact_url)?.collect::<rusqlite::Result<Vec<_>>>()?;
-            let events = conn.prepare("SELECT * FROM contact_events WHERE contact_id = ?1")?.query_map([db_id], AndroidMapper::to_contact_event)?.collect::<rusqlite::Result<Vec<_>>>()?;
-            let photos = conn.prepare("SELECT * FROM contact_photos WHERE contact_id = ?1")?.query_map([db_id], AndroidMapper::to_contact_photo)?.collect::<rusqlite::Result<Vec<_>>>()?;
-
-            let labels = conn.prepare(
-                "SELECT cl.name FROM contact_labels cl
-                 JOIN contact_label_members clm ON cl.id = clm.label_id
-                 WHERE clm.contact_id = ?1"
-            )?.query_map([db_id], |row| row.get(0))?.collect::<rusqlite::Result<Vec<_>>>()?;
-
-            Ok(Some(Contact {
-                id,
-                snapshot_id: snapshot_id.map(|s| s.to_string()),
-                source_id,
-                display_name,
-                notes,
-                source,
-                source_account,
-                content_hash,
-                metadata_json,
-                names,
-                phones,
-                emails,
-                addresses,
-                organizations,
-                urls,
-                events,
-                photos,
-                labels,
-            }))
-        } else {
-            Ok(None)
+            for (id, s_id) in rows_like {
+                if let Some(c) = Self::get_full_details(&conn, &id, Some(&s_id))? {
+                    results.push((SnapshotId(s_id), c));
+                }
+            }
         }
+
+        Ok(results)
     }
 }

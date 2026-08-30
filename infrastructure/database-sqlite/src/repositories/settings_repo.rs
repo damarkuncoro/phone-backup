@@ -1,10 +1,23 @@
-use rusqlite::{params, Connection};
+use rusqlite::params;
+use std::sync::Arc;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
 use domain::AppSettings;
+use ports::SettingsRepositoryPort;
 
-pub struct SettingsRepository;
+pub struct SettingsRepository {
+    pool: Arc<Pool<SqliteConnectionManager>>,
+}
 
 impl SettingsRepository {
-    pub fn save(conn: &Connection, settings: &AppSettings) -> anyhow::Result<()> {
+    pub fn new(pool: Arc<Pool<SqliteConnectionManager>>) -> Self {
+        Self { pool }
+    }
+}
+
+impl SettingsRepositoryPort for SettingsRepository {
+    fn save_settings(&self, settings: &AppSettings) -> anyhow::Result<()> {
+        let conn = self.pool.get()?;
         let json = serde_json::to_string(settings)?;
         conn.execute(
             "INSERT OR REPLACE INTO settings (id, json_data, updated_at) VALUES (1, ?1, CURRENT_TIMESTAMP)",
@@ -13,7 +26,8 @@ impl SettingsRepository {
         Ok(())
     }
 
-    pub fn get(conn: &Connection) -> anyhow::Result<Option<AppSettings>> {
+    fn get_settings(&self) -> anyhow::Result<Option<AppSettings>> {
+        let conn = self.pool.get()?;
         let mut stmt = conn.prepare("SELECT json_data FROM settings WHERE id = 1")?;
         let mut rows = stmt.query([])?;
         if let Some(row) = rows.next()? {

@@ -60,6 +60,8 @@ axum = "0.7"
 socketioxide = { version = "0.15", features = ["v4"] }
 tower = "0.4"
 tower-http = { version = "0.5", features = ["cors"] }
+r2d2 = "0.8"
+r2d2_sqlite = "0.24"
 
 # Internal Workspace Dependencies (Short names for convenience)
 domain = { path = "core/domain", package = "phone-backup-domain", version = "0.3.1" }

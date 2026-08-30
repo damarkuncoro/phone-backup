@@ -14,6 +14,10 @@ pub use app_provider_port::AppProviderPort;
 pub use data_provider_port::DataProviderPort;
 pub use device_port::DevicePort;
 pub use progress_port::{NoProgress, ProgressPort};
-pub use repository_port::RepositoryPort;
+pub use repository_port::{
+    RepositoryPort, DeviceRepositoryPort, SnapshotRepositoryPort, FileRepositoryPort,
+    AppRepositoryPort, ContactRepositoryPort, ScheduleRepositoryPort,
+    SettingsRepositoryPort, MaintenanceRepositoryPort,
+};
 pub use scanner_port::ScannerPort;
 pub use storage_port::StoragePort;
