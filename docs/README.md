@@ -8,6 +8,7 @@ Welcome to the technical documentation for the **phone-backup** platform. This d
 2.  **[Software Architecture Document (SAD)](SAD/)**: Detailed hexagonal architecture, domain models, and data flow diagrams.
 3.  **[How-To Guides](howto/)**: Practical guides for common tasks (e.g., setting up S3, generating age keys).
 4.  **[Limitations & Known Issues](LIMITATIONS.md)**: Current technical boundaries and platform-specific quirks.
+5.  **[Technical Review & Hardware Assessment](REVIEW.md)**: Comprehensive technical review, physical device testing obstacles, and development recommendations.
 
 ## 🏗 Key Architectural Principles
 
