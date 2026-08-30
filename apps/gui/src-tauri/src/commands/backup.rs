@@ -37,7 +37,7 @@ pub async fn get_structured_data(
     state.engine.get_structured_data(&id, &data_type).map_err(|e| e.to_string())
 }
 
-#[tauri::command(rename_all = "snake_case")]
+#[tauri::command]
 pub async fn restore_snapshot(
     state: State<'_, AppState>,
     snapshot_id: String,

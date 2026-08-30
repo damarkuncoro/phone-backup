@@ -32,10 +32,12 @@ export class BackupService extends BaseService {
     }
 
     static async restore(snapshotId, targetDir = "", filter = null) {
+        if (!snapshotId) throw new Error("Snapshot ID is required for restore");
+
         return await this.call('restore_snapshot', {
-            snapshot_id: snapshotId,
-            target_dir: targetDir,
-            filter: filter
+            snapshotId: String(snapshotId),
+            targetDir: String(targetDir || ""),
+            filter: filter ? String(filter) : null
         });
     }
 
