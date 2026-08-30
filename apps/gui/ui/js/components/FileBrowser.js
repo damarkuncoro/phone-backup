@@ -1,6 +1,7 @@
 import { FileListView } from './browser/FileListView.js';
 import { AndroidDataView } from './browser/AndroidDataView.js';
 import { DeviceService } from '../services/DeviceService.js';
+import { BackupService } from '../services/BackupService.js';
 import './MediaGallery.js';
 
 export class FileBrowser extends HTMLElement {

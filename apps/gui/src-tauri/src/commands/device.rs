@@ -82,6 +82,10 @@ pub async fn get_live_data(
             let data = state.engine.list_call_logs(&id).map_err(|e| e.to_string())?;
             Ok(serde_json::to_value(data).unwrap())
         }
+        "apps" => {
+            let data = state.engine.list_apps(&id).map_err(|e| e.to_string())?;
+            Ok(serde_json::to_value(data).unwrap())
+        }
         _ => Err("Unsupported data type".to_string()),
     }
 }
