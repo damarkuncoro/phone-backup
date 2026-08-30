@@ -72,4 +72,9 @@ fn test_call_log_persistence() {
     let results = repo.get_snapshot_call_logs(&snap_id).unwrap();
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].number, "+62812345678");
+
+    // Test Search
+    let search_results = repo.search_call_logs("John").unwrap();
+    assert_eq!(search_results.len(), 1);
+    assert_eq!(search_results[0].1.name.as_deref(), Some("John"));
 }

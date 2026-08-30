@@ -89,6 +89,7 @@ pub trait CallLogRepositoryPort: Send + Sync {
     fn save_call_log(&self, snapshot_id: &SnapshotId, log: &domain::CallLog) -> Result<()>;
     fn save_call_logs_batch(&self, snapshot_id: &SnapshotId, logs: &[domain::CallLog]) -> Result<()>;
     fn get_snapshot_call_logs(&self, snapshot_id: &SnapshotId) -> Result<Vec<domain::CallLog>>;
+    fn search_call_logs(&self, query: &str) -> Result<Vec<(SnapshotId, domain::CallLog)>>;
 }
 
 pub trait RepositoryPort:

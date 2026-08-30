@@ -133,4 +133,31 @@ impl CallLogRepositoryPort for CommunicationRepository {
         for l in log_iter { results.push(l?); }
         Ok(results)
     }
+
+    fn search_call_logs(&self, query: &str) -> anyhow::Result<Vec<(SnapshotId, CallLog)>> {
+        let conn = self.pool.get()?;
+        let pattern = format!("%{}%", query);
+
+        let mut stmt = conn.prepare(
+            "SELECT snapshot_id, number, name, date, duration_seconds, type_code, location
+             FROM call_logs
+             WHERE number LIKE ?1 OR name LIKE ?1 OR location LIKE ?1"
+        )?;
+
+        let log_iter = stmt.query_map([&pattern], |row| {
+            let snap_id: String = row.get(0)?;
+            Ok((SnapshotId(snap_id), CallLog {
+                number: row.get(1)?,
+                name: row.get(2)?,
+                date: parse_date(&row.get::<_, String>(3)?).unwrap_or_default(),
+                duration_seconds: row.get(4)?,
+                type_code: row.get(5)?,
+                location: row.get(6)?,
+            }))
+        })?;
+
+        let mut results = Vec::new();
+        for l in log_iter { results.push(l?); }
+        Ok(results)
+    }
 }

@@ -275,4 +275,31 @@ impl<
         let contacts = self.repository.get_snapshot_contacts(snapshot_id)?;
         Ok(crate::VCardEngine::export_to_vcard(&contacts))
     }
+
+    #[instrument(skip(self))]
+    pub fn get_snapshot_sms(&self, snapshot_id: &SnapshotId) -> Result<Vec<domain::Sms>> {
+        self.repository.get_snapshot_sms(snapshot_id)
+    }
+
+    #[instrument(skip(self))]
+    pub fn export_sms_json(&self, snapshot_id: &SnapshotId) -> Result<String> {
+        let sms_list = self.repository.get_snapshot_sms(snapshot_id)?;
+        Ok(serde_json::to_string_pretty(&sms_list)?)
+    }
+
+    #[instrument(skip(self))]
+    pub fn get_snapshot_call_logs(&self, snapshot_id: &SnapshotId) -> Result<Vec<domain::CallLog>> {
+        self.repository.get_snapshot_call_logs(snapshot_id)
+    }
+
+    #[instrument(skip(self))]
+    pub fn search_call_logs(&self, query: &str) -> Result<Vec<(SnapshotId, domain::CallLog)>> {
+        self.repository.search_call_logs(query)
+    }
+
+    #[instrument(skip(self))]
+    pub fn export_call_logs_json(&self, snapshot_id: &SnapshotId) -> Result<String> {
+        let logs = self.repository.get_snapshot_call_logs(snapshot_id)?;
+        Ok(serde_json::to_string_pretty(&logs)?)
+    }
 }

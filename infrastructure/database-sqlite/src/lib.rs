@@ -235,6 +235,7 @@ impl CallLogRepositoryPort for SqliteRepository {
     fn save_call_log(&self, snapshot_id: &SnapshotId, log: &domain::CallLog) -> anyhow::Result<()> { self.communication().save_call_log(snapshot_id, log) }
     fn save_call_logs_batch(&self, snapshot_id: &SnapshotId, logs: &[domain::CallLog]) -> anyhow::Result<()> { self.communication().save_call_logs_batch(snapshot_id, logs) }
     fn get_snapshot_call_logs(&self, snapshot_id: &SnapshotId) -> anyhow::Result<Vec<domain::CallLog>> { self.communication().get_snapshot_call_logs(snapshot_id) }
+    fn search_call_logs(&self, query: &str) -> anyhow::Result<Vec<(SnapshotId, domain::CallLog)>> { self.communication().search_call_logs(query) }
 }
 
 impl RepositoryPort for SqliteRepository {}
