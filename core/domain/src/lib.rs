@@ -22,6 +22,7 @@ mod events;
 mod event_bus;
 mod scan_result;
 mod backup_plan;
+mod structured_data;
 
 pub use capability::{Capability, CapabilityStatus, CapabilityMatrix};
 pub use device::{ConnectionType, Device, DeviceId};
@@ -41,3 +42,4 @@ pub use events::DomainEvent;
 pub use event_bus::{DomainEventBus, DomainEventHandler, EventHandlerRef};
 pub use scan_result::{ScanResult, ScanWarning, ScanSource};
 pub use backup_plan::{BackupPlan, FileReuse, DeletedFile};
+pub use structured_data::StructuredDataType;

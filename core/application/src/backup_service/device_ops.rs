@@ -167,10 +167,10 @@ impl<
     }
 
     #[instrument(skip(self))]
-    pub fn get_structured_data(&self, snapshot_id: &SnapshotId, data_type: &str) -> Result<serde_json::Value> {
+    pub fn get_structured_data(&self, snapshot_id: &SnapshotId, data_type: domain::StructuredDataType) -> Result<serde_json::Value> {
         tracing::info!("Fetching structured data '{}' for snapshot {}", data_type, snapshot_id.0);
 
-        if data_type == "contacts" {
+        if data_type == domain::StructuredDataType::Contacts {
             let contacts = self.repository.get_snapshot_contacts(snapshot_id)?;
             return Ok(serde_json::to_value(contacts)?);
         }

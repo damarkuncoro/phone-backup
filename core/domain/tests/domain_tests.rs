@@ -176,3 +176,14 @@ fn test_scan_result_warning_aggregation() {
     assert_eq!(result.file_count(), 0);
     assert_eq!(result.warnings[0], warning);
 }
+
+#[test]
+fn test_structured_data_type_formatting() {
+    use phone_backup_domain::StructuredDataType;
+
+    assert_eq!(StructuredDataType::Contacts.as_str(), "contacts");
+    assert_eq!(StructuredDataType::Sms.as_str(), "sms");
+    assert_eq!(StructuredDataType::CallLogs.as_str(), "call_logs");
+    assert_eq!(StructuredDataType::Applications.as_str(), "apps");
+    assert_eq!(format!("{}", StructuredDataType::Contacts), "contacts");
+}

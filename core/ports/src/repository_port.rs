@@ -21,8 +21,8 @@ pub trait SnapshotRepositoryPort: Send + Sync {
     fn get_incomplete_snapshot(&self, device_id: &DeviceId) -> Result<Option<Snapshot>>;
     fn get_resumable_snapshot(&self, device_id: &DeviceId) -> Result<Option<Snapshot>>;
     fn delete_snapshot(&self, snapshot_id: &SnapshotId) -> Result<()>;
-    fn save_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: &str, object_id: &str) -> Result<()>;
-    fn get_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: &str) -> Result<Option<String>>;
+    fn save_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: domain::StructuredDataType, object_id: &str) -> Result<()>;
+    fn get_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: domain::StructuredDataType) -> Result<Option<String>>;
 }
 
 pub trait FileRepositoryPort: Send + Sync {

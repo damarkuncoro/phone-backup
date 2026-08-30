@@ -30,19 +30,19 @@ impl<
 
         tracing::info!("Starting structured data backup (Contacts, SMS, Logs)...");
         if let Ok(contacts) = self.data_provider.list_contacts(id) {
-            let _ = self.store_structured_data(&snapshot.id, "contacts", &contacts, encryption);
+            let _ = self.store_structured_data(&snapshot.id, domain::StructuredDataType::Contacts, &contacts, encryption);
             for contact in contacts {
                 let _ = self.repository.save_contact(&snapshot.id, &contact);
             }
         }
 
         if let Ok(sms) = self.data_provider.list_sms(id) {
-            let _ = self.store_structured_data(&snapshot.id, "sms", &sms, encryption);
+            let _ = self.store_structured_data(&snapshot.id, domain::StructuredDataType::Sms, &sms, encryption);
             let _ = self.repository.save_sms_batch(&snapshot.id, &sms);
         }
 
         if let Ok(logs) = self.data_provider.list_call_logs(id) {
-            let _ = self.store_structured_data(&snapshot.id, "call_logs", &logs, encryption);
+            let _ = self.store_structured_data(&snapshot.id, domain::StructuredDataType::CallLogs, &logs, encryption);
             let _ = self.repository.save_call_logs_batch(&snapshot.id, &logs);
         }
         Ok(())

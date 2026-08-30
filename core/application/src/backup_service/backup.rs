@@ -150,7 +150,7 @@ impl<
     pub(crate) fn store_structured_data<V: serde::Serialize>(
         &self,
         snapshot_id: &domain::SnapshotId,
-        data_type: &str,
+        data_type: domain::StructuredDataType,
         data: &V,
         encryption: &EncryptionMode,
     ) -> Result<()> {

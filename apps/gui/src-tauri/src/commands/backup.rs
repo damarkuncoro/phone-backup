@@ -34,7 +34,16 @@ pub async fn get_structured_data(
     data_type: String,
 ) -> Result<Value, String> {
     let id = SnapshotId(snapshot_id);
-    state.engine.get_structured_data(&id, &data_type).map_err(|e| e.to_string())
+    let dtype = match data_type.as_str() {
+        "contacts" => domain::StructuredDataType::Contacts,
+        "sms" => domain::StructuredDataType::Sms,
+        "call_logs" => domain::StructuredDataType::CallLogs,
+        "apps" => domain::StructuredDataType::Applications,
+        "wifi" => domain::StructuredDataType::WifiNetworks,
+        "settings" => domain::StructuredDataType::DeviceSettings,
+        _ => return Err(format!("Unknown structured data type: {}", data_type)),
+    };
+    state.engine.get_structured_data(&id, dtype).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

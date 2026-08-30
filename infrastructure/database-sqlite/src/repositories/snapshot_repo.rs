@@ -96,21 +96,21 @@ impl SnapshotRepositoryPort for SnapshotRepository {
         self.get_incomplete_snapshot(device_id)
     }
 
-    fn save_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: &str, object_id: &str) -> anyhow::Result<()> {
+    fn save_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: domain::StructuredDataType, object_id: &str) -> anyhow::Result<()> {
         let conn = self.pool.get()?;
         conn.execute(
             "INSERT OR REPLACE INTO snapshot_data (snapshot_id, data_type, object_id) VALUES (?1, ?2, ?3)",
-            params![snapshot_id.0, data_type, object_id],
+            params![snapshot_id.0, data_type.as_str(), object_id],
         )?;
         Ok(())
     }
 
-    fn get_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: &str) -> anyhow::Result<Option<String>> {
+    fn get_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: domain::StructuredDataType) -> anyhow::Result<Option<String>> {
         let conn = self.pool.get()?;
         let mut stmt = conn.prepare(
             "SELECT object_id FROM snapshot_data WHERE snapshot_id = ?1 AND data_type = ?2"
         )?;
-        let mut rows = stmt.query(params![snapshot_id.0, data_type])?;
+        let mut rows = stmt.query(params![snapshot_id.0, data_type.as_str()])?;
         if let Some(row) = rows.next()? {
             Ok(Some(row.get(0)?))
         } else {

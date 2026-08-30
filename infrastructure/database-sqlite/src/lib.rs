@@ -164,10 +164,10 @@ impl SnapshotRepositoryPort for SqliteRepository {
     fn get_incomplete_snapshot(&self, device_id: &DeviceId) -> anyhow::Result<Option<Snapshot>> { self.snapshots().get_incomplete_snapshot(device_id) }
     fn get_resumable_snapshot(&self, device_id: &DeviceId) -> anyhow::Result<Option<Snapshot>> { self.snapshots().get_resumable_snapshot(device_id) }
     fn delete_snapshot(&self, snapshot_id: &SnapshotId) -> anyhow::Result<()> { self.snapshots().delete_snapshot(snapshot_id) }
-    fn save_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: &str, object_id: &str) -> anyhow::Result<()> {
+    fn save_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: domain::StructuredDataType, object_id: &str) -> anyhow::Result<()> {
         self.snapshots().save_structured_data_ref(snapshot_id, data_type, object_id)
     }
-    fn get_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: &str) -> anyhow::Result<Option<String>> {
+    fn get_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: domain::StructuredDataType) -> anyhow::Result<Option<String>> {
         self.snapshots().get_structured_data_ref(snapshot_id, data_type)
     }
 }
