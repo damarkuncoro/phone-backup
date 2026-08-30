@@ -13,6 +13,10 @@ export class DeviceService extends BaseService {
         return await this.call('scan_device', { device_id: deviceId });
     }
 
+    static async getApps(deviceId) {
+        return await this.call('get_live_apps', { device_id: deviceId });
+    }
+
     static async browse(deviceId, path) {
         return await this.call('browse_directory', { device_id: deviceId, path });
     }

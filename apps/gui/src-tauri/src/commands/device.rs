@@ -57,6 +57,12 @@ pub async fn calculate_device_file_hash(state: State<'_, AppState>, device_id: S
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub async fn get_live_apps(state: State<'_, AppState>, device_id: String) -> Result<Vec<domain::AppInfo>, String> {
+    let id = DeviceId::new(device_id);
+    state.engine.list_apps(&id).map_err(|e| e.to_string())
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_live_data(
     state: State<'_, AppState>,
     device_id: String,

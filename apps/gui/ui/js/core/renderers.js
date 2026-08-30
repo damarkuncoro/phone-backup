@@ -44,5 +44,18 @@ export const renderers = {
                 <div class="text-[10px] font-black text-slate-500">${Math.round(l.duration_seconds/60)} MIN</div>
             </div>
         `).join('');
+    },
+
+    apps: (apps) => {
+        return (apps || []).map(a => `
+            <div class="p-4 bg-white border border-slate-100 rounded-3xl flex items-center gap-4 hover:shadow-md transition-all">
+                <div class="w-10 h-10 bg-slate-100 rounded-2xl flex items-center justify-center text-lg">📦</div>
+                <div class="min-w-0 flex-1">
+                    <div class="font-bold text-slate-800 text-xs truncate">${a.app_name}</div>
+                    <div class="text-[9px] text-slate-400 truncate font-mono">${a.package_name}</div>
+                    <div class="text-[8px] mt-1 bg-indigo-50 text-indigo-600 w-fit px-1.5 rounded font-black uppercase">v${a.version_code}</div>
+                </div>
+            </div>
+        `).join('');
     }
 };

@@ -38,6 +38,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             commands::device::get_devices,
             commands::device::scan_device,
+            commands::device::get_live_apps,
             commands::device::browse_directory,
             commands::device::delete_device_file,
             commands::device::rename_device_file,
@@ -50,6 +51,8 @@ fn main() {
             commands::backup::start_backup,
             commands::backup::get_snapshots,
             commands::backup::get_snapshot_files,
+            commands::backup::get_snapshot_apps,
+            commands::backup::get_file_diff,
             commands::backup::get_structured_data,
             commands::backup::restore_snapshot,
             commands::backup::delete_snapshot,

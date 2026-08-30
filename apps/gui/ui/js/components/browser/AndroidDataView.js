@@ -5,7 +5,7 @@ import { renderers } from '../../core/renderers.js';
 export class AndroidDataView {
     constructor(container) {
         this.container = container;
-        this.dataCache = { contacts: [], sms: [], calls: [] };
+        this.dataCache = { contacts: [], sms: [], calls: [], apps: [] };
         this.currentSubTab = 'contacts';
     }
 
@@ -19,19 +19,21 @@ export class AndroidDataView {
 
         try {
             if (isScanMode) {
-                const [c, s, l] = await Promise.all([
+                const [c, s, l, a] = await Promise.all([
                     DeviceService.getLiveData(deviceId, 'contacts').catch(() => []),
                     DeviceService.getLiveData(deviceId, 'sms').catch(() => []),
-                    DeviceService.getLiveData(deviceId, 'call_logs').catch(() => [])
+                    DeviceService.getLiveData(deviceId, 'call_logs').catch(() => []),
+                    DeviceService.getLiveData(deviceId, 'apps').catch(() => [])
                 ]);
-                this.dataCache = { contacts: c, sms: s, calls: l };
+                this.dataCache = { contacts: c, sms: s, calls: l, apps: a };
             } else {
-                const [c, s, l] = await Promise.all([
+                const [c, s, l, a] = await Promise.all([
                     BackupService.getStructuredData(snapshotId, 'contacts').catch(() => []),
                     BackupService.getStructuredData(snapshotId, 'sms').catch(() => []),
-                    BackupService.getStructuredData(snapshotId, 'call_logs').catch(() => [])
+                    BackupService.getStructuredData(snapshotId, 'call_logs').catch(() => []),
+                    BackupService.getApps(snapshotId).catch(() => [])
                 ]);
-                this.dataCache = { contacts: c, sms: s, calls: l };
+                this.dataCache = { contacts: c, sms: s, calls: l, apps: a };
             }
             this.render();
         } catch (e) {
@@ -52,9 +54,12 @@ export class AndroidDataView {
         } else if (this.currentSubTab === 'messages') {
             contentHtml = renderers.messages(data.sms);
             count = (data.sms || []).length;
-        } else {
+        } else if (this.currentSubTab === 'calls') {
             contentHtml = renderers.calls(data.calls);
             count = (data.calls || []).length;
+        } else {
+            contentHtml = renderers.apps(data.apps);
+            count = (data.apps || []).length;
         }
 
         this.container.innerHTML = `
@@ -87,7 +92,8 @@ export class AndroidDataView {
                 const filtered = {
                     contacts: this.dataCache.contacts.filter(c => (c.name || "").toLowerCase().includes(q) || (c.phones || []).some(p => p.includes(q))),
                     sms: this.dataCache.sms.filter(m => (m.address || "").toLowerCase().includes(q) || (m.body || "").toLowerCase().includes(q)),
-                    calls: this.dataCache.calls.filter(l => (l.name || "").toLowerCase().includes(q) || (l.number || "").includes(q))
+                    calls: this.dataCache.calls.filter(l => (l.name || "").toLowerCase().includes(q) || (l.number || "").includes(q)),
+                    apps: this.dataCache.apps.filter(a => (a.app_name || "").toLowerCase().includes(q) || (a.package_name || "").toLowerCase().includes(q))
                 };
                 this.render(filtered);
                 const input = this.container.querySelector('#data-search');

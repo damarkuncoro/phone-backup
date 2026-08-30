@@ -52,6 +52,23 @@ pub async fn restore_snapshot(
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub async fn get_snapshot_apps(state: State<'_, AppState>, snapshot_id: String) -> Result<Vec<domain::AppInfo>, String> {
+    let id = SnapshotId(snapshot_id);
+    state.engine.get_snapshot_apps(&id).map_err(|e| e.to_string())
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn get_file_diff(
+    state: State<'_, AppState>,
+    old_snapshot_id: String,
+    new_snapshot_id: String,
+) -> Result<domain::FileDiff, String> {
+    let old_id = SnapshotId(old_snapshot_id);
+    let new_id = SnapshotId(new_snapshot_id);
+    state.engine.get_file_diff(&old_id, &new_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub async fn delete_snapshot(state: State<'_, AppState>, snapshot_id: String) -> Result<(), String> {
     let id = SnapshotId(snapshot_id);
     state.engine.delete_snapshot(&id).map_err(|e| e.to_string())

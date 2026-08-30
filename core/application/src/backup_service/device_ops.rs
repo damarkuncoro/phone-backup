@@ -198,6 +198,11 @@ impl<
     }
 
     #[instrument(skip(self))]
+    pub fn get_file_diff(&self, old_snapshot_id: &SnapshotId, new_snapshot_id: &SnapshotId) -> Result<domain::FileDiff> {
+        self.repository.get_file_diff(old_snapshot_id, new_snapshot_id)
+    }
+
+    #[instrument(skip(self))]
     pub fn migrate_device(&self, source_id: &DeviceId, target_id: &DeviceId) -> Result<()> {
         info!("🚀 Starting migration: {} -> {}", source_id, target_id);
 

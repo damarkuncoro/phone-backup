@@ -8,7 +8,7 @@ export class FileBrowser extends HTMLElement {
         super();
         this._selectedPaths = new Set();
         this._files = [];
-        this._currentTab = 'files';
+        this._currentTab = 'summary';
         this._currentPath = "/storage/emulated/0";
 
         this.renderBase();
@@ -43,7 +43,8 @@ export class FileBrowser extends HTMLElement {
                         <p id="subtitle" class="text-[10px] text-slate-400 font-mono mt-1 uppercase tracking-[0.2em] bg-slate-200/50 w-fit px-2 py-0.5 rounded"></p>
 
                         <div class="flex gap-6 mt-8">
-                            <button id="tab-files" class="text-[11px] font-black tracking-[0.3em] text-indigo-600 border-b-4 border-indigo-600 pb-2 transition-all">FILES</button>
+                            <button id="tab-summary" class="text-[11px] font-black tracking-[0.3em] text-indigo-600 border-b-4 border-indigo-600 pb-2 transition-all">SUMMARY</button>
+                            <button id="tab-files" class="text-[11px] font-black tracking-[0.3em] text-slate-400 hover:text-slate-600 pb-2 transition-all border-b-4 border-transparent">FILES</button>
                             <button id="tab-gallery" class="text-[11px] font-black tracking-[0.3em] text-slate-400 hover:text-slate-600 pb-2 transition-all border-b-4 border-transparent">GALLERY</button>
                             <button id="tab-data" class="text-[11px] font-black tracking-[0.3em] text-slate-400 hover:text-slate-600 pb-2 transition-all border-b-4 border-transparent">ANDROID DATA</button>
                         </div>
@@ -54,6 +55,7 @@ export class FileBrowser extends HTMLElement {
                     <button data-subtab="contacts" class="text-[10px] font-black tracking-[0.2em] text-indigo-600 border-b-2 border-indigo-600 pb-1">CONTACTS</button>
                     <button data-subtab="messages" class="text-[10px] font-black tracking-[0.2em] text-slate-400 hover:text-slate-600 pb-1 border-b-2 border-transparent">MESSAGES</button>
                     <button data-subtab="calls" class="text-[10px] font-black tracking-[0.2em] text-slate-400 hover:text-slate-600 pb-1 border-b-2 border-transparent">CALL LOGS</button>
+                    <button data-subtab="apps" class="text-[10px] font-black tracking-[0.2em] text-slate-400 hover:text-slate-600 pb-1 border-b-2 border-transparent">APPS</button>
                 </div>
 
                 <div id="list" class="flex-1 overflow-y-auto bg-white min-h-[500px]"></div>
@@ -81,6 +83,7 @@ export class FileBrowser extends HTMLElement {
                 window.dispatchEvent(new CustomEvent('close-browser'));
             }
         };
+        this.querySelector('#tab-summary').onclick = () => this.switchTab('summary');
         this.querySelector('#tab-files').onclick = () => this.switchTab('files');
         this.querySelector('#tab-gallery').onclick = () => this.switchTab('gallery');
         this.querySelector('#tab-data').onclick = () => this.switchTab('data');
@@ -102,12 +105,15 @@ export class FileBrowser extends HTMLElement {
         this._currentTab = tab;
         const subTabs = this.querySelector('#data-tabs-bar');
 
-        this.querySelectorAll('#tab-files, #tab-gallery, #tab-data').forEach(t => {
+        this.querySelectorAll('#tab-summary, #tab-files, #tab-gallery, #tab-data').forEach(t => {
             t.className = "text-[11px] font-black tracking-[0.3em] text-slate-400 hover:text-slate-600 pb-2 transition-all border-b-4 border-transparent";
         });
         this.querySelector(`#tab-${tab}`).className = "text-[11px] font-black tracking-[0.3em] text-indigo-600 border-b-4 border-indigo-600 pb-2 transition-all";
 
-        if (tab === 'files') {
+        if (tab === 'summary') {
+            subTabs.classList.add('hidden');
+            this.renderSummary();
+        } else if (tab === 'files') {
             subTabs.classList.add('hidden');
             this.listView.isScanMode = this._isScanMode;
             this.listView.selectedPaths = this._selectedPaths;
@@ -119,6 +125,97 @@ export class FileBrowser extends HTMLElement {
             subTabs.classList.remove('hidden');
             await this.dataView.refresh(this._deviceId, this._snapshotId, this._isScanMode);
         }
+    }
+
+    async renderSummary() {
+        const container = this.querySelector('#list');
+
+        const counts = {
+            photos: this._files.filter(f => f.mime_type.startsWith('image/')).length,
+            videos: this._files.filter(f => f.mime_type.startsWith('video/')).length,
+            docs: this._files.filter(f => ['application/pdf', 'text/plain', 'application/msword'].includes(f.mime_type)).length,
+            downloads: this._files.filter(f => f.path.includes('/Download/')).length,
+        };
+
+        let diffHtml = "";
+        try {
+            // Try to find a previous snapshot for diffing
+            const allSnaps = await BackupService.getSnapshots(this._deviceId);
+            const currentIdx = allSnaps.findIndex(s => s.id === this._snapshotId);
+            if (currentIdx !== -1 && currentIdx < allSnaps.length - 1) {
+                const prevId = allSnaps[currentIdx + 1].id;
+                const diff = await BackupService.getDiff(prevId, this._snapshotId);
+
+                diffHtml = `
+                    <div class="mt-12 p-8 bg-slate-900 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
+                        <div class="absolute top-0 right-0 p-8 opacity-10 text-6-xl font-black">DIFF</div>
+                        <h4 class="text-xs font-black text-indigo-400 uppercase tracking-[0.3em] mb-8 flex items-center gap-3">
+                            <span class="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
+                            Changes since last backup
+                        </h4>
+                        <div class="grid grid-cols-4 gap-8">
+                            <div class="text-center">
+                                <div class="text-3xl font-black text-emerald-400">+${diff.added.length}</div>
+                                <div class="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-2">New Files</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-3xl font-black text-amber-400">+${diff.modified.length}</div>
+                                <div class="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-2">Modified</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-3xl font-black text-red-400">-${diff.removed.length}</div>
+                                <div class="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-2">Deleted</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-3xl font-black text-slate-300">${this._files.length - diff.added.length - diff.modified.length}</div>
+                                <div class="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-2">Unchanged</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        } catch (e) { console.error("Diff failed", e); }
+
+        container.innerHTML = `
+            <div class="p-12 space-y-8 max-w-5xl mx-auto">
+                <div class="grid grid-cols-2 gap-6">
+                    ${this.renderCategoryCard("Contacts", "👥", "ANDROID DATA", "data", "contacts")}
+                    ${this.renderCategoryCard("Photos", "📸", `${counts.photos} items`, "gallery")}
+                    ${this.renderCategoryCard("Videos", "🎥", `${counts.videos} items`, "gallery")}
+                    ${this.renderCategoryCard("Documents", "📄", `${counts.docs} items`, "files")}
+                    ${this.renderCategoryCard("Downloads", "📥", `${counts.downloads} items`, "files")}
+                    ${this.renderCategoryCard("App Metadata", "📦", "System & User Apps", "data", "apps")}
+                </div>
+                ${diffHtml}
+            </div>
+        `;
+
+        container.querySelectorAll('[data-target-tab]').forEach(card => {
+            card.onclick = () => {
+                const tab = card.dataset.targetTab;
+                const sub = card.dataset.targetSubtab;
+                this.switchTab(tab).then(() => {
+                    if (sub) this.switchDataTab(sub);
+                });
+            };
+        });
+    }
+
+    renderCategoryCard(name, icon, subtext, targetTab, targetSubtab = "") {
+        return `
+            <div class="p-8 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group"
+                 data-target-tab="${targetTab}" data-target-subtab="${targetSubtab}">
+                <div class="flex items-center gap-6">
+                    <div class="w-16 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-3xl group-hover:bg-indigo-50 transition-colors">
+                        ${icon}
+                    </div>
+                    <div>
+                        <div class="font-black text-slate-800 text-lg tracking-tight uppercase">${name}</div>
+                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">${subtext}</div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     renderGallery(files) {
@@ -151,7 +248,7 @@ export class FileBrowser extends HTMLElement {
         if (isScanMode && deviceId) {
             await this._browseTo("/storage/emulated/0");
         } else {
-            this.switchTab('files');
+            this.switchTab('summary');
         }
     }
 
