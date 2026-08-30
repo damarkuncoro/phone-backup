@@ -1,7 +1,7 @@
 use tauri::State;
 use crate::state::{AppState, DoctorReport};
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_doctor_report(state: State<'_, AppState>) -> Result<DoctorReport, String> {
     let adb_check = std::process::Command::new("adb").arg("version").output();
     let adb_found = adb_check.is_ok();
@@ -14,22 +14,22 @@ pub async fn get_doctor_report(state: State<'_, AppState>) -> Result<DoctorRepor
     Ok(DoctorReport { adb_found, adb_version, device_count: devices.len(), db_healthy: true })
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn run_gc(state: State<'_, AppState>) -> Result<u64, String> {
     state.engine.garbage_collect().map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn prune_failed_snapshots(state: State<'_, AppState>) -> Result<usize, String> {
     state.engine.prune_failed_snapshots().map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn generate_keys() -> Result<(String, String), String> {
     Ok(application::EncryptionEngine::generate_keypair())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn switch_to_mock_storage(state: State<'_, AppState>) -> Result<(), String> {
     state.storage_switcher.switch(Box::new(adapter_mock::MockStorage::new()));
     Ok(())
@@ -62,12 +62,12 @@ pub async fn add_schedule(state: State<'_, AppState>, device_id: String) -> Resu
     state.engine.add_schedule(domain::DeviceId(device_id), domain::ScheduleFrequency::Daily).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_settings(state: State<'_, AppState>) -> Result<domain::AppSettings, String> {
     state.engine.get_settings().map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn save_settings(state: State<'_, AppState>, settings: domain::AppSettings) -> Result<(), String> {
     state.engine.save_settings(&settings).map_err(|e| e.to_string())
 }

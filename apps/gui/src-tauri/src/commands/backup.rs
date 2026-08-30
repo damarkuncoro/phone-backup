@@ -3,7 +3,7 @@ use crate::state::AppState;
 use domain::{DeviceId, Snapshot, SnapshotId};
 use serde_json::Value;
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_storage_stats(state: State<'_, AppState>) -> Result<application::StorageStats, String> {
     state.engine.get_storage_stats().map_err(|e| e.to_string())
 }

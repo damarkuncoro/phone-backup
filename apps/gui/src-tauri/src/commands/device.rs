@@ -3,7 +3,7 @@ use crate::state::AppState;
 use domain::{Device, DeviceId};
 use serde_json::Value;
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_devices(state: State<'_, AppState>) -> Result<Vec<Device>, String> {
     state.engine.list_devices().map_err(|e| e.to_string())
 }
