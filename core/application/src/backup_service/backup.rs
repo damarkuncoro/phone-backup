@@ -6,7 +6,7 @@ use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, Scann
 use crate::hashing::calculate_hash;
 use crate::object_store::ObjectStoreKey;
 use crate::security::EncryptionEngine;
-use tracing::{info, warn, instrument};
+use tracing::{info, instrument};
 
 use super::BackupService;
 
@@ -28,23 +28,23 @@ impl<
         encryption: EncryptionMode,
         policy: Option<BackupPolicy>,
     ) -> Result<Snapshot> {
-        info!("Starting perform_backup for device: {}", id.0);
+        info!("🚀 Starting Backup Job for device: {}", id.0);
         let policy = policy.unwrap_or_default();
 
+        // 1. SAFETY CHECK
         let device = self.device_adapter.info(id)?;
         self.repository.save_device(&device)?;
+        self.check_battery_and_thermal(id)?;
 
-        // --- BATTERY GUARD ---
-        if let Ok((level, temp)) = self.device_adapter.battery_status(id) {
-            if level < 10 {
-                anyhow::bail!("Battery too low ({}%). Please charge your device before backup.", level);
-            }
-            if temp > 45.0 {
-                anyhow::bail!("Device temperature too high ({:.1}°C). Please let it cool down.", temp);
-            }
-            info!("Battery check: {}% ({}°C) - OK", level, temp);
-        }
+        // 2. SCAN DEVICE
+        let all_files = self.scanner_adapter.scan(id, policy.include_paths.clone())?;
+        let manifest_files: Vec<FileEntry> = all_files
+            .into_iter()
+            .filter(|f| policy.should_include(&f.path))
+            .collect();
+        info!("📋 Manifest built with {} files", manifest_files.len());
 
+        // 3. COMPARE PREVIOUS BACKUP (DIFFING)
         let latest_snapshot = self.repository.get_latest_snapshot(id)?;
         let mut previous_files = std::collections::HashMap::new();
         if let Some(ref snapshot) = latest_snapshot {
@@ -67,19 +67,10 @@ impl<
             .map(|f| f.path)
             .collect();
 
-        snapshot.status = SnapshotStatus::Running;
-        self.repository
-            .create_snapshot(&snapshot)
-            .or_else(|_| self.repository.update_snapshot(&snapshot))?;
-
-        let all_files = self.scanner_adapter.scan(id, policy.include_paths.clone())?;
-        let files: Vec<FileEntry> = all_files
-            .into_iter()
-            .filter(|f| policy.should_include(&f.path))
-            .collect();
-
-        let total_required: u64 = files
+        // Determine what actually needs uploading
+        let files_to_upload: Vec<FileEntry> = manifest_files
             .iter()
+            .cloned()
             .filter(|f| !already_backed_up.contains(&f.path))
             .filter(|f| {
                 if let Some(prev) = previous_files.get(&f.path) {
@@ -88,162 +79,45 @@ impl<
                     true
                 }
             })
-            .map(|f| f.size_bytes)
-            .sum();
+            .collect();
 
+        let total_required: u64 = files_to_upload.iter().map(|f| f.size_bytes).sum();
         self.check_available_disk_space(total_required)?;
 
-        use rayon::prelude::*;
-        use std::sync::atomic::{AtomicU64, Ordering};
-        use std::sync::Mutex;
+        // 4. UPLOAD CHANGED FILES
+        snapshot.status = SnapshotStatus::Running;
+        self.repository
+            .create_snapshot(&snapshot)
+            .or_else(|_| self.repository.update_snapshot(&snapshot))?;
 
-        self.progress.start(files.len() as u64, "Starting file backup...");
+        self.upload_files(id, &manifest_files, &previous_files, &already_backed_up, &mut snapshot, &encryption)?;
 
-        let total_bytes_atomic = AtomicU64::new(snapshot.total_bytes);
-        let total_files_atomic = AtomicU64::new(snapshot.total_files);
-        let deduped_bytes_atomic = AtomicU64::new(snapshot.deduped_bytes);
+        // 5. BACKUP STRUCTURED DATA (Apps, SMS, etc.)
+        self.backup_metadata_and_structured_data(id, &mut snapshot, &encryption)?;
 
-        let object_manager = crate::object_manager::ObjectManager::new(&self.storage, &encryption);
-
-        let processor = crate::backup_service::processor::FileProcessor {
-            service: self,
-            object_manager,
-            total_bytes: &total_bytes_atomic,
-            total_files: &total_files_atomic,
-            deduped_bytes: &deduped_bytes_atomic,
-        };
-
-        // We need a thread-safe way to update the snapshot if interrupted
-        let snapshot_mutex = Mutex::new(snapshot);
-        // We need a thread-safe way to collect processed files for batch saving and linking
-        let processed_files = Mutex::new(Vec::with_capacity(files.len()));
-
-        let result: Result<()> = files.into_par_iter().try_for_each(|file| {
-            if already_backed_up.contains(&file.path) {
-                self.progress.inc(1, "Skipping already backed up file");
-                return Ok(());
-            }
-
-            self.progress.log(&format!("Processing: {}", file.name));
-            let mut skip_content = false;
-            let mut file_to_process = file;
-
-            if let Some(prev) = previous_files.get(&file_to_process.path) {
-                if prev.size_bytes == file_to_process.size_bytes
-                    && prev.modified_at == file_to_process.modified_at
-                    && prev.hash_sha256.is_some()
-                {
-                    file_to_process.hash_sha256 = prev.hash_sha256.clone();
-                    skip_content = true;
-                    deduped_bytes_atomic.fetch_add(file_to_process.size_bytes, Ordering::Relaxed);
-                }
-            }
-
-            match processor.process_file(id, file_to_process, skip_content) {
-                Ok(processed_file) => {
-                    self.progress.inc(1, &format!("Completed {}", processed_file.name));
-                    {
-                        let mut batch = processed_files.lock().unwrap();
-                        batch.push(processed_file);
-                    }
-                    Ok(())
-                }
-                Err(e) => {
-                    let snap = snapshot_mutex.lock().unwrap();
-                    let _ = self.mark_interrupted(&mut snap.clone(),
-                        total_files_atomic.load(Ordering::Relaxed),
-                        total_bytes_atomic.load(Ordering::Relaxed),
-                        deduped_bytes_atomic.load(Ordering::Relaxed));
-                    self.progress.error(&format!("File processing error: {}", e));
-                    Err(anyhow::anyhow!("File processing error: {}", e))
-                }
-            }
-        });
-
-        result?;
-
-        // Batch save all processed files and link them to the snapshot
-        {
-            let entries = processed_files.into_inner().unwrap();
-            let snap = snapshot_mutex.lock().unwrap();
-            if !entries.is_empty() {
-                info!("Saving {} file entries in batch...", entries.len());
-                self.repository.save_files_batch(&entries)?;
-
-                let ids: Vec<domain::FileId> = entries.iter().map(|f| f.id.clone()).collect();
-                self.repository.link_files_to_snapshot_batch(&snap.id, &ids)?;
-            }
-        }
-
-        self.progress.finish("File backup finished.");
-
-        let mut snapshot = snapshot_mutex.into_inner().unwrap();
-
-        tracing::info!("Starting app list backup...");
-        if let Ok(apps) = self.app_provider.list_apps(id) {
-            for app in &apps {
-                let _ = self.repository.save_app(app);
-                let _ = self.repository.link_app_to_snapshot(&snapshot.id, &app.id);
-            }
-            tracing::info!("Backed up {} apps", apps.len());
-        }
-
-        tracing::info!("Starting structured data backup (Contacts, SMS, Logs)...");
-        if let Ok(contacts) = self.data_provider.list_contacts(id) {
-            let _ = self.store_structured_data(&snapshot.id, "contacts", &contacts, &encryption);
-
-            // Index contacts for global search (deduplication handled by repo)
-            for contact in contacts {
-                if let Err(e) = self.repository.save_contact(&snapshot.id, &contact) {
-                    tracing::error!("Failed to index contact {}: {}", contact.display_name, e);
-                }
-            }
-        }
-
-        if let Ok(sms) = self.data_provider.list_sms(id) {
-            let _ = self.store_structured_data(&snapshot.id, "sms", &sms, &encryption);
-
-            // Index SMS in batch for global search
-            if let Err(e) = self.repository.save_sms_batch(&snapshot.id, &sms) {
-                tracing::error!("Failed to index SMS batch: {}", e);
-            }
-        }
-
-        if let Ok(logs) = self.data_provider.list_call_logs(id) {
-            let _ = self.store_structured_data(&snapshot.id, "call_logs", &logs, &encryption);
-
-            // Index Call Logs in batch
-            if let Err(e) = self.repository.save_call_logs_batch(&snapshot.id, &logs) {
-                tracing::error!("Failed to index call log batch: {}", e);
-            }
-        }
-        tracing::info!("Structured data backup completed");
-
+        // 6. FINALIZE SNAPSHOT
         snapshot.status = SnapshotStatus::Completed;
         snapshot.finished_at = Some(Utc::now());
-        snapshot.total_files = total_files_atomic.load(Ordering::Relaxed);
-        snapshot.total_bytes = total_bytes_atomic.load(Ordering::Relaxed);
-        snapshot.deduped_bytes = deduped_bytes_atomic.load(Ordering::Relaxed);
         self.repository.update_snapshot(&snapshot)?;
 
-        // --- SMART RETENTION: AUTO-PRUNING ---
-        // Feature disabled temporarily for debugging multiple snapshots
-        /*
-        if let Some(prev) = latest_snapshot {
-            if snapshot.total_bytes == prev.total_bytes
-               && snapshot.deduped_bytes == snapshot.total_bytes
-               && snapshot.total_files == prev.total_files {
+        // --- SMART RETENTION ---
+        let _ = self.apply_retention_strategy(id, &domain::KeepCountStrategy { keep_limit: 10 });
 
-                info!("Redundant snapshot detected (100% identical). Pruning previous snapshot: {}", prev.id.0);
-                let _ = self.delete_snapshot(&prev.id);
-            }
-        }
-        */
-
-        let default_strategy = domain::KeepCountStrategy { keep_limit: 10 };
-        let _ = self.apply_retention_strategy(id, &default_strategy);
-
+        info!("✨ Backup Job Completed: {}", snapshot.id.0);
         Ok(snapshot)
+    }
+
+    fn check_battery_and_thermal(&self, id: &DeviceId) -> Result<()> {
+        if let Ok((level, temp)) = self.device_adapter.battery_status(id) {
+            if level < 10 {
+                anyhow::bail!("Battery too low ({}%). Please charge your device.", level);
+            }
+            if temp > 45.0 {
+                anyhow::bail!("Device temperature too high ({:.1}°C). Let it cool down.", temp);
+            }
+            info!("Safety Check: Battery {}%, Temp {}°C - OK", level, temp);
+        }
+        Ok(())
     }
 
     pub(crate) fn mark_interrupted(
@@ -270,13 +144,13 @@ impl<
             let available = disk.available_space();
             if available < required_bytes {
                 anyhow::bail!(
-                    "Insufficient disk space on host. Required: {:.2} MB, Available: {:.2} MB",
+                    "Insufficient disk space. Required: {:.2} MB, Available: {:.2} MB",
                     required_bytes as f64 / 1024.0 / 1024.0,
                     available as f64 / 1024.0 / 1024.0
                 );
             }
             info!(
-                "Storage check: OK (Available: {:.2} MB, Required max: {:.2} MB)",
+                "Storage Check: OK (Available: {:.2} MB, Required: {:.2} MB)",
                 available as f64 / 1024.0 / 1024.0,
                 required_bytes as f64 / 1024.0 / 1024.0
             );

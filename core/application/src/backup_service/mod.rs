@@ -2,6 +2,8 @@ pub mod backup;
 pub mod device_ops;
 pub mod processor;
 pub mod restore;
+pub mod uploader;
+pub mod metadata;
 pub mod schedule_runner;
 pub mod verify;
 pub mod settings_ops;
