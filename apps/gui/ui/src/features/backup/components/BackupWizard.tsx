@@ -178,7 +178,7 @@ export function BackupWizard({ initialDevice, onFinish }: BackupWizardProps) {
       </div>
 
       {/* Wizard Card Container */}
-      <div className="bg-white rounded-[36px] border border-slate-100 shadow-2xl shadow-indigo-100/40 flex-1 flex flex-col overflow-hidden min-h-0">
+      <div className="bg-white rounded-[32px] border border-slate-100 shadow-2xl shadow-indigo-100/40 flex-1 flex flex-col overflow-hidden min-h-0">
         
         {/* ================= STEP 1: SELECT DEVICE ================= */}
         {step === 'select-device' && (
