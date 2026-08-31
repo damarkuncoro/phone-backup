@@ -1,7 +1,6 @@
-import { Tablet, Database, Cpu, Plus, Loader2, RefreshCw, CheckCircle2, ShieldCheck, HardDrive } from "lucide-react";
+import { Tablet, Database, Cpu, Loader2, ShieldCheck, HardDrive, FolderOpen, ArrowRight, Activity } from "lucide-react";
 import { useDevices } from "../hooks/useDevices";
 import { DeviceCard } from "../components/DeviceCard";
-import { AddDeviceModal } from "../components/AddDeviceModal";
 import { useState, useEffect } from "react";
 import { getDeviceId, type Device } from "@/services/deviceService";
 import { backupService } from "@/services/backupService";
@@ -15,12 +14,9 @@ interface DashboardProps {
 }
 
 export function Dashboard({ onBackupClick, onDeviceDetails, onNavigate }: DashboardProps) {
-  const { devices, loading, error, refreshDevices } = useDevices();
+  const { devices, loading, error } = useDevices();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [stats, setStats] = useState<{ total_logical_bytes: number, total_deduped_bytes: number, total_snapshots: number } | null>(null);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanToast, setScanToast] = useState<string | null>(null);
 
   const loadStats = async () => {
     try {
@@ -35,24 +31,6 @@ export function Dashboard({ onBackupClick, onDeviceDetails, onNavigate }: Dashbo
     loadStats();
   }, []);
 
-  const handleScanDevice = async () => {
-    setIsScanning(true);
-    setScanToast(null);
-    try {
-      if (typeof refreshDevices === 'function') {
-        await refreshDevices();
-      }
-      await loadStats();
-      setScanToast("Pemindaian selesai: Data perangkat dan penyimpanan diperbarui!");
-      setTimeout(() => setScanToast(null), 3500);
-    } catch {
-      setScanToast("Gagal memindai perangkat.");
-      setTimeout(() => setScanToast(null), 3000);
-    } finally {
-      setIsScanning(false);
-    }
-  };
-
   const selectedDevice = devices.find(d => getDeviceId(d) === selectedDeviceId) || devices[0];
   const dedupeRatio = stats && stats.total_deduped_bytes > 0
     ? (stats.total_logical_bytes / stats.total_deduped_bytes).toFixed(1)
@@ -61,47 +39,26 @@ export function Dashboard({ onBackupClick, onDeviceDetails, onNavigate }: Dashbo
   return (
     <div className="p-6 md:p-8 space-y-8 animate-in fade-in duration-300 max-w-7xl mx-auto relative">
       
-      {/* Scan Feedback Toast */}
-      {scanToast && (
-        <div className="fixed top-20 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-3 text-xs font-bold animate-in slide-in-from-top-4 duration-300">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>{scanToast}</span>
-        </div>
-      )}
-
-      {/* Add Device Modal */}
-      <AddDeviceModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onDeviceConnected={() => {
-          if (typeof refreshDevices === 'function') refreshDevices();
-          loadStats();
-        }}
-      />
-
-      {/* Top Banner / Hero Overview */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-6 md:p-8 rounded-[36px] shadow-xl relative overflow-hidden">
+      {/* Top Banner / Hero Overview (Clean without duplicate buttons) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950 text-white p-6 md:p-8 rounded-[36px] shadow-xl relative overflow-hidden">
         <div className="relative z-10 min-w-0">
           <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 bg-indigo-950/80 px-3 py-1 rounded-full border border-indigo-800/50">
-            Overview Hub
+            Pusat Kontrol Sistem
           </span>
           <h1 className="text-2xl md:text-3xl font-black tracking-tight mt-2 truncate">
             Dashboard
           </h1>
           <p className="text-xs text-slate-300 font-medium mt-1 truncate">
-            Pantau status koneksi ponsel Android, snapshot deduplikasi, dan lakukan pencadangan data.
+            Pantau status koneksi ponsel Android, riwayat deduplikasi, dan lakukan pencadangan data.
           </p>
         </div>
 
+        {/* Live Status Pill in Banner */}
         <div className="relative z-10 flex items-center gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-3 bg-white text-slate-900 hover:bg-slate-100 rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-lg active:scale-95"
-          >
-            <Plus className="w-4 h-4 text-indigo-600 stroke-[3]" />
-            <span>Add Device</span>
-          </button>
+          <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 text-xs font-bold text-slate-200">
+            <Activity className="w-4 h-4 text-emerald-400" />
+            <span>{devices.length} Perangkat Aktif</span>
+          </div>
         </div>
 
         {/* Decorative Background Glow */}
@@ -183,16 +140,17 @@ export function Dashboard({ onBackupClick, onDeviceDetails, onNavigate }: Dashbo
             </div>
 
             <div className="flex flex-wrap gap-3 pt-1">
+              {/* Distinct Action 1: Browse Files in File Manager */}
               <button
                 type="button"
-                onClick={handleScanDevice}
-                disabled={isScanning}
-                className="px-5 py-3 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-2xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none active:scale-95 disabled:opacity-50 shadow-sm"
+                onClick={() => onNavigate?.('files')}
+                className="px-5 py-3 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-2xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none active:scale-95 shadow-sm"
               >
-                <RefreshCw className={cn("w-3.5 h-3.5", isScanning && "animate-spin text-indigo-600")} />
-                <span>{isScanning ? "Memindai..." : "Scan Device"}</span>
+                <FolderOpen className="w-4 h-4 text-indigo-600" />
+                <span>Jelajahi Berkas</span>
               </button>
 
+              {/* Distinct Action 2: Primary CTA Backup Now */}
               <button
                 type="button"
                 onClick={() => onBackupClick?.(selectedDevice)}
@@ -200,6 +158,7 @@ export function Dashboard({ onBackupClick, onDeviceDetails, onNavigate }: Dashbo
               >
                 <ShieldCheck className="w-4 h-4" />
                 <span>Backup Now</span>
+                <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -244,7 +203,7 @@ export function Dashboard({ onBackupClick, onDeviceDetails, onNavigate }: Dashbo
               <HardDrive className="w-12 h-12 opacity-20 text-slate-400" />
               <p className="font-black uppercase tracking-widest text-xs">Belum Ada Perangkat Terhubung</p>
               <p className="text-xs text-slate-400 text-center max-w-sm">
-                Colokkan ponsel Anda menggunakan kabel USB atau sambungkan melalui WiFi Wireless ADB.
+                Colokkan ponsel Anda menggunakan kabel USB atau gunakan tombol Tambah Perangkat di header.
               </p>
             </div>
           )}

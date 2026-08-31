@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { Dashboard } from './Dashboard';
 
 const { mockRefresh, mockDevice } = vi.hoisted(() => ({
@@ -59,21 +59,12 @@ describe('Dashboard Component', () => {
     expect(screen.getAllByText('Samsung Galaxy S22').length).toBeGreaterThan(0);
   });
 
-  it('opens Add Device modal when "+ Add Device" is clicked', () => {
-    render(<Dashboard />);
-    const addBtn = screen.getByRole('button', { name: /Add Device/i });
-    fireEvent.click(addBtn);
-    expect(screen.getByText('Tambah Perangkat Baru')).toBeInTheDocument();
-  });
-
-  it('triggers device scan when "Scan Device" is clicked', async () => {
-    render(<Dashboard />);
-    const scanBtn = screen.getByRole('button', { name: /Scan Device/i });
-    fireEvent.click(scanBtn);
-    
-    await waitFor(() => {
-      expect(mockRefresh).toHaveBeenCalled();
-    });
+  it('navigates to files when "Jelajahi Berkas" is clicked', () => {
+    const handleNavigate = vi.fn();
+    render(<Dashboard onNavigate={handleNavigate} />);
+    const browseBtn = screen.getByRole('button', { name: /Jelajahi Berkas/i });
+    fireEvent.click(browseBtn);
+    expect(handleNavigate).toHaveBeenCalledWith('files');
   });
 
   it('invokes onBackupClick when "Backup Now" is clicked', () => {
