@@ -40,16 +40,26 @@ export function safeListen<T>(
     let unlistenFn: UnlistenFn | null = null;
     let mounted = true;
 
-    // We don't return the promise, we handle the cleanup internally
+    const safeCleanup = (fn: UnlistenFn | null) => {
+        if (!fn) return;
+        try {
+            const res = (fn as any)();
+            if (res && typeof res.catch === 'function') {
+                res.catch(() => {});
+            }
+        } catch (_) {}
+    };
+
     const setup = async () => {
         try {
+            if (!(window as any).__TAURI_INTERNALS__) return;
             const fn = await listen<T>(eventName, (event) => {
                 if (mounted) handler(event);
             });
             if (mounted) {
                 unlistenFn = fn;
             } else {
-                try { fn(); } catch (_) {}
+                safeCleanup(fn);
             }
         } catch (err) {
             console.error(`[Listen Error] Failed "${eventName}":`, err);
@@ -61,7 +71,8 @@ export function safeListen<T>(
     return () => {
         mounted = false;
         if (unlistenFn) {
-            try { unlistenFn(); } catch (_) {}
+            safeCleanup(unlistenFn);
+            unlistenFn = null;
         }
     };
 }
