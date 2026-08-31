@@ -6,12 +6,7 @@ use domain::{DeviceId, FileEntry};
 use std::collections::BTreeMap;
 
 pub const DEFAULT_SCAN_ROOTS: &[&str] = &[
-    "/storage/emulated/0/DCIM",
-    "/storage/emulated/0/Pictures",
-    "/storage/emulated/0/Movies",
-    "/storage/emulated/0/Download",
-    "/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media",
-    "/storage/emulated/0/WhatsApp/Media",
+    "/storage/emulated/0",
 ];
 
 /// Coordinator aggregating MediaStore and FileSystem sub-scanners with deterministic sorting.

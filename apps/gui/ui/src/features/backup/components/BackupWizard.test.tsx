@@ -84,8 +84,9 @@ describe('BackupWizard Component', () => {
       expect(screen.getByText('Apa yang ingin Anda cadangkan?')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Kontak')).toBeInTheDocument();
-    expect(screen.getByText('Pesan')).toBeInTheDocument();
+    expect(screen.getByText('Seluruh Memori Internal')).toBeInTheDocument();
+    expect(screen.getByText('Kontak & Telepon')).toBeInTheDocument();
+    expect(screen.getByText('Pesan SMS')).toBeInTheDocument();
     expect(screen.getByText('Galeri & Media')).toBeInTheDocument();
   });
 

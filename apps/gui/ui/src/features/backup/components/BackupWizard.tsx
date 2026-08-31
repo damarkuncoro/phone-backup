@@ -23,6 +23,14 @@ interface DataOption {
 
 const dataOptions: DataOption[] = [
   {
+    id: 'full_storage',
+    label: 'Seluruh Memori Internal',
+    icon: HardDrive,
+    description: 'Semua folder & file di memori ponsel (Termasuk WhatsApp, Musik, Rekaman, & Folder Kustom).',
+    detail: 'Rekomendasi Total',
+    requiresAdb: false
+  },
+  {
     id: 'photos',
     label: 'Galeri & Media',
     icon: ImageIcon,
@@ -31,16 +39,32 @@ const dataOptions: DataOption[] = [
     requiresAdb: false
   },
   {
+    id: 'chat_media',
+    label: 'Media WhatsApp & Chat',
+    icon: MessageSquare,
+    description: 'Foto, video, voice note, dan dokumen dari percakapan WhatsApp & Telegram.',
+    detail: 'Media Sosial',
+    requiresAdb: false
+  },
+  {
     id: 'files',
     label: 'Dokumen & Unduhan',
-    icon: HardDrive,
-    description: 'Folder Download, Dokumen, Musik, dan file publik lainnya.',
+    icon: FolderCheck,
+    description: 'Folder Download, Dokumen, PDF, Arsip Zip, dan file umum.',
     detail: 'File Explorer',
     requiresAdb: false
   },
   {
+    id: 'audio',
+    label: 'Musik & Rekaman Suara',
+    icon: Sparkles,
+    description: 'Folder Music, Recordings, VoiceRecorder, Ringtones, dan Podcast.',
+    detail: 'Audio & Suara',
+    requiresAdb: false
+  },
+  {
     id: 'contacts',
-    label: 'Kontak',
+    label: 'Kontak & Telepon',
     icon: Users,
     description: 'Nama, nomor telepon, email, dan vCard kontak tersimpan.',
     detail: 'E2E Encrypted',
@@ -48,7 +72,7 @@ const dataOptions: DataOption[] = [
   },
   {
     id: 'sms',
-    label: 'Pesan',
+    label: 'Pesan SMS',
     icon: MessageSquare,
     description: 'Riwayat percakapan SMS masuk & keluar, dan pesan teks.',
     detail: 'Secure Vault',

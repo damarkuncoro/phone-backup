@@ -277,14 +277,7 @@ impl ScannerPort for MtpAdapter {
     fn scan(&self, id: &DeviceId, target_paths: Vec<String>) -> Result<Vec<FileEntry>> {
         info!("Scanning MTP device {}", id);
         let paths_to_scan = if target_paths.is_empty() {
-            vec![
-                "DCIM".to_string(),
-                "Pictures".to_string(),
-                "Download".to_string(),
-                "Documents".to_string(),
-                "Movies".to_string(),
-                "Music".to_string(),
-            ]
+            vec!["".to_string()]
         } else {
             target_paths
         };
@@ -305,7 +298,11 @@ impl ScannerPort for MtpAdapter {
 
                 let meta = entry.metadata()?;
                 let rel = p.strip_prefix(&base_dir).unwrap_or(p);
-                let virtual_path = format!("/{}/{}", base, rel.to_string_lossy());
+                let virtual_path = if base.is_empty() || base == "/" {
+                    format!("/{}", rel.to_string_lossy().trim_start_matches('/'))
+                } else {
+                    format!("/{}/{}", base.trim_matches('/'), rel.to_string_lossy().trim_start_matches('/'))
+                };
 
                 results.push(FileEntry {
                     id: FileId(virtual_path.clone()),

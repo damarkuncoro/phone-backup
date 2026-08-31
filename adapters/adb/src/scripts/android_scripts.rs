@@ -20,7 +20,7 @@ impl AndroidScripts {
 
     pub fn find_files(roots: &[String]) -> String {
         let roots_str = roots.join(" ");
-        format!("find {} -type f -exec stat -c '%n|%s|%Y' {{}} + 2>/dev/null", roots_str)
+        format!("find {} -type f ! -path '*/.trash/*' ! -path '*/cache/*' ! -path '*/.cache/*' -exec stat -c '%n|%s|%Y' {{}} + 2>/dev/null", roots_str)
     }
 
     pub fn query_mediastore(media_type: &str) -> String {
