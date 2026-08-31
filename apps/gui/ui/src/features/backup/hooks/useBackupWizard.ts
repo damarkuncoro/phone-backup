@@ -1,9 +1,16 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { deviceService, getDeviceId, type Device, type FileEntry } from '@/services/deviceService';
 import { backupService } from '@/services/backupService';
 import { safeListen } from '@/shared/lib/ipc';
 
 export type Step = 'select-device' | 'select-data' | 'configure' | 'progress';
+
+export interface AnalysisState {
+  stage: 'mediastore' | 'crawler' | 'indexing' | 'ready';
+  currentFolder: string;
+  filesCount: number;
+  totalBytes: number;
+}
 
 interface ProgressPayload {
   type: 'start' | 'inc' | 'finish' | 'error' | 'log';
@@ -17,11 +24,19 @@ export function useBackupWizard() {
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [selectedData, setSelectedData] = useState<string[]>(['contacts', 'sms', 'photos', 'apps']);
 
-  // Selection Analysis
+  // Selection Analysis State
   const [scannedFiles, setScannedFiles] = useState<FileEntry[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [reviewSearch, setReviewSearch] = useState('');
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+
+  // Live Analysis HUD Metrics
+  const [analysisState, setAnalysisState] = useState<AnalysisState>({
+    stage: 'mediastore',
+    currentFolder: '/storage/emulated/0/DCIM/Camera',
+    filesCount: 0,
+    totalBytes: 0,
+  });
 
   // Progress State
   const [progressMsg, setProgressMsg] = useState('Initializing...');
@@ -29,26 +44,28 @@ export function useBackupWizard() {
   const [currentItems, setCurrentItems] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
+  const timerRef = useRef<any>(null);
+
   useEffect(() => {
     if (step !== 'progress') return;
 
     return safeListen<ProgressPayload>('progress', (event) => {
-        const payload = event.payload;
-        setProgressMsg(payload.message);
+      const payload = event.payload;
+      setProgressMsg(payload.message);
 
-        if (payload.type === 'start') {
-            setTotalItems(payload.total || 0);
-            setCurrentItems(0);
-        } else if (payload.type === 'inc') {
-            setCurrentItems(prev => prev + (payload.amount || 0));
-        } else if (payload.type === 'error') {
-            setError(payload.message);
-        } else if (payload.type === 'finish') {
-            setTotalItems(t => {
-                setCurrentItems(t);
-                return t;
-            });
-        }
+      if (payload.type === 'start') {
+        setTotalItems(payload.total || 0);
+        setCurrentItems(0);
+      } else if (payload.type === 'inc') {
+        setCurrentItems(prev => prev + (payload.amount || 0));
+      } else if (payload.type === 'error') {
+        setError(payload.message);
+      } else if (payload.type === 'finish') {
+        setTotalItems(t => {
+          setCurrentItems(t);
+          return t;
+        });
+      }
     });
   }, [step]);
 
@@ -63,57 +80,110 @@ export function useBackupWizard() {
     setStep('configure');
     setIsCalculating(true);
 
+    // Start live analysis telemetry simulation for visual feedback
+    const sampleFolders = [
+      '/storage/emulated/0/DCIM/Camera',
+      '/storage/emulated/0/Pictures/Screenshots',
+      '/storage/emulated/0/Download',
+      '/storage/emulated/0/Documents',
+      '/storage/emulated/0/Movies',
+      '/storage/emulated/0/WhatsApp/Media'
+    ];
+
+    let folderIdx = 0;
+    setAnalysisState({
+      stage: 'mediastore',
+      currentFolder: sampleFolders[0],
+      filesCount: 0,
+      totalBytes: 0
+    });
+
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      folderIdx = (folderIdx + 1) % sampleFolders.length;
+      setAnalysisState(prev => ({
+        stage: folderIdx < 2 ? 'mediastore' : folderIdx < 4 ? 'crawler' : 'indexing',
+        currentFolder: sampleFolders[folderIdx],
+        filesCount: prev.filesCount + Math.floor(Math.random() * 450 + 150),
+        totalBytes: prev.totalBytes + Math.floor(Math.random() * 250_000_000 + 50_000_000)
+      }));
+    }, 400);
+
     try {
-        const files = await deviceService.scan(getDeviceId(selectedDevice));
+      const files = await deviceService.scan(getDeviceId(selectedDevice));
 
-        let paths: string[] = [];
-        if (selectedData.includes('photos')) paths.push('/storage/emulated/0/DCIM', '/storage/emulated/0/Pictures');
-        if (selectedData.includes('files')) paths.push('/storage/emulated/0/Download', '/storage/emulated/0/Documents');
+      let paths: string[] = [];
+      if (selectedData.includes('photos')) paths.push('/storage/emulated/0/DCIM', '/storage/emulated/0/Pictures');
+      if (selectedData.includes('files')) paths.push('/storage/emulated/0/Download', '/storage/emulated/0/Documents');
 
-        const filtered = (files || []).filter(f => f && f.path && paths.some(p => f.path.startsWith(p)));
-        setScannedFiles(filtered);
+      const filtered = (files || []).filter(f => f && f.path && (paths.length === 0 || paths.some(p => f.path.startsWith(p))));
+      setScannedFiles(filtered);
 
-        // Default: Select all scanned files
-        setSelectedPaths(new Set(filtered.map(f => f.path)));
+      // Default: Select all scanned files
+      setSelectedPaths(new Set(filtered.map(f => f.path)));
+
+      const totalCalculatedBytes = filtered.reduce((acc, f) => acc + (f.size_bytes || 0), 0);
+      setAnalysisState({
+        stage: 'ready',
+        currentFolder: 'Selesai dianalisis',
+        filesCount: filtered.length,
+        totalBytes: totalCalculatedBytes
+      });
     } catch (e) {
-        console.error("Analysis failed", e);
+      console.error("Analysis failed", e);
     } finally {
-        setIsCalculating(false);
+      if (timerRef.current) clearInterval(timerRef.current);
+      setIsCalculating(false);
     }
   };
 
   const handleTogglePath = useCallback((path: string, _isFolder: boolean, childrenPaths: string[]) => {
-      setSelectedPaths(prev => {
-          const next = new Set(prev);
-          const isCurrentlySelected = next.has(path);
+    setSelectedPaths(prev => {
+      const next = new Set(prev);
+      const isCurrentlySelected = next.has(path);
 
-          if (isCurrentlySelected) {
-              next.delete(path);
-              childrenPaths.forEach(p => next.delete(p));
-          } else {
-              next.add(path);
-              childrenPaths.forEach(p => next.add(p));
-          }
-          return next;
-      });
+      if (isCurrentlySelected) {
+        next.delete(path);
+        childrenPaths.forEach(p => next.delete(p));
+      } else {
+        next.add(path);
+        childrenPaths.forEach(p => next.add(p));
+      }
+      return next;
+    });
   }, []);
 
   const handleStartBackup = async (allModulesCount: number) => {
     if (!selectedDevice) return;
+    if (timerRef.current) clearInterval(timerRef.current);
     setStep('progress');
     setError(null);
 
     const finalFilePaths = scannedFiles
-        .filter(f => selectedPaths.has(f.path))
-        .map(f => f.path);
+      .filter(f => selectedPaths.has(f.path))
+      .map(f => f.path);
 
     try {
-      const isFullBackup = selectedData.length === allModulesCount && finalFilePaths.length === scannedFiles.length;
+      const isFullBackup = selectedData.length === allModulesCount && (finalFilePaths.length === scannedFiles.length || scannedFiles.length === 0);
 
       await backupService.startBackup(
         getDeviceId(selectedDevice),
         isFullBackup ? undefined : (finalFilePaths.length > 0 ? finalFilePaths : undefined)
       );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const handleExpressBackup = async () => {
+    if (!selectedDevice) return;
+    if (timerRef.current) clearInterval(timerRef.current);
+    setStep('progress');
+    setError(null);
+
+    try {
+      // Direct full/selective streaming without waiting for tree scan
+      await backupService.startBackup(getDeviceId(selectedDevice), undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -128,7 +198,8 @@ export function useBackupWizard() {
     selectedDevice, setSelectedDevice,
     selectedData, setSelectedData, toggleData,
     scannedFiles, isCalculating, reviewSearch, setReviewSearch,
-    selectedPaths, handleTogglePath, handleNextToConfigure, handleStartBackup,
+    selectedPaths, handleTogglePath, handleNextToConfigure, handleStartBackup, handleExpressBackup,
+    analysisState,
     progressMsg, progressPercent, totalItems, currentItems, error,
     selectedFiles, totalBytes
   };
