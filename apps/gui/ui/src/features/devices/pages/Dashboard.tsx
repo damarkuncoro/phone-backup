@@ -1,4 +1,4 @@
-import { Tablet, Database, Cpu, Plus, Loader2, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Tablet, Database, Cpu, Plus, Loader2, RefreshCw, CheckCircle2, ShieldCheck, HardDrive } from "lucide-react";
 import { useDevices } from "../hooks/useDevices";
 import { DeviceCard } from "../components/DeviceCard";
 import { AddDeviceModal } from "../components/AddDeviceModal";
@@ -9,9 +9,9 @@ import { formatBytes } from "@/shared/lib/formatters";
 import { cn } from "@/shared/lib/utils";
 
 interface DashboardProps {
-    onBackupClick?: (device?: Device) => void;
-    onDeviceDetails?: (device: Device) => void;
-    onNavigate?: (tab: 'dashboard' | 'devices' | 'backup' | 'files' | 'history' | 'explorer' | 'settings') => void;
+  onBackupClick?: (device?: Device) => void;
+  onDeviceDetails?: (device: Device) => void;
+  onNavigate?: (tab: 'dashboard' | 'devices' | 'backup' | 'files' | 'history' | 'explorer' | 'settings') => void;
 }
 
 export function Dashboard({ onBackupClick, onDeviceDetails, onNavigate }: DashboardProps) {
@@ -59,11 +59,11 @@ export function Dashboard({ onBackupClick, onDeviceDetails, onNavigate }: Dashbo
     : "1.0";
 
   return (
-    <div className="p-8 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 relative">
+    <div className="p-6 md:p-8 space-y-8 animate-in fade-in duration-300 max-w-7xl mx-auto relative">
       
       {/* Scan Feedback Toast */}
       {scanToast && (
-        <div className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-3 text-xs font-bold animate-in slide-in-from-top-4 duration-300">
+        <div className="fixed top-20 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-3 text-xs font-bold animate-in slide-in-from-top-4 duration-300">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{scanToast}</span>
         </div>
@@ -79,22 +79,37 @@ export function Dashboard({ onBackupClick, onDeviceDetails, onNavigate }: Dashbo
         }}
       />
 
-      <header className="flex justify-between items-end gap-4">
-        <div className="min-w-0">
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight truncate">Dashboard</h1>
-          <p className="text-slate-500 font-medium mt-1 truncate">Manage your connected devices and backups.</p>
+      {/* Top Banner / Hero Overview */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-6 md:p-8 rounded-[36px] shadow-xl relative overflow-hidden">
+        <div className="relative z-10 min-w-0">
+          <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 bg-indigo-950/80 px-3 py-1 rounded-full border border-indigo-800/50">
+            Overview Hub
+          </span>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight mt-2 truncate">
+            Dashboard
+          </h1>
+          <p className="text-xs text-slate-300 font-medium mt-1 truncate">
+            Pantau status koneksi ponsel Android, snapshot deduplikasi, dan lakukan pencadangan data.
+          </p>
         </div>
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 shrink-0 active:scale-95"
-        >
-          <Plus className="w-4 h-4" />
-          Add Device
-        </button>
-      </header>
+
+        <div className="relative z-10 flex items-center gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-2 px-5 py-3 bg-white text-slate-900 hover:bg-slate-100 rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-lg active:scale-95"
+          >
+            <Plus className="w-4 h-4 text-indigo-600 stroke-[3]" />
+            <span>Add Device</span>
+          </button>
+        </div>
+
+        {/* Decorative Background Glow */}
+        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
+      </div>
 
       {/* Stat Cards with Navigation */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-5">
         <StatCard
           title="Active Devices"
           value={devices.length.toString()}
@@ -120,98 +135,122 @@ export function Dashboard({ onBackupClick, onDeviceDetails, onNavigate }: Dashbo
         />
       </section>
 
+      {/* Primary Device Hero Card */}
       {selectedDevice && (
-          <section className="bg-white rounded-[40px] border border-slate-100 p-8 md:p-10 shadow-sm flex flex-col lg:flex-row gap-8 lg:gap-12 items-center">
-              <div className="w-40 h-40 md:w-48 md:h-48 bg-slate-50 rounded-3xl flex items-center justify-center border-2 border-dashed border-slate-200 shrink-0">
-                  <Tablet className="w-20 h-20 md:w-24 md:h-24 text-slate-200" />
+        <section className="bg-white rounded-[36px] border border-slate-100 p-6 md:p-8 shadow-sm flex flex-col lg:flex-row gap-6 lg:gap-10 items-center">
+          <div className="w-36 h-36 md:w-44 md:h-44 bg-slate-50 rounded-3xl flex items-center justify-center border-2 border-dashed border-slate-200 shrink-0">
+            <Tablet className="w-16 h-16 md:w-20 md:h-20 text-slate-300" />
+          </div>
+
+          <div className="flex-1 space-y-5 min-w-0 w-full">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider",
+                  selectedDevice.connection_type === 'Mtp'
+                    ? "bg-cyan-100 text-cyan-800"
+                    : selectedDevice.connection_type === 'Wifi'
+                    ? "bg-purple-100 text-purple-800"
+                    : "bg-emerald-100 text-emerald-800"
+                )}>
+                  {selectedDevice.connection_type === 'Mtp' ? 'MTP USB' : selectedDevice.connection_type === 'Wifi' ? 'Wireless ADB' : 'USB ADB'}
+                </span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Android {selectedDevice.os_version}
+                </span>
               </div>
+              <h3 className="text-2xl md:text-3xl font-black text-slate-900 truncate mt-1" title={selectedDevice.model}>
+                {selectedDevice.model}
+              </h3>
+              <p className="text-slate-400 font-mono text-xs truncate mt-0.5">
+                Serial: {selectedDevice.serial}
+              </p>
+            </div>
 
-              <div className="flex-1 space-y-6 min-w-0 w-full">
-                  <div className="min-w-0">
-                      <h3 className="text-3xl md:text-4xl font-black text-slate-900 truncate" title={selectedDevice.model}>
-                        {selectedDevice.model}
-                      </h3>
-                      <p className="text-slate-400 font-mono text-sm truncate">
-                        Serial: {selectedDevice.serial} | Android {selectedDevice.os_version}
-                      </p>
-                  </div>
-
-                  <div className="space-y-2">
-                      <div className="flex justify-between text-sm font-bold">
-                          <span className="text-slate-500">Storage Capacity</span>
-                          <span className="text-slate-900">
-                            {formatBytes(Number(selectedDevice.storage_used_bytes))} / {formatBytes(Number(selectedDevice.storage_total_bytes))}
-                          </span>
-                      </div>
-                      <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden p-0.5">
-                          <div
-                            className="h-full bg-indigo-600 rounded-full transition-all duration-1000"
-                            style={{ width: `${Math.round((Number(selectedDevice.storage_used_bytes) / Math.max(1, Number(selectedDevice.storage_total_bytes))) * 100)}%` }}
-                          />
-                      </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-4">
-                      <button
-                        onClick={handleScanDevice}
-                        disabled={isScanning}
-                        className="px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 flex-1 md:flex-none active:scale-95 disabled:opacity-50"
-                      >
-                          <RefreshCw className={cn("w-4 h-4", isScanning && "animate-spin")} />
-                          {isScanning ? "Memindai Perangkat..." : "Scan Device"}
-                      </button>
-                      <button
-                        onClick={() => onBackupClick?.(selectedDevice)}
-                        className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-50 transition-all flex-1 md:flex-none active:scale-95"
-                      >
-                          Backup Now
-                      </button>
-                  </div>
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-slate-500">Kapasitas Penyimpanan Terpakai</span>
+                <span className="text-slate-900 font-mono">
+                  {formatBytes(Number(selectedDevice.storage_used_bytes))} / {formatBytes(Number(selectedDevice.storage_total_bytes))}
+                </span>
               </div>
-          </section>
+              <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden p-0.5">
+                <div
+                  className="h-full bg-indigo-600 rounded-full transition-all duration-1000"
+                  style={{ width: `${Math.round((Number(selectedDevice.storage_used_bytes) / Math.max(1, Number(selectedDevice.storage_total_bytes))) * 100)}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handleScanDevice}
+                disabled={isScanning}
+                className="px-5 py-3 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-2xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none active:scale-95 disabled:opacity-50 shadow-sm"
+              >
+                <RefreshCw className={cn("w-3.5 h-3.5", isScanning && "animate-spin text-indigo-600")} />
+                <span>{isScanning ? "Memindai..." : "Scan Device"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onBackupClick?.(selectedDevice)}
+                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none active:scale-95"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Backup Now</span>
+              </button>
+            </div>
+          </div>
+        </section>
       )}
 
-      <section className="space-y-6">
+      {/* Connected Devices Grid */}
+      <section className="space-y-4">
         <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Connected Devices</h2>
-            {loading && (
-                <div className="flex items-center gap-2 text-xs font-bold text-indigo-500 animate-pulse">
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    Refreshing...
-                </div>
-            )}
+          <h2 className="text-xl font-black text-slate-900 tracking-tight">Perangkat Tersambung</h2>
+          {loading && (
+            <div className="flex items-center gap-2 text-xs font-bold text-indigo-500 animate-pulse">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span>Memperbarui...</span>
+            </div>
+          )}
         </div>
 
         {error && (
-            <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm font-bold">
-                Error loading devices: {error}
-            </div>
+          <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-xs font-bold">
+            Gagal memuat perangkat: {error}
+          </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {devices.map(device => {
             const id = getDeviceId(device);
             return (
               <DeviceCard
-                  key={id}
-                  device={device}
-                  isSelected={getDeviceId(selectedDevice) === id}
-                  onSelect={(d) => setSelectedDeviceId(getDeviceId(d))}
-                  onDetails={onDeviceDetails}
-                  onQuickBackup={(d) => onBackupClick?.(d)}
+                key={id}
+                device={device}
+                isSelected={getDeviceId(selectedDevice) === id}
+                onSelect={(d) => setSelectedDeviceId(getDeviceId(d))}
+                onDetails={onDeviceDetails}
+                onQuickBackup={(d) => onBackupClick?.(d)}
               />
             );
           })}
 
           {devices.length === 0 && !loading && (
-            <div className="col-span-full py-20 flex flex-col items-center justify-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 text-slate-400">
-                <Tablet className="w-16 h-16 mb-4 opacity-20" />
-                <p className="font-black uppercase tracking-widest text-xs">No devices connected</p>
-                <p className="text-xs mt-1">Connect your phone via USB or WiFi to start.</p>
+            <div className="col-span-full py-16 flex flex-col items-center justify-center bg-white rounded-[32px] border-2 border-dashed border-slate-200 text-slate-400 p-8 space-y-3">
+              <HardDrive className="w-12 h-12 opacity-20 text-slate-400" />
+              <p className="font-black uppercase tracking-widest text-xs">Belum Ada Perangkat Terhubung</p>
+              <p className="text-xs text-slate-400 text-center max-w-sm">
+                Colokkan ponsel Anda menggunakan kabel USB atau sambungkan melalui WiFi Wireless ADB.
+              </p>
             </div>
           )}
         </div>
       </section>
+
     </div>
   );
 }
@@ -228,16 +267,16 @@ function StatCard({ title, value, icon: Icon, color, subtitle, onClick }: {
     <div
       onClick={onClick}
       className={cn(
-        "bg-white p-7 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-5 transition-all select-none",
+        "bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-5 transition-all select-none",
         onClick ? "cursor-pointer hover:shadow-lg hover:border-indigo-100 hover:scale-[1.01] active:scale-95 group" : "hover:shadow-md"
       )}
     >
-      <div className={`${color} w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0 transition-transform group-hover:scale-105`}>
-        <Icon className="w-7 h-7" />
+      <div className={`${color} w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0 transition-transform group-hover:scale-105`}>
+        <Icon className="w-6 h-6" />
       </div>
       <div className="min-w-0">
         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">{title}</p>
-        <p className="text-3xl font-black text-slate-900 tracking-tighter truncate">{value}</p>
+        <p className="text-2xl font-black text-slate-900 tracking-tighter truncate mt-0.5">{value}</p>
         {subtitle && (
           <p className="text-[10px] font-bold text-indigo-500 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity truncate">
             {subtitle} &rarr;
