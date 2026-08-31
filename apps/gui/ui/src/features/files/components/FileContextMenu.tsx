@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import {
-  Download, Copy, Trash2, Info, Folder
+  Download, Copy, Trash2, Info, Folder, Edit3
 } from 'lucide-react';
 import { type FileEntry } from '@/services/deviceService';
 
@@ -13,6 +13,7 @@ interface FileContextMenuProps {
   onCopyPath: (path: string) => void;
   onInspect: (file: FileEntry) => void;
   onOpenFolder?: (path: string) => void;
+  onRename?: (file: FileEntry) => void;
   onDelete?: (file: FileEntry) => void;
 }
 
@@ -25,6 +26,7 @@ export function FileContextMenu({
   onCopyPath,
   onInspect,
   onOpenFolder,
+  onRename,
   onDelete
 }: FileContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -45,7 +47,7 @@ export function FileContextMenu({
 
   // Adjust coordinates if menu would overflow window edges
   const style = {
-    top: Math.min(y, window.innerHeight - 240),
+    top: Math.min(y, window.innerHeight - 260),
     left: Math.min(x, window.innerWidth - 220)
   };
 
@@ -62,6 +64,7 @@ export function FileContextMenu({
 
       {file.is_dir && onOpenFolder && (
         <button
+          type="button"
           onClick={() => { onOpenFolder(file.path); onClose(); }}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all text-left"
         >
@@ -70,6 +73,7 @@ export function FileContextMenu({
       )}
 
       <button
+        type="button"
         onClick={() => { onDownload(file); onClose(); }}
         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all text-left"
       >
@@ -77,6 +81,7 @@ export function FileContextMenu({
       </button>
 
       <button
+        type="button"
         onClick={() => { onCopyPath(file.path); onClose(); }}
         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all text-left"
       >
@@ -84,15 +89,27 @@ export function FileContextMenu({
       </button>
 
       <button
+        type="button"
         onClick={() => { onInspect(file); onClose(); }}
         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all text-left"
       >
         <Info className="w-4 h-4 text-slate-400" /> Detail & Checksum
       </button>
 
+      {onRename && (
+        <button
+          type="button"
+          onClick={() => { onRename(file); onClose(); }}
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 transition-all text-left"
+        >
+          <Edit3 className="w-4 h-4 text-slate-400" /> Ganti Nama
+        </button>
+      )}
+
       {onDelete && (
         <div className="pt-1 border-t border-slate-100 mt-1">
           <button
+            type="button"
             onClick={() => { onDelete(file); onClose(); }}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-red-50 text-red-600 transition-all text-left"
           >

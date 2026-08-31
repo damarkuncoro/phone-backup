@@ -60,6 +60,10 @@ export const deviceService = {
     return await safeInvoke("download_from_device", { device_id: deviceId, remote_path: remotePath, local_path: localPath });
   },
 
+  async uploadFile(deviceId: string, localPath: string, remotePath: string): Promise<void> {
+    return await safeInvoke("upload_to_device", { device_id: deviceId, local_path: localPath, remote_path: remotePath });
+  },
+
   async deleteFile(deviceId: string, path: string): Promise<void> {
     return await safeInvoke("delete_device_file", { device_id: deviceId, path });
   },

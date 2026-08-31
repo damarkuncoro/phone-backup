@@ -15,16 +15,22 @@ vi.mock('@/features/devices/hooks/useDevices', () => ({
 
 vi.mock('@/services/deviceService', () => ({
   deviceService: {
-    browse: vi.fn().mockResolvedValue([])
+    browse: vi.fn().mockResolvedValue([]),
+    downloadFile: vi.fn().mockResolvedValue(undefined),
+    deleteFile: vi.fn().mockResolvedValue(undefined),
+    renameFile: vi.fn().mockResolvedValue(undefined),
+    uploadFile: vi.fn().mockResolvedValue(undefined),
+    calculateHash: vi.fn().mockResolvedValue('hash123')
   },
   getDeviceId: (d: any) => d.id
 }));
 
 describe('FileBrowser Component', () => {
-  it('renders header correctly', () => {
+  it('renders header correctly with search and quick actions', () => {
     render(<FileBrowser />);
     expect(screen.getByText('File Manager')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Cari file di folder ini...')).toBeInTheDocument();
+    expect(screen.getByText('Unggah ke HP')).toBeInTheDocument();
   });
 
   it('shows device selector with correct devices', () => {

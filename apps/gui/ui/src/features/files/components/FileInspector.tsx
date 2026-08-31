@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   X, File, Folder, Download, Copy, Check, Hash,
   Calendar, HardDrive, Shield, Sparkles, Image as ImageIcon,
-  Video, Music, FileText, Smartphone, Loader2
+  Video, Music, FileText, Smartphone, Loader2, Edit3, Trash2
 } from 'lucide-react';
 import { type FileEntry, deviceService } from '@/services/deviceService';
 import { formatBytes, formatDate } from '@/shared/lib/formatters';
@@ -14,6 +14,8 @@ interface FileInspectorProps {
   onClose: () => void;
   onDownload: (file: FileEntry) => void;
   onNavigate?: (path: string) => void;
+  onRename?: (file: FileEntry) => void;
+  onDelete?: (file: FileEntry) => void;
 }
 
 export function FileInspector({
@@ -21,7 +23,9 @@ export function FileInspector({
   deviceId,
   onClose,
   onDownload,
-  onNavigate
+  onNavigate,
+  onRename,
+  onDelete
 }: FileInspectorProps) {
   const [hash, setHash] = useState<string | null>(null);
   const [calculatingHash, setCalculatingHash] = useState(false);
@@ -172,6 +176,26 @@ export function FileInspector({
               SHA-256
             </button>
           )}
+
+          {onRename && (
+            <button
+              onClick={() => onRename(file)}
+              className="py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200/70 text-slate-700 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1.5"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-slate-500" />
+              Ganti Nama
+            </button>
+          )}
+
+          {onDelete && (
+            <button
+              onClick={() => onDelete(file)}
+              className="py-2.5 bg-red-50 hover:bg-red-100 border border-red-200/70 text-red-600 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1.5"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-red-500" />
+              Hapus
+            </button>
+          )}
         </div>
 
         {/* SHA-256 Hash Display */}
@@ -183,7 +207,7 @@ export function FileInspector({
                 onClick={handleCopyHash}
                 className="text-indigo-600 hover:text-indigo-900 font-bold flex items-center gap-1"
               >
-                {copiedHash ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                {copiedHash ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                 {copiedHash ? 'Tersalin' : 'Salin'}
               </button>
             </div>

@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import {
   Folder, File, ChevronRight, Search,
   Download, Trash2, Image as ImageIcon, Video, Music, FileText,
   CheckSquare, Square, X, LayoutGrid, LayoutList,
   ArrowUpDown, ArrowUp, ArrowDown, Copy, Info,
   Smartphone, HardDrive, PanelLeftClose, PanelLeft,
-  CheckCircle2
+  CheckCircle2, Upload, Edit3
 } from 'lucide-react';
 import { getDeviceId, type FileEntry, deviceService } from '@/services/deviceService';
 import { cn } from "../../../shared/lib/utils";
@@ -17,6 +17,8 @@ import { StorageSidebar } from './StorageSidebar';
 import { FileInspector } from './FileInspector';
 import { FileContextMenu } from './FileContextMenu';
 import { systemService } from '@/services/systemService';
+import { ConfirmModal } from '@/shared/components/ConfirmModal';
+import { RenameModal } from '@/shared/components/RenameModal';
 
 export function FileBrowser() {
   const {
@@ -33,11 +35,28 @@ export function FileBrowser() {
     refresh
   } = useFileBrowser();
 
-  // Panels & Modals State
+  // Panels, Modals, & Toasts State
   const [showSidebar, setShowSidebar] = useState(true);
   const [inspectedFile, setInspectedFile] = useState<FileEntry | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; file: FileEntry } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Dialog State
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type?: 'danger' | 'warning' | 'info';
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+
+  const [renameTarget, setRenameTarget] = useState<FileEntry | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedDevice = useMemo(() => {
     return devices.find(d => getDeviceId(d) === selectedDeviceId) || null;
@@ -79,6 +98,104 @@ export function FileBrowser() {
       showToast(`Berhasil mengunduh ${paths.length} berkas ke workspace/downloads`);
     } catch (err) {
       showToast(`Terjadi kesalahan saat mengunduh: ${err}`);
+    }
+  };
+
+  // Single File/Folder Delete
+  const handleDeleteSingle = (file: FileEntry) => {
+    if (!selectedDeviceId) return;
+    setConfirmModal({
+      isOpen: true,
+      title: "Konfirmasi Hapus",
+      message: `Hapus ${file.is_dir ? 'direktori' : 'berkas'} "${file.name}" dari penyimpanan ponsel secara permanen?`,
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await deviceService.deleteFile(selectedDeviceId, file.path);
+          showToast(`Berhasil menghapus: ${file.name}`);
+          if (inspectedFile?.path === file.path) {
+            setInspectedFile(null);
+          }
+          refresh();
+        } catch (err) {
+          console.error("Hapus gagal", err);
+          showToast(`Gagal menghapus: ${err}`);
+        }
+      }
+    });
+  };
+
+  // Bulk Selected Delete
+  const handleDeleteSelected = () => {
+    const paths = Array.from(selection.selectedPaths);
+    if (paths.length === 0 || !selectedDeviceId) return;
+
+    setConfirmModal({
+      isOpen: true,
+      title: "Hapus Item Terpilih",
+      message: `Hapus ${paths.length} item terpilih dari penyimpanan ponsel secara permanen? Tindakan ini tidak dapat dibatalkan.`,
+      type: 'danger',
+      onConfirm: async () => {
+        showToast(`Menghapus ${paths.length} item...`);
+        let successCount = 0;
+        for (const p of paths) {
+          try {
+            await deviceService.deleteFile(selectedDeviceId, p);
+            successCount++;
+          } catch (err) {
+            console.error(`Gagal menghapus ${p}:`, err);
+          }
+        }
+        selection.clear();
+        showToast(`Berhasil menghapus ${successCount} dari ${paths.length} item`);
+        refresh();
+      }
+    });
+  };
+
+  // Rename File/Folder
+  const handleRename = async (newName: string) => {
+    if (!renameTarget || !selectedDeviceId) return;
+    
+    // Calculate new path by replacing the file name in current path
+    const parts = renameTarget.path.split('/');
+    parts[parts.length - 1] = newName;
+    const newPath = parts.join('/');
+
+    try {
+      await deviceService.renameFile(selectedDeviceId, renameTarget.path, newPath);
+      showToast(`Nama diubah menjadi: ${newName}`);
+      if (inspectedFile?.path === renameTarget.path) {
+        setInspectedFile({ ...renameTarget, name: newName, path: newPath });
+      }
+      setRenameTarget(null);
+      refresh();
+    } catch (err) {
+      console.error("Rename failed", err);
+      showToast(`Gagal mengubah nama: ${err}`);
+    }
+  };
+
+  // Upload File Trigger
+  const handleUploadInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !selectedDeviceId) return;
+
+    const file = files[0];
+    showToast(`Mengunggah "${file.name}" ke ${currentPath}...`);
+    
+    // In Tauri environment, if path is available, upload directly
+    const targetRemotePath = `${currentPath.replace(/\/$/, '')}/${file.name}`;
+    try {
+      const localFilePath = (file as any).path || file.name;
+      await deviceService.uploadFile(selectedDeviceId, localFilePath, targetRemotePath);
+      showToast(`Berhasil mengunggah: ${file.name}`);
+      refresh();
+    } catch (err) {
+      console.warn("Upload via path failed, retrying:", err);
+      showToast(`Gagal mengunggah berkas: ${err}`);
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -148,6 +265,35 @@ export function FileBrowser() {
   return (
     <div className="h-full flex flex-col bg-white animate-in fade-in duration-500 relative overflow-hidden">
 
+      {/* Hidden File Input for Upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleUploadInput}
+      />
+
+      {/* Confirm Action Dialog */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        confirmText="Ya, Lanjutkan"
+        cancelText="Batal"
+      />
+
+      {/* Rename Dialog */}
+      <RenameModal
+        isOpen={renameTarget !== null}
+        onClose={() => setRenameTarget(null)}
+        currentName={renameTarget?.name || ''}
+        isDir={renameTarget?.is_dir || false}
+        onRename={handleRename}
+      />
+
       {/* Floating Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-slate-900/95 text-white px-5 py-3 rounded-2xl shadow-2xl backdrop-blur-md flex items-center gap-3 border border-white/10 animate-in slide-in-from-bottom-3 duration-200">
@@ -167,6 +313,8 @@ export function FileBrowser() {
           onCopyPath={(p) => handleCopyPath(p)}
           onInspect={(f) => setInspectedFile(f)}
           onOpenFolder={(p) => setCurrentPath(p)}
+          onRename={(f) => setRenameTarget(f)}
+          onDelete={(f) => handleDeleteSingle(f)}
         />
       )}
 
@@ -185,18 +333,21 @@ export function FileBrowser() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleDownloadSelected}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-600 hover:bg-indigo-50 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md"
+              className="flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-600 hover:bg-indigo-50 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95"
             >
               <Download className="w-4 h-4" /> Download ({selection.count})
             </button>
             <button
               onClick={() => systemService.openDownloadsFolder()}
               title="Buka folder hasil unduhan di komputer (Finder / Explorer)"
-              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-700/80 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-700/80 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-95"
             >
               <Folder className="w-4 h-4" /> Buka Folder PC
             </button>
-            <button className="flex items-center gap-2 px-5 py-2.5 bg-red-500 hover:bg-red-600 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md">
+            <button
+              onClick={handleDeleteSelected}
+              className="flex items-center gap-2 px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95"
+            >
               <Trash2 className="w-4 h-4" /> Hapus
             </button>
           </div>
@@ -292,7 +443,7 @@ export function FileBrowser() {
         {/* Middle Area: Breadcrumbs + Files Table/Grid */}
         <div className="flex-1 flex flex-col min-w-0 bg-white">
 
-          {/* Breadcrumbs Bar */}
+          {/* Breadcrumbs & Toolbar Bar */}
           <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-3 bg-white">
             <div className="flex-1 min-w-0">
               <BreadcrumbNav
@@ -302,6 +453,19 @@ export function FileBrowser() {
                 onRefresh={refresh}
                 isLoading={loading}
               />
+            </div>
+
+            {/* Quick Upload Action */}
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                title="Unggah berkas dari komputer ke folder ini di ponsel"
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/60 rounded-xl text-xs font-bold transition-all shadow-sm active:scale-95"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Unggah ke HP</span>
+              </button>
             </div>
           </div>
 
@@ -414,6 +578,13 @@ export function FileBrowser() {
                           <td className="px-6 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
                             <div className="opacity-0 group-hover:opacity-100 flex items-center justify-end gap-1 transition-all">
                               <button
+                                onClick={() => setRenameTarget(file)}
+                                title="Ganti Nama"
+                                className="p-1.5 hover:bg-white rounded-xl text-slate-400 hover:text-indigo-600 shadow-sm border border-transparent hover:border-slate-200 transition-all"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
                                 onClick={() => setInspectedFile(file)}
                                 title="Detail Berkas"
                                 className="p-1.5 hover:bg-white rounded-xl text-slate-400 hover:text-indigo-600 shadow-sm border border-transparent hover:border-slate-200 transition-all"
@@ -433,6 +604,13 @@ export function FileBrowser() {
                                 className="p-1.5 hover:bg-white rounded-xl text-slate-400 hover:text-indigo-600 shadow-sm border border-transparent hover:border-slate-200 transition-all"
                               >
                                 <Download className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteSingle(file)}
+                                title="Hapus Berkas"
+                                className="p-1.5 hover:bg-red-50 rounded-xl text-slate-400 hover:text-red-600 shadow-sm border border-transparent hover:border-red-200 transition-all"
+                              >
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           </td>
@@ -538,6 +716,8 @@ export function FileBrowser() {
             onClose={() => setInspectedFile(null)}
             onDownload={handleDownload}
             onNavigate={(p) => setCurrentPath(p)}
+            onRename={(f) => setRenameTarget(f)}
+            onDelete={(f) => handleDeleteSingle(f)}
           />
         )}
       </div>
