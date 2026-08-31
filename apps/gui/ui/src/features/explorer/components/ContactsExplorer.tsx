@@ -2,16 +2,44 @@ import { useState, useMemo } from 'react';
 import {
   Phone, Mail, Copy, Check, Download,
   User, MessageSquare, ExternalLink,
-  Sparkles, Contact as ContactIcon, PhoneCall
+  Sparkles, Contact as ContactIcon, PhoneCall, Building2
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { backupService } from '@/services/backupService';
 
+export interface ContactPhoneItem {
+  raw_value?: string;
+  normalized_value?: string;
+  phone_type?: string;
+  type?: string;
+  label?: string;
+  is_primary?: boolean;
+}
+
+export interface ContactEmailItem {
+  value?: string;
+  email_type?: string;
+  type?: string;
+  label?: string;
+  is_primary?: boolean;
+}
+
+export interface ContactOrgItem {
+  company_name?: string;
+  department?: string;
+  title?: string;
+  job_description?: string;
+  org_type?: string;
+  label?: string;
+}
+
 export interface ContactData {
   id?: string;
   display_name: string;
-  phone_numbers?: string[];
-  emails?: string[];
+  phones?: (string | ContactPhoneItem)[];
+  phone_numbers?: (string | ContactPhoneItem)[];
+  emails?: (string | ContactEmailItem)[];
+  organizations?: (string | ContactOrgItem)[];
   organization?: string;
   notes?: string;
 }
@@ -48,6 +76,67 @@ function getInitials(name?: string): string {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
   return name.trim().substring(0, 2).toUpperCase();
+}
+
+export function getContactPhones(contact: ContactData): { number: string; type?: string; isPrimary?: boolean }[] {
+  if (!contact) return [];
+  const list = contact.phones || contact.phone_numbers || [];
+  if (!Array.isArray(list)) return [];
+  
+  const results: { number: string; type?: string; isPrimary?: boolean }[] = [];
+  for (const item of list) {
+    if (typeof item === 'string' && item.trim()) {
+      results.push({ number: item.trim() });
+    } else if (item && typeof item === 'object') {
+      const num = item.raw_value || item.normalized_value;
+      if (num && String(num).trim()) {
+        results.push({
+          number: String(num).trim(),
+          type: item.phone_type || item.type || item.label,
+          isPrimary: item.is_primary === true
+        });
+      }
+    }
+  }
+  return results;
+}
+
+export function getContactEmails(contact: ContactData): { email: string; type?: string }[] {
+  if (!contact) return [];
+  const list = contact.emails || [];
+  if (!Array.isArray(list)) return [];
+  
+  const results: { email: string; type?: string }[] = [];
+  for (const item of list) {
+    if (typeof item === 'string' && item.trim()) {
+      results.push({ email: item.trim() });
+    } else if (item && typeof item === 'object') {
+      const val = item.value;
+      if (val && String(val).trim()) {
+        results.push({
+          email: String(val).trim(),
+          type: item.email_type || item.type || item.label
+        });
+      }
+    }
+  }
+  return results;
+}
+
+export function getContactOrg(contact: ContactData): string | undefined {
+  if (!contact) return undefined;
+  if (typeof contact.organization === 'string' && contact.organization.trim()) {
+    return contact.organization.trim();
+  }
+  if (Array.isArray(contact.organizations) && contact.organizations.length > 0) {
+    const org = contact.organizations[0];
+    if (typeof org === 'string' && org.trim()) return org.trim();
+    if (org && typeof org === 'object') {
+      const parts = [org.company_name, org.title, org.department].filter(Boolean);
+      if (parts.length > 0) return parts.join(' • ');
+    }
+  }
+  return undefined;
 }
 
 export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorerProps) {
@@ -114,12 +203,17 @@ export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorer
   };
 
   const handleExportSingleVCard = (contact: ContactData) => {
+    const phones = getContactPhones(contact);
+    const emails = getContactEmails(contact);
+    const org = getContactOrg(contact);
+
     const vcard = [
       'BEGIN:VCARD',
       'VERSION:3.0',
       `FN:${contact.display_name}`,
-      ...(contact.phone_numbers || []).map(p => `TEL;TYPE=CELL:${p}`),
-      ...(contact.emails || []).map(e => `EMAIL:${e}`),
+      ...(org ? [`ORG:${org}`] : []),
+      ...phones.map(p => `TEL;TYPE=CELL:${p.number}`),
+      ...emails.map(e => `EMAIL:${e.email}`),
       'END:VCARD'
     ].join('\r\n');
 
@@ -133,6 +227,10 @@ export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorer
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
+
+  const selectedPhones = selectedContact ? getContactPhones(selectedContact) : [];
+  const selectedEmails = selectedContact ? getContactEmails(selectedContact) : [];
+  const selectedOrg = selectedContact ? getContactOrg(selectedContact) : undefined;
 
   return (
     <div className="flex flex-col h-full bg-slate-50/50 rounded-[32px] border border-slate-200/80 overflow-hidden shadow-sm">
@@ -209,10 +307,11 @@ export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorer
         <div className="w-80 md:w-96 bg-white border-r border-slate-200/80 flex flex-col overflow-hidden shrink-0">
           <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-slate-50">
             {filteredContacts.map((c, i) => {
-              const isSelected = (selectedContact?.display_name === c.display_name) &&
-                (selectedContact?.phone_numbers?.[0] === c.phone_numbers?.[0]);
+              const phones = getContactPhones(c);
+              const primaryPhone = phones[0]?.number;
+              const isSelected = selectedContact?.display_name === c.display_name &&
+                (getContactPhones(selectedContact || { display_name: '' })[0]?.number === primaryPhone);
               const colorClass = getAvatarColor(c.display_name || '?');
-              const primaryPhone = c.phone_numbers?.[0];
 
               return (
                 <div
@@ -238,9 +337,9 @@ export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorer
                     </p>
                   </div>
 
-                  {c.phone_numbers && c.phone_numbers.length > 1 && (
+                  {phones.length > 1 && (
                     <span className="text-[9px] font-black px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full shrink-0">
-                      +{c.phone_numbers.length - 1}
+                      +{phones.length - 1}
                     </span>
                   )}
                 </div>
@@ -272,11 +371,11 @@ export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorer
                 </div>
 
                 <h3 className="text-xl font-black text-slate-900 tracking-tight leading-snug">
-                  {selectedContact.display_name}
+                  {selectedContact.display_name || 'Tanpa Nama'}
                 </h3>
-                {selectedContact.organization && (
-                  <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">
-                    {selectedContact.organization}
+                {selectedOrg && (
+                  <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider flex items-center gap-1.5 justify-center">
+                    <Building2 className="w-3.5 h-3.5" /> {selectedOrg}
                   </p>
                 )}
 
@@ -288,9 +387,9 @@ export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorer
                   >
                     <Download className="w-3.5 h-3.5" /> Unduh .VCF
                   </button>
-                  {selectedContact.phone_numbers?.[0] && (
+                  {selectedPhones[0]?.number && (
                     <a
-                      href={`https://wa.me/${selectedContact.phone_numbers[0].replace(/[^0-9]/g, '')}`}
+                      href={`https://wa.me/${selectedPhones[0].number.replace(/[^0-9]/g, '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl text-xs font-black uppercase tracking-wider transition-all"
@@ -308,12 +407,12 @@ export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorer
                     <Phone className="w-3.5 h-3.5 text-indigo-600" /> Nomor Telepon
                   </span>
                   <span className="text-[10px] font-bold text-slate-400">
-                    {(selectedContact.phone_numbers || []).length} Nomor
+                    {selectedPhones.length} Nomor
                   </span>
                 </div>
 
                 <div className="space-y-2">
-                  {(selectedContact.phone_numbers || []).map((phone, idx) => (
+                  {selectedPhones.map((phone, idx) => (
                     <div
                       key={idx}
                       className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-indigo-50/50 rounded-2xl border border-slate-100 transition-all group"
@@ -324,17 +423,17 @@ export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorer
                         </div>
                         <div className="min-w-0">
                           <p className="font-mono font-bold text-xs text-slate-800 tracking-wider select-all">
-                            {phone}
+                            {phone.number}
                           </p>
                           <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">
-                            {idx === 0 ? 'Utama / Mobile' : `Alternatif ${idx + 1}`}
+                            {phone.type || (idx === 0 ? 'Utama / Mobile' : `Alternatif ${idx + 1}`)}
                           </span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-1.5">
                         <button
-                          onClick={() => handleCopy(phone, `phone-${idx}`)}
+                          onClick={() => handleCopy(phone.number, `phone-${idx}`)}
                           title="Salin Nomor"
                           className="p-2 hover:bg-white text-slate-400 hover:text-indigo-600 rounded-xl transition-all shadow-sm border border-transparent hover:border-slate-200"
                         >
@@ -344,14 +443,14 @@ export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorer
                     </div>
                   ))}
 
-                  {(!selectedContact.phone_numbers || selectedContact.phone_numbers.length === 0) && (
+                  {selectedPhones.length === 0 && (
                     <p className="text-xs text-slate-400 italic py-2">Tidak ada nomor telepon yang tercatat.</p>
                   )}
                 </div>
               </div>
 
               {/* Emails Card */}
-              {selectedContact.emails && selectedContact.emails.length > 0 && (
+              {selectedEmails.length > 0 && (
                 <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
@@ -360,7 +459,7 @@ export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorer
                   </div>
 
                   <div className="space-y-2">
-                    {selectedContact.emails.map((email, idx) => (
+                    {selectedEmails.map((email, idx) => (
                       <div
                         key={idx}
                         className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-indigo-50/50 rounded-2xl border border-slate-100 transition-all group"
@@ -370,12 +469,12 @@ export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorer
                             <Mail className="w-4 h-4" />
                           </div>
                           <p className="font-mono text-xs text-slate-800 truncate select-all">
-                            {email}
+                            {email.email}
                           </p>
                         </div>
 
                         <button
-                          onClick={() => handleCopy(email, `email-${idx}`)}
+                          onClick={() => handleCopy(email.email, `email-${idx}`)}
                           title="Salin Email"
                           className="p-2 hover:bg-white text-slate-400 hover:text-indigo-600 rounded-xl transition-all shadow-sm border border-transparent hover:border-slate-200"
                         >

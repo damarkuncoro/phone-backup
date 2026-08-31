@@ -9,7 +9,7 @@ import { FileTree } from '@/shared/components/FileTree';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { useSnapshotExplorer } from '../hooks/useSnapshotExplorer';
 import { useState } from 'react';
-import { ContactsExplorer } from '../components/ContactsExplorer';
+import { ContactsExplorer, getContactPhones } from '../components/ContactsExplorer';
 
 interface SnapshotExplorerProps {
   snapshotId: string;
@@ -264,7 +264,15 @@ export function SnapshotExplorer({ snapshotId, onBack }: SnapshotExplorerProps) 
                   {mode === 'contacts' && (
                       <div className="max-w-6xl mx-auto h-[620px]">
                           <ContactsExplorer
-                            contacts={(Array.isArray(rawData) ? rawData : []).filter((c: any) => c && ((c.display_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (c.phone_numbers || []).some((p: string) => p && p.includes(searchQuery))))}
+                            contacts={(Array.isArray(rawData) ? rawData : []).filter((c: any) => {
+                              if (!c) return false;
+                              if (!searchQuery) return true;
+                              const query = searchQuery.toLowerCase();
+                              const name = (c.display_name || '').toLowerCase();
+                              if (name.includes(query)) return true;
+                              const phones = getContactPhones(c);
+                              return phones.some(p => p.number.toLowerCase().includes(query));
+                            })}
                             snapshotId={snapshotId}
                           />
                       </div>
