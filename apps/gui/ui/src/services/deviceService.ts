@@ -56,6 +56,22 @@ export const deviceService = {
     return await safeInvoke("get_device_battery", { device_id: deviceId });
   },
 
+  async downloadFile(deviceId: string, remotePath: string, localPath: string): Promise<void> {
+    return await safeInvoke("download_from_device", { device_id: deviceId, remote_path: remotePath, local_path: localPath });
+  },
+
+  async deleteFile(deviceId: string, path: string): Promise<void> {
+    return await safeInvoke("delete_device_file", { device_id: deviceId, path });
+  },
+
+  async renameFile(deviceId: string, oldPath: string, newPath: string): Promise<void> {
+    return await safeInvoke("rename_device_file", { device_id: deviceId, old_path: oldPath, new_path: newPath });
+  },
+
+  async calculateHash(deviceId: string, path: string): Promise<string> {
+    return await safeInvoke("calculate_device_file_hash", { device_id: deviceId, path });
+  },
+
   async getStatus() {
     return await safeInvoke("get_doctor_report");
   }
