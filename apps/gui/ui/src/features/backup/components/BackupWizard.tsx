@@ -11,6 +11,7 @@ import { cn } from "@/shared/lib/utils";
 import { formatBytes } from '@/shared/lib/formatters';
 import { FileTree } from '@/shared/components/FileTree';
 import { useBackupWizard } from '../hooks/useBackupWizard';
+import { UI_TOKENS } from '@/shared/theme/tokens';
 
 interface DataOption {
   id: string;
@@ -126,24 +127,26 @@ export function BackupWizard({ initialDevice, onFinish }: BackupWizardProps) {
   const isMtpDevice = selectedDevice?.connection_type === 'Mtp';
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-8 animate-in fade-in slide-in-from-bottom-2 duration-300 h-full flex flex-col">
+    <div className={UI_TOKENS.layout.pageContainer}>
       
-      {/* Wizard Header & Stepper */}
-      <div className="mb-6 text-center shrink-0">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-200">
-            <Database className="w-4 h-4" />
+      {/* Wizard Header Banner with Stepper */}
+      <header className={UI_TOKENS.card.headerBanner}>
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
+            <Database className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-            Backup Wizard
-          </h1>
+          <div>
+            <h1 className={UI_TOKENS.text.titlePage}>
+              Backup Wizard
+            </h1>
+            <p className={UI_TOKENS.text.subtitle}>
+              Panduan langkah demi langkah untuk mencadangkan data ponsel Anda secara aman dan terenkripsi.
+            </p>
+          </div>
         </div>
-        <p className="text-xs text-slate-400 font-medium">
-          Panduan langkah demi langkah untuk mencadangkan data ponsel Anda secara aman dan terenkripsi.
-        </p>
 
-        {/* Interactive Steps Breadcrumb */}
-        <div className="flex items-center justify-center gap-2 sm:gap-4 mt-6 max-w-2xl mx-auto">
+        {/* Stepper Navigation */}
+        <div className="flex items-center gap-2 sm:gap-3 bg-slate-50 p-2 rounded-2xl border border-slate-200/60 overflow-x-auto no-scrollbar shrink-0">
           <StepBadge
             step={1}
             title="Perangkat"
@@ -151,7 +154,7 @@ export function BackupWizard({ initialDevice, onFinish }: BackupWizardProps) {
             completed={!!selectedDevice && step !== 'select-device'}
             onClick={() => setStep('select-device')}
           />
-          <div className="flex-1 max-w-[48px] h-0.5 bg-slate-200" />
+          <div className="w-4 h-0.5 bg-slate-200 shrink-0" />
           <StepBadge
             step={2}
             title="Modul Data"
@@ -159,7 +162,7 @@ export function BackupWizard({ initialDevice, onFinish }: BackupWizardProps) {
             completed={step === 'configure' || step === 'progress'}
             onClick={() => selectedDevice && setStep('select-data')}
           />
-          <div className="flex-1 max-w-[48px] h-0.5 bg-slate-200" />
+          <div className="w-4 h-0.5 bg-slate-200 shrink-0" />
           <StepBadge
             step={3}
             title="Pratinjau"
@@ -167,7 +170,7 @@ export function BackupWizard({ initialDevice, onFinish }: BackupWizardProps) {
             completed={step === 'progress'}
             onClick={() => selectedDevice && selectedData.length > 0 && setStep('configure')}
           />
-          <div className="flex-1 max-w-[48px] h-0.5 bg-slate-200" />
+          <div className="w-4 h-0.5 bg-slate-200 shrink-0" />
           <StepBadge
             step={4}
             title="Proses"
@@ -175,18 +178,18 @@ export function BackupWizard({ initialDevice, onFinish }: BackupWizardProps) {
             completed={progressPercent === 100}
           />
         </div>
-      </div>
+      </header>
 
       {/* Wizard Card Container */}
-      <div className="bg-white rounded-[32px] border border-slate-100 shadow-2xl shadow-indigo-100/40 flex-1 flex flex-col overflow-hidden min-h-0">
+      <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm flex flex-col overflow-hidden min-h-[520px]">
         
         {/* ================= STEP 1: SELECT DEVICE ================= */}
         {step === 'select-device' && (
-          <div className="p-6 md:p-10 space-y-6 animate-in fade-in duration-200 flex-1 flex flex-col justify-between">
+          <div className="p-6 md:p-8 space-y-6 animate-in fade-in duration-200 flex-1 flex flex-col justify-between">
             <div className="space-y-6">
               <div className="flex justify-between items-end">
                 <div>
-                  <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+                  <h2 className="text-xl font-black text-slate-900 tracking-tight">
                     Pilih Perangkat Sumber
                   </h2>
                   <p className="text-xs text-slate-400 font-medium mt-0.5">
@@ -201,10 +204,10 @@ export function BackupWizard({ initialDevice, onFinish }: BackupWizardProps) {
                   <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Memindai Sambungan Perangkat...</p>
                 </div>
               ) : devices.length === 0 ? (
-                <div className="py-16 text-center border-2 border-dashed border-slate-200 rounded-3xl p-8 space-y-3">
+                <div className={UI_TOKENS.emptyState}>
                   <Smartphone className="w-12 h-12 text-slate-300 mx-auto" />
                   <h3 className="text-sm font-black text-slate-700">Tidak Ada Perangkat Terhubung</h3>
-                  <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  <p className="text-xs text-slate-400 max-w-md mx-auto text-center">
                     Colokkan ponsel Anda menggunakan kabel USB (pilih mode Transfer File) atau aktifkan USB Debugging.
                   </p>
                 </div>
@@ -222,7 +225,7 @@ export function BackupWizard({ initialDevice, onFinish }: BackupWizardProps) {
                         className={cn(
                           "p-6 rounded-[28px] border-2 transition-all cursor-pointer flex items-start gap-4 relative overflow-hidden group select-none",
                           isSelected
-                            ? "border-indigo-500 bg-indigo-50/40 shadow-xl shadow-indigo-100/50 ring-2 ring-indigo-500/10"
+                            ? "border-indigo-500 bg-indigo-50/40 shadow-md ring-2 ring-indigo-500/10"
                             : "border-slate-100 hover:border-indigo-200 hover:shadow-md bg-white"
                         )}
                       >
@@ -265,7 +268,7 @@ export function BackupWizard({ initialDevice, onFinish }: BackupWizardProps) {
                             </span>
 
                             {device.storage_total_bytes > 0 && (
-                              <span className="text-[10px] font-bold text-slate-400">
+                              <span className="text-[10px] font-bold text-slate-400 font-mono">
                                 {formatBytes(Number(device.storage_used_bytes))} / {formatBytes(Number(device.storage_total_bytes))}
                               </span>
                             )}
@@ -281,6 +284,7 @@ export function BackupWizard({ initialDevice, onFinish }: BackupWizardProps) {
             {/* Step 1 Footer */}
             <div className="pt-6 border-t border-slate-100 flex justify-end">
               <button
+                type="button"
                 disabled={!selectedDevice}
                 onClick={() => setStep('select-data')}
                 className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg shadow-indigo-200 hover:shadow-indigo-300 disabled:opacity-50 transition-all flex items-center gap-2.5 active:scale-95"
@@ -294,11 +298,11 @@ export function BackupWizard({ initialDevice, onFinish }: BackupWizardProps) {
 
         {/* ================= STEP 2: SELECT DATA ================= */}
         {step === 'select-data' && (
-          <div className="p-6 md:p-10 space-y-6 animate-in fade-in duration-200 flex-1 flex flex-col justify-between">
+          <div className="p-6 md:p-8 space-y-6 animate-in fade-in duration-200 flex-1 flex flex-col justify-between">
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
                 <div>
-                  <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+                  <h2 className="text-xl font-black text-slate-900 tracking-tight">
                     Apa yang ingin Anda cadangkan?
                   </h2>
                   <p className="text-xs text-slate-400 font-medium mt-0.5">
@@ -347,7 +351,7 @@ export function BackupWizard({ initialDevice, onFinish }: BackupWizardProps) {
                         isDisabled
                           ? "opacity-40 bg-slate-50 border-slate-200/50 cursor-not-allowed"
                           : isSelected
-                          ? "border-indigo-500 bg-indigo-50/40 shadow-md shadow-indigo-100 cursor-pointer"
+                          ? "border-indigo-500 bg-indigo-50/40 shadow-md ring-2 ring-indigo-500/10 cursor-pointer"
                           : "border-slate-100 hover:border-indigo-200 bg-white cursor-pointer"
                       )}
                     >
@@ -422,7 +426,7 @@ export function BackupWizard({ initialDevice, onFinish }: BackupWizardProps) {
             <div className="p-6 md:p-8 border-b border-slate-100 shrink-0 bg-white space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+                  <h2 className="text-xl font-black text-slate-900 tracking-tight">
                     Eksplorasi Rencana Backup
                   </h2>
                   <p className="text-xs text-slate-400 font-medium mt-0.5">
@@ -458,7 +462,7 @@ export function BackupWizard({ initialDevice, onFinish }: BackupWizardProps) {
             {/* Tree View Area or Live Analysis HUD */}
             <div className="flex-1 overflow-y-auto bg-slate-50/50 custom-scrollbar p-6">
               {isCalculating ? (
-                /* LIVE ANALYSIS HUD (Transparent Telemetry Display for Big Phones) */
+                /* LIVE ANALYSIS HUD */
                 <div className="max-w-xl mx-auto py-10 space-y-6 animate-in zoom-in-95 duration-200">
                   <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-xl space-y-6 text-center">
                     
@@ -715,17 +719,17 @@ function StepBadge({
       )}
     >
       <div className={cn(
-        "w-8 h-8 rounded-full flex items-center justify-center font-black text-xs transition-all",
+        "w-7 h-7 rounded-full flex items-center justify-center font-black text-xs transition-all",
         active
-          ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 ring-4 ring-indigo-500/10 scale-105"
+          ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 ring-2 ring-indigo-500/20 scale-105"
           : completed
           ? "bg-emerald-500 text-white shadow-sm"
-          : "bg-slate-100 text-slate-400"
+          : "bg-slate-200 text-slate-500"
       )}>
-        {completed ? <Check className="w-4 h-4 stroke-[3]" /> : step}
+        {completed ? <Check className="w-3.5 h-3.5 stroke-[3]" /> : step}
       </div>
       <span className={cn(
-        "text-[11px] font-black uppercase tracking-wider hidden sm:inline",
+        "text-[11px] font-black uppercase tracking-wider hidden md:inline",
         active ? "text-indigo-600" : completed ? "text-slate-800" : "text-slate-400"
       )}>
         {title}
