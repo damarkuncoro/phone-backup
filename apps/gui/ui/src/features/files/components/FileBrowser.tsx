@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Folder, File, ChevronRight, Home, ArrowLeft, Search,
+  Folder, File, ChevronRight, Search,
   Download, Trash2, Image as ImageIcon, Video, Music, FileText,
   CheckSquare, Square, X, LayoutGrid, LayoutList,
   ArrowUpDown, ArrowUp, ArrowDown, Copy, Check, Sparkles,
@@ -8,10 +8,10 @@ import {
 } from 'lucide-react';
 import { getDeviceId } from '@/services/deviceService';
 import { cn } from "../../../shared/lib/utils";
-import { getParentPath } from '../lib/pathUtils';
 import { formatBytes, formatDate } from '@/shared/lib/formatters';
 import { isImage, isVideo, isAudio, isDocument, isApk, type SortField, type FileCategory } from '../lib/fileUtils';
 import { useFileBrowser } from '../hooks/useFileBrowser';
+import { BreadcrumbNav } from './BreadcrumbNav';
 
 export function FileBrowser() {
   const {
@@ -26,7 +26,8 @@ export function FileBrowser() {
     selection,
     filteredFiles,
     breadcrumbs,
-    quickAccessItems
+    quickAccessItems,
+    refresh
   } = useFileBrowser();
 
   const [copiedPath, setCopiedPath] = useState<string | null>(null);
@@ -213,48 +214,29 @@ export function FileBrowser() {
       </section>
 
       {/* Breadcrumbs & Category Filter Bar */}
-      <div className="px-6 lg:px-8 py-3 bg-white border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Breadcrumb Navigator */}
-        <nav className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-          <button
-            onClick={() => setCurrentPath(getParentPath(currentPath))}
-            disabled={currentPath === '/'}
-            className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 hover:text-indigo-600 disabled:opacity-0 transition-all border border-transparent hover:border-slate-100 shrink-0"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-
-          <div className="h-4 w-px bg-slate-200 mx-1 shrink-0" />
-
-          {breadcrumbs.map((bc, i) => (
-            <div key={bc.path} className="flex items-center shrink-0">
-              {i > 0 && <ChevronRight className="w-3.5 h-3.5 text-slate-300 mx-1" />}
-              <button
-                onClick={() => setCurrentPath(bc.path)}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-                  i === breadcrumbs.length - 1
-                    ? "bg-indigo-50 text-indigo-700 font-black shadow-sm border border-indigo-100"
-                    : "text-slate-400 hover:text-slate-700 hover:bg-slate-50"
-                )}
-              >
-                {i === 0 ? <Home className="w-3.5 h-3.5" /> : bc.name}
-              </button>
-            </div>
-          ))}
-        </nav>
+      <div className="px-6 lg:px-8 py-3 bg-white border-b border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        {/* Modern Interactive Breadcrumb Nav */}
+        <div className="flex-1 min-w-0">
+          <BreadcrumbNav
+            currentPath={currentPath}
+            breadcrumbs={breadcrumbs}
+            onNavigate={setCurrentPath}
+            onRefresh={refresh}
+            isLoading={loading}
+          />
+        </div>
 
         {/* Category Pills */}
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar shrink-0">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar shrink-0 self-start xl:self-auto">
           {categories.map(c => (
             <button
               key={c.id}
               onClick={() => setCategory(c.id)}
               className={cn(
-                "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all",
+                "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border",
                 category === c.id
-                  ? "bg-slate-900 text-white shadow-sm"
-                  : "bg-slate-100 text-slate-500 hover:bg-slate-200/70"
+                  ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                  : "bg-slate-100/80 text-slate-500 border-slate-200/50 hover:bg-slate-200/70 hover:text-slate-700"
               )}
             >
               {c.label}

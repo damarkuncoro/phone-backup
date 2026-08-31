@@ -84,6 +84,12 @@ export function useFileBrowser() {
     })];
   }, [currentPath]);
 
+  const refresh = useCallback(() => {
+    if (selectedDeviceId) {
+      loadFiles(selectedDeviceId, currentPath);
+    }
+  }, [selectedDeviceId, currentPath, loadFiles]);
+
   return {
     devices,
     selectedDeviceId, setSelectedDeviceId,
@@ -98,6 +104,7 @@ export function useFileBrowser() {
     selection,
     filteredFiles,
     breadcrumbs,
-    quickAccessItems: QUICK_ACCESS_ITEMS
+    quickAccessItems: QUICK_ACCESS_ITEMS,
+    refresh
   };
 }
