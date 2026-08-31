@@ -64,6 +64,10 @@ export const backupService = {
 
   async exportContactsVCard(snapshotId: string): Promise<string> {
     return await safeInvoke("export_contacts_vcard", { snapshot_id: snapshotId });
+  },
+
+  async exportSmsJson(snapshotId: string): Promise<string> {
+    return await safeInvoke("export_sms_json", { snapshot_id: snapshotId });
   }
 };
 

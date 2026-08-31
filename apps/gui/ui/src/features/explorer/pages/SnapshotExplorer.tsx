@@ -10,6 +10,7 @@ import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { useSnapshotExplorer } from '../hooks/useSnapshotExplorer';
 import { useState } from 'react';
 import { ContactsExplorer, getContactPhones } from '../components/ContactsExplorer';
+import { SmsExplorer } from '../components/SmsExplorer';
 
 interface SnapshotExplorerProps {
   snapshotId: string;
@@ -277,7 +278,14 @@ export function SnapshotExplorer({ snapshotId, onBack }: SnapshotExplorerProps) 
                           />
                       </div>
                   )}
-                  {mode === 'sms' && <SmsList messages={(Array.isArray(rawData) ? rawData : []).filter((m: any) => m && (((m.body || '').toLowerCase().includes(searchQuery.toLowerCase())) || ((m.address || '').includes(searchQuery))))} />}
+                  {mode === 'sms' && (
+                      <div className="max-w-6xl mx-auto h-[620px]">
+                          <SmsExplorer
+                            messages={(Array.isArray(rawData) ? rawData : []).filter((m: any) => m && (((m.body || '').toLowerCase().includes(searchQuery.toLowerCase())) || ((m.address || '').includes(searchQuery))))}
+                            snapshotId={snapshotId}
+                          />
+                      </div>
+                  )}
                   {mode === 'apps' && <AppGrid apps={(Array.isArray(rawData) ? rawData : []).filter((a: any) => a && (a.name || '').toLowerCase().includes(searchQuery.toLowerCase()))} />}
 
                   {mode === 'files' && rawData.length === 0 && (
@@ -308,21 +316,6 @@ function ModeTab({ active, icon: Icon, label, onClick }: { active: boolean, icon
     );
 }
 
-function SmsList({ messages }: { messages: any[] }) {
-    return (
-        <div className="max-w-3xl mx-auto space-y-4">
-            {messages.map((m, i) => (
-                <div key={i} className="p-8 bg-slate-50 rounded-[40px] border border-slate-100 space-y-4 hover:bg-white hover:shadow-xl transition-all">
-                    <div className="flex justify-between items-center">
-                        <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">{m.address}</span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(m.date).toLocaleString()}</span>
-                    </div>
-                    <p className="text-slate-700 leading-relaxed font-medium">{m.body}</p>
-                </div>
-            ))}
-        </div>
-    );
-}
 
 function AppGrid({ apps }: { apps: any[] }) {
     return (
