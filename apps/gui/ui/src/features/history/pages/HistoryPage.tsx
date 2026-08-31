@@ -13,6 +13,7 @@ interface HistoryPageProps {
 export function HistoryPage({ onBrowse, onCompare }: HistoryPageProps) {
   const {
     devices,
+    liveDeviceIds,
     selectedDeviceId, setSelectedDeviceId,
     loading,
     searchQuery, setSearchQuery,
@@ -73,8 +74,8 @@ export function HistoryPage({ onBrowse, onCompare }: HistoryPageProps) {
       <section className="bg-white p-2 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-2 overflow-x-auto no-scrollbar">
           {devices.map(d => {
               const isSelected = selectedDeviceId === getDeviceId(d);
-              // Check if device is from ADB (Live) or just from Database (Arsip)
-              const isOnline = d.connection_type && d.connection_type !== 'Unknown';
+              // Perangkat benar-benar online jika saat ini terdeteksi aktif oleh ADB
+              const isOnline = liveDeviceIds.has(getDeviceId(d));
 
               return (
                   <button

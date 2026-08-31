@@ -1,29 +1,39 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { backupService, type Snapshot, getSnapshotId } from '@/services/backupService';
 import { deviceService, getDeviceId, type Device } from '@/services/deviceService';
+import { safeListen } from '@/shared/lib/ipc';
 
 export function useHistory() {
   const [devices, setDevices] = useState<Device[]>([]);
+  const [liveDeviceIds, setLiveDeviceIds] = useState<Set<string>>(new Set());
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [comparisonSelection, setComparisonSelection] = useState<string[]>([]);
 
+  const fetchDevices = useCallback(async () => {
+    try {
+      const [known, live] = await Promise.all([
+        deviceService.getAllKnown(),
+        deviceService.getAll().catch(() => [])
+      ]);
+      setDevices(known);
+      setLiveDeviceIds(new Set((live || []).map(d => getDeviceId(d))));
+      if (known.length > 0 && !selectedDeviceId) {
+        setSelectedDeviceId(getDeviceId(known[0]));
+      }
+    } catch (e) {
+      console.error("Failed to fetch known devices", e);
+    }
+  }, [selectedDeviceId]);
+
   useEffect(() => {
-    const fetchDevices = async () => {
-        try {
-            const data = await deviceService.getAllKnown();
-            setDevices(data);
-            if (data.length > 0 && !selectedDeviceId) {
-                setSelectedDeviceId(getDeviceId(data[0]));
-            }
-        } catch (e) {
-            console.error("Failed to fetch known devices", e);
-        }
-    };
     fetchDevices();
-  }, []);
+    return safeListen('device-changed', () => {
+      fetchDevices();
+    });
+  }, [fetchDevices]);
 
   const loadSnapshots = useCallback(async (deviceId: string) => {
     setLoading(true);
@@ -71,6 +81,7 @@ export function useHistory() {
 
   return {
     devices,
+    liveDeviceIds,
     selectedDeviceId, setSelectedDeviceId,
     snapshots, loading,
     searchQuery, setSearchQuery,
