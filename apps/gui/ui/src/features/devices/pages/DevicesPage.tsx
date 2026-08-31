@@ -12,32 +12,41 @@ export function DevicesPage({ onDeviceDetails }: DevicesPageProps) {
   const { devices, loading, error, refreshDevices } = useDevices();
 
   return (
-    <div className="p-8 space-y-8 animate-in fade-in duration-500">
-      <header className="flex justify-between items-center">
+    <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto animate-in fade-in duration-300">
+      
+      {/* Top Banner Overview */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 md:p-8 rounded-[32px] border border-slate-100 shadow-sm">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Perangkat Terkoneksi</h1>
-          <p className="text-slate-500 font-medium">Kelola dan pantau status hardware perangkat Android Anda.</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+            Perangkat Terkoneksi
+          </h1>
+          <p className="text-xs text-slate-500 font-medium mt-1">
+            Kelola dan pantau status koneksi, baterai, dan kapasitas penyimpanan ponsel Android Anda.
+          </p>
         </div>
+
         <button
+          type="button"
           onClick={refreshDevices}
           disabled={loading}
-          className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-600 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm flex items-center gap-2 group"
+          className="px-5 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-2xl text-slate-700 hover:text-indigo-600 transition-all shadow-sm flex items-center gap-2 active:scale-95 disabled:opacity-50 shrink-0 font-black text-xs uppercase tracking-wider"
         >
-          <RefreshCcw className={cn("w-5 h-5", loading && "animate-spin")} />
-          <span className="text-xs font-black uppercase tracking-widest px-1">Pindai Ulang</span>
+          <RefreshCcw className={cn("w-4 h-4", loading && "animate-spin text-indigo-600")} />
+          <span>Pindai Ulang</span>
         </button>
-      </header>
+      </div>
 
       {error && (
-          <div className="p-6 bg-red-50 border border-red-100 rounded-[32px] flex items-center gap-4 text-red-600">
-              <ShieldCheck className="w-8 h-8 opacity-50" />
-              <div>
-                  <p className="font-black uppercase tracking-widest text-xs">Koneksi Gagal</p>
-                  <p className="text-sm font-bold">{error}</p>
-              </div>
+        <div className="p-6 bg-red-50 border border-red-200/80 rounded-[32px] flex items-center gap-4 text-red-700">
+          <ShieldCheck className="w-7 h-7 text-red-500 shrink-0" />
+          <div>
+            <p className="font-black uppercase tracking-widest text-[10px]">Koneksi Gagal</p>
+            <p className="text-xs font-bold mt-0.5">{error}</p>
           </div>
+        </div>
       )}
 
+      {/* Devices Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {devices.map(device => (
           <DeviceCard
@@ -48,41 +57,46 @@ export function DevicesPage({ onDeviceDetails }: DevicesPageProps) {
         ))}
 
         {devices.length === 0 && !loading && (
-          <div className="col-span-full py-32 flex flex-col items-center justify-center bg-slate-50 rounded-[40px] border-2 border-dashed border-slate-200 text-slate-400">
-              <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-sm mb-6">
-                <Tablet className="w-10 h-10 opacity-20" />
-              </div>
-              <p className="font-black uppercase tracking-widest text-xs">Tidak ada perangkat</p>
-              <p className="text-xs mt-1 text-slate-400">Hubungkan HP melalui USB untuk memulai.</p>
+          <div className="col-span-full py-20 flex flex-col items-center justify-center bg-white rounded-[32px] border-2 border-dashed border-slate-200 text-slate-400 p-8 space-y-3">
+            <div className="w-16 h-16 bg-slate-50 rounded-3xl flex items-center justify-center shadow-sm mb-2">
+              <Tablet className="w-8 h-8 opacity-20" />
+            </div>
+            <p className="font-black uppercase tracking-widest text-xs">Tidak ada perangkat</p>
+            <p className="text-xs text-slate-400 text-center max-w-sm">
+              Hubungkan ponsel Android Anda menggunakan kabel USB atau gunakan tombol Tambah Perangkat di header.
+            </p>
           </div>
         )}
       </div>
 
+      {/* ADB & MTP Subsystem Status Summary */}
       {devices.length > 0 && (
-          <section className="mt-12 space-y-6">
-              <h2 className="text-xl font-black text-slate-800">Ringkasan Sistem ADB</h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <StatusMetric icon={Activity} label="ADB Server" value="Running" color="text-emerald-500" />
-                  <StatusMetric icon={Zap} label="Mode" value="Production" color="text-indigo-500" />
-                  <StatusMetric icon={Cpu} label="Bridge Version" value="1.0.41" color="text-slate-500" />
-                  <StatusMetric icon={ShieldCheck} label="Security" value="Encrypted" color="text-emerald-500" />
-              </div>
-          </section>
+        <section className="space-y-4 pt-4">
+          <h2 className="text-lg font-black text-slate-900 tracking-tight">
+            Ringkasan Subsistem Mesin
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatusMetric icon={Activity} label="ADB Server" value="Running" color="text-emerald-600" />
+            <StatusMetric icon={Zap} label="Engine Mode" value="Production" color="text-indigo-600" />
+            <StatusMetric icon={Cpu} label="Bridge Protocol" value="v1.0.41 ADB" color="text-slate-700" />
+            <StatusMetric icon={ShieldCheck} label="Keamanan" value="Age X25519" color="text-emerald-600" />
+          </div>
+        </section>
       )}
     </div>
   );
 }
 
 function StatusMetric({ icon: Icon, label, value, color }: { icon: any, label: string, value: string, color: string }) {
-    return (
-        <div className="bg-white p-5 rounded-3xl border border-slate-100 flex items-center gap-4 shadow-sm">
-            <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
-                <Icon className="w-5 h-5 text-slate-400" />
-            </div>
-            <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</p>
-                <p className={cn("text-sm font-black", color)}>{value}</p>
-            </div>
-        </div>
-    );
+  return (
+    <div className="bg-white p-5 rounded-[28px] border border-slate-100 flex items-center gap-4 shadow-sm">
+      <div className="w-11 h-11 bg-slate-50 rounded-2xl flex items-center justify-center shrink-0">
+        <Icon className="w-5 h-5 text-slate-400" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">{label}</p>
+        <p className={cn("text-sm font-black truncate mt-0.5", color)}>{value}</p>
+      </div>
+    </div>
+  );
 }

@@ -40,7 +40,7 @@ export function Dashboard({ onBackupClick, onDeviceDetails, onNavigate }: Dashbo
     <div className="p-6 md:p-8 space-y-8 animate-in fade-in duration-300 max-w-7xl mx-auto relative">
       
       {/* Top Banner / Hero Overview (Clean without duplicate buttons) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950 text-white p-6 md:p-8 rounded-[36px] shadow-xl relative overflow-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950 text-white p-6 md:p-8 rounded-[32px] shadow-xl relative overflow-hidden">
         <div className="relative z-10 min-w-0">
           <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 bg-indigo-950/80 px-3 py-1 rounded-full border border-indigo-800/50">
             Pusat Kontrol Sistem
@@ -94,7 +94,7 @@ export function Dashboard({ onBackupClick, onDeviceDetails, onNavigate }: Dashbo
 
       {/* Primary Device Hero Card */}
       {selectedDevice && (
-        <section className="bg-white rounded-[36px] border border-slate-100 p-6 md:p-8 shadow-sm flex flex-col lg:flex-row gap-6 lg:gap-10 items-center">
+        <section className="bg-white rounded-[32px] border border-slate-100 p-6 md:p-8 shadow-sm flex flex-col lg:flex-row gap-6 lg:gap-10 items-center">
           <div className="w-36 h-36 md:w-44 md:h-44 bg-slate-50 rounded-3xl flex items-center justify-center border-2 border-dashed border-slate-200 shrink-0">
             <Tablet className="w-16 h-16 md:w-20 md:h-20 text-slate-300" />
           </div>

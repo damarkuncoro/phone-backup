@@ -36,7 +36,7 @@ export function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-4 text-slate-400">
+      <div className="h-full flex flex-col items-center justify-center gap-4 text-slate-400 py-24">
         <RefreshCw className="w-8 h-8 animate-spin text-indigo-500" />
         <p className="text-xs font-black uppercase tracking-widest">Mendiagnosa Infrastruktur Sistem...</p>
       </div>
@@ -79,10 +79,10 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-6xl mx-auto animate-in fade-in duration-300">
+    <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto animate-in fade-in duration-300">
       
-      {/* Header */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+      {/* Header Banner */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 md:p-8 rounded-[32px] border border-slate-100 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
             <SettingsIcon className="w-6 h-6" />
@@ -91,7 +91,7 @@ export function SettingsPage() {
             <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
               Pengaturan Sistem
             </h1>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">
+            <p className="text-xs text-slate-500 font-medium mt-1">
               Kelola parameter infrastruktur, keamanan enkripsi, penyimpanan, dan pemeliharaan platform.
             </p>
           </div>
@@ -110,7 +110,7 @@ export function SettingsPage() {
       </header>
 
       {/* Navigation Tabs */}
-      <nav className="flex flex-wrap gap-2 p-1.5 bg-slate-100/70 rounded-2xl border border-slate-200/60 select-none">
+      <nav className="flex flex-wrap gap-2 p-1.5 bg-slate-100/80 rounded-2xl border border-slate-200/60 select-none">
         <TabButton
           active={activeTab === 'doctor'}
           onClick={() => setActiveTab('doctor')}
@@ -169,7 +169,7 @@ export function SettingsPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <HealthCard
                 icon={Terminal}
                 title="ADB Engine"
@@ -201,7 +201,7 @@ export function SettingsPage() {
             </div>
 
             {/* Diagnostic Details Log Card */}
-            <div className="bg-slate-900 text-slate-300 p-6 rounded-[32px] shadow-xl border border-slate-800 space-y-3 font-mono text-xs">
+            <div className="bg-slate-900 text-slate-300 p-6 md:p-8 rounded-[32px] shadow-xl border border-slate-800 space-y-3 font-mono text-xs">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                 <span className="font-bold text-slate-400 flex items-center gap-2">
                   <Terminal className="w-4 h-4 text-emerald-400" /> Log Diagnostik Perangkat Keras
@@ -210,7 +210,7 @@ export function SettingsPage() {
                   Semua Sistem Normal
                 </span>
               </div>
-              <div className="space-y-1 text-[11px] leading-relaxed">
+              <div className="space-y-1.5 text-[11px] leading-relaxed">
                 <p className="text-slate-400">&gt; Engine core initialized with CompositeDeviceAdapter (ADB + MTP).</p>
                 <p className="text-slate-400">&gt; Storage backend: <span className="text-cyan-400">{currentBackendType}</span>.</p>
                 <p className="text-slate-400">&gt; Encryption: <span className="text-emerald-400">Age X25519 (Chacha20-Poly1305) Active</span>.</p>
@@ -223,7 +223,7 @@ export function SettingsPage() {
         {/* 2. STORAGE TAB */}
         {activeTab === 'storage' && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="bg-white p-6 md:p-8 rounded-[36px] border border-slate-100 shadow-sm space-y-6">
+            <div className="bg-white p-6 md:p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
               <div>
                 <h3 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-2">
                   <Database className="w-5 h-5 text-indigo-600" /> Storage Engine Backend
@@ -383,7 +383,7 @@ export function SettingsPage() {
         {/* 3. SECURITY TAB */}
         {activeTab === 'security' && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="bg-white p-6 md:p-8 rounded-[36px] border border-slate-100 shadow-sm space-y-6">
+            <div className="bg-white p-6 md:p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -459,7 +459,7 @@ export function SettingsPage() {
         {/* 4. MAINTENANCE TAB */}
         {activeTab === 'maintenance' && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="bg-white p-6 md:p-8 rounded-[36px] border border-slate-100 shadow-sm space-y-6">
+            <div className="bg-white p-6 md:p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
               <div>
                 <h3 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-2">
                   <HardDrive className="w-5 h-5 text-indigo-600" /> Pemeliharaan & Optimasi Ruang Disk
@@ -519,7 +519,7 @@ export function SettingsPage() {
         {/* 5. ABOUT TAB */}
         {activeTab === 'about' && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="bg-white p-6 md:p-8 rounded-[36px] border border-slate-100 shadow-sm space-y-6">
+            <div className="bg-white p-6 md:p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-indigo-600 to-indigo-800 text-white flex items-center justify-center shadow-xl shadow-indigo-200 font-black text-2xl">
                   PB
@@ -584,7 +584,7 @@ function TabButton({
       className={cn(
         "flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs transition-all active:scale-95",
         active
-          ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/60"
+          ? "bg-white text-slate-900 shadow-sm ring-1 border border-slate-200/60"
           : "text-slate-500 hover:text-slate-800 hover:bg-white/50"
       )}
     >
