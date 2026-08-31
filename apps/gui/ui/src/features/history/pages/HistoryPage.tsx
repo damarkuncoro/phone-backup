@@ -74,7 +74,7 @@ export function HistoryPage({ onBrowse, onCompare }: HistoryPageProps) {
           {devices.map(d => {
               const isSelected = selectedDeviceId === getDeviceId(d);
               // Check if device is from ADB (Live) or just from Database (Arsip)
-              const isOnline = d.connection_type && d.connection_type !== 'Arsip';
+              const isOnline = d.connection_type && d.connection_type !== 'Unknown';
 
               return (
                   <button

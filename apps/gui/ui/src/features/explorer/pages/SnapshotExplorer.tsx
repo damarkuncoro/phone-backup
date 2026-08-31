@@ -1,6 +1,6 @@
 import {
     Folder, Users, MessageSquare, Smartphone, ArrowLeft, Download,
-    Search, Loader2, Database, Shield, RefreshCcw, X, Clock, CheckCircle2
+    Search, Database, Shield, RefreshCcw, X, Clock, CheckCircle2
 } from 'lucide-react';
 import { systemService } from '@/services/systemService';
 import { type FileEntry } from '@/services/deviceService';

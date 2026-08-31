@@ -23,8 +23,8 @@ vi.mock('@/services/deviceService', () => ({
 describe('FileBrowser Component', () => {
   it('renders header correctly', () => {
     render(<FileBrowser />);
-    expect(screen.getByText('File Explorer')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Search in current folder...')).toBeInTheDocument();
+    expect(screen.getByText('File Manager')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Cari file di folder ini...')).toBeInTheDocument();
   });
 
   it('shows device selector with correct devices', () => {

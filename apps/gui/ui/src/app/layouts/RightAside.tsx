@@ -1,4 +1,4 @@
-import { Smartphone, Info, ShieldCheck, Zap, Activity, ChevronRight, ChevronLeft, Database, FileText, LayoutDashboard, History } from 'lucide-react'
+import { Smartphone, Info, ShieldCheck, Zap, Activity, ChevronRight, ChevronLeft, Database, History } from 'lucide-react'
 import { type Device } from '@/services/deviceService'
 import { cn } from '@/shared/lib/utils'
 

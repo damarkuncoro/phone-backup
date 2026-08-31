@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { deviceService, getDeviceId, type FileEntry, type Device } from '@/services/deviceService';
+import { deviceService, getDeviceId, type FileEntry } from '@/services/deviceService';
 import { useDevices } from '@/features/devices/hooks/useDevices';
 import { sortFiles } from '../lib/fileUtils';
 import { useSelection } from './useSelection';

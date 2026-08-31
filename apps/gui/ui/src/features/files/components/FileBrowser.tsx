@@ -6,7 +6,7 @@ import {
 import { getDeviceId } from '@/services/deviceService';
 import { cn } from "../../../shared/lib/utils";
 import { getParentPath } from '../lib/pathUtils';
-import { formatBytes, formatUnixTimestamp } from '@/shared/lib/formatters';
+import { formatBytes, formatDate } from '@/shared/lib/formatters';
 import { isImage } from '../lib/fileUtils';
 import { useFileBrowser } from '../hooks/useFileBrowser';
 
@@ -190,7 +190,7 @@ export function FileBrowser() {
                                 </td>
                                 <td className="px-8 py-4">
                                     <span className="text-xs font-medium text-slate-400">
-                                        {formatUnixTimestamp(file.modified)}
+                                        {formatDate(file.modified_at)}
                                     </span>
                                 </td>
                                 <td className="px-8 py-4 text-right" onClick={(e) => e.stopPropagation()}>

@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { backupService } from '@/services/backupService';
-import { type FileEntry } from '@/services/deviceService';
 import { safeListen } from '@/shared/lib/ipc';
 import { formatETA } from '@/shared/lib/formatters';
 
