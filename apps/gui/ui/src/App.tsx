@@ -159,6 +159,7 @@ function App() {
             onBack={() => setActiveView('devices')}
             onStartBackup={() => setActiveView('backup')}
             onBrowseHistory={handleOpenExplorer}
+            onNavigate={(v) => setActiveView(v as any)}
           />
         )}
         {activeView === 'settings' && <SettingsPage />}
