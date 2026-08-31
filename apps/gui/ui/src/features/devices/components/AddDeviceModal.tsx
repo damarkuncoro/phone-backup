@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   Usb, Wifi, X, RefreshCw, CheckCircle2,
-  AlertCircle, Smartphone, HelpCircle, Loader2, ArrowRight
+  AlertCircle, Smartphone, HelpCircle, Loader2, ArrowRight, HardDrive, Sparkles
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { deviceService } from "@/services/deviceService";
@@ -13,9 +13,10 @@ interface AddDeviceModalProps {
 }
 
 type BrandGuide = "all" | "samsung" | "xiaomi" | "oppo_vivo" | "pixel";
+type TabType = "mtp" | "usb" | "wireless";
 
 export function AddDeviceModal({ isOpen, onClose, onDeviceConnected }: AddDeviceModalProps) {
-  const [activeTab, setActiveTab] = useState<"usb" | "wireless">("usb");
+  const [activeTab, setActiveTab] = useState<TabType>("mtp");
   const [selectedBrand, setSelectedBrand] = useState<BrandGuide>("all");
   const [ipAddress, setIpAddress] = useState("");
   const [port, setPort] = useState("5555");
@@ -25,7 +26,7 @@ export function AddDeviceModal({ isOpen, onClose, onDeviceConnected }: AddDevice
 
   if (!isOpen) return null;
 
-  const handleScanUsb = async () => {
+  const handleScanDevices = async (modeName: string) => {
     setScanning(true);
     setStatusMessage(null);
     try {
@@ -33,19 +34,19 @@ export function AddDeviceModal({ isOpen, onClose, onDeviceConnected }: AddDevice
       if (devs && devs.length > 0) {
         setStatusMessage({
           type: "success",
-          text: `Ditemukan ${devs.length} perangkat terhubung!`
+          text: `Ditemukan ${devs.length} perangkat terhubung (${modeName})!`
         });
         onDeviceConnected?.();
       } else {
         setStatusMessage({
           type: "error",
-          text: "Belum ada perangkat terdeteksi. Pastikan USB Debugging aktif dan kabel terpasang dengan baik."
+          text: `Belum ada perangkat terdeteksi. Pastikan kabel terpasang dan opsi ${modeName === 'MTP' ? '"Transfer File / MTP"' : 'USB Debugging'} telah dipilih di ponsel.`
         });
       }
     } catch {
       setStatusMessage({
         type: "error",
-        text: "Gagal memindai perangkat. Pastikan ADB server berjalan."
+        text: "Gagal memindai perangkat. Pastikan server backup berjalan."
       });
     } finally {
       setScanning(false);
@@ -93,7 +94,7 @@ export function AddDeviceModal({ isOpen, onClose, onDeviceConnected }: AddDevice
                 Tambah Perangkat Baru
               </h3>
               <p className="text-xs text-slate-400 font-medium">
-                Pilih metode koneksi untuk menghubungkan ponsel Android Anda
+                Pilih metode koneksi yang sesuai dengan kebutuhan Anda
               </p>
             </div>
           </div>
@@ -108,28 +109,44 @@ export function AddDeviceModal({ isOpen, onClose, onDeviceConnected }: AddDevice
         </div>
 
         {/* Tab Selection */}
-        <div className="flex border-b border-slate-100 bg-slate-50/50 p-2 gap-2">
+        <div className="grid grid-cols-3 border-b border-slate-100 bg-slate-50/50 p-2 gap-1.5">
+          <button
+            onClick={() => { setActiveTab("mtp"); setStatusMessage(null); }}
+            className={cn(
+              "py-3 px-2 rounded-2xl font-black text-[11px] uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 text-center",
+              activeTab === "mtp"
+                ? "bg-white text-cyan-700 shadow-sm ring-1 ring-cyan-200"
+                : "text-slate-400 hover:text-slate-700"
+            )}
+          >
+            <HardDrive className="w-3.5 h-3.5 text-cyan-600" />
+            <span className="truncate">Kabel Biasa (MTP)</span>
+          </button>
+
           <button
             onClick={() => { setActiveTab("usb"); setStatusMessage(null); }}
             className={cn(
-              "flex-1 py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2",
+              "py-3 px-2 rounded-2xl font-black text-[11px] uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 text-center",
               activeTab === "usb"
-                ? "bg-white text-indigo-600 shadow-sm"
+                ? "bg-white text-indigo-600 shadow-sm ring-1 ring-indigo-200"
                 : "text-slate-400 hover:text-slate-700"
             )}
           >
-            <Usb className="w-4 h-4" /> Kabel USB (Rekomendasi)
+            <Usb className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="truncate">USB Debugging</span>
           </button>
+
           <button
             onClick={() => { setActiveTab("wireless"); setStatusMessage(null); }}
             className={cn(
-              "flex-1 py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2",
+              "py-3 px-2 rounded-2xl font-black text-[11px] uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 text-center",
               activeTab === "wireless"
-                ? "bg-white text-indigo-600 shadow-sm"
+                ? "bg-white text-indigo-600 shadow-sm ring-1 ring-indigo-200"
                 : "text-slate-400 hover:text-slate-700"
             )}
           >
-            <Wifi className="w-4 h-4" /> Wireless ADB (WiFi)
+            <Wifi className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="truncate">Wireless ADB</span>
           </button>
         </div>
 
@@ -152,8 +169,55 @@ export function AddDeviceModal({ isOpen, onClose, onDeviceConnected }: AddDevice
 
         {/* Modal Body Content */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
-          {activeTab === "usb" ? (
-            /* USB Tab Content */
+          {activeTab === "mtp" && (
+            /* MTP Tab Content */
+            <div className="space-y-5">
+              <div className="p-4 bg-cyan-50/80 border border-cyan-200 rounded-3xl text-xs text-cyan-950 leading-relaxed space-y-2">
+                <div className="flex items-center gap-2 font-black text-cyan-900 uppercase tracking-wider text-[11px]">
+                  <Sparkles className="w-4 h-4 text-cyan-600" />
+                  Rekomendasi Utama untuk Pengguna Awam (Tanpa Developer Mode)
+                </div>
+                <p className="font-medium text-cyan-900/90">
+                  Mode ini tidak memerlukan pengaturan rumit di ponsel. Cukup colok kabel USB standar, dan Anda dapat mencadangkan seluruh <b>Foto (DCIM/Pictures)</b>, <b>Video</b>, <b>Dokumen</b>, dan <b>Download</b> dengan cepat.
+                </p>
+              </div>
+
+              <div className="space-y-3 bg-slate-50 p-5 rounded-3xl border border-slate-200/80">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                  <HelpCircle className="w-4 h-4 text-cyan-600" />
+                  Cara Menghubungkan (Hanya 2 Langkah):
+                </h4>
+
+                <ol className="space-y-3.5 text-xs text-slate-600 leading-relaxed font-medium">
+                  <li className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-cyan-600 text-white font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">1</span>
+                    <span>
+                      Sambungkan ponsel ke komputer menggunakan <b>kabel USB biasa</b>.
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <span className="w-5 h-5 rounded-full bg-cyan-600 text-white font-black text-[10px] flex items-center justify-center shrink-0 mt-0.5">2</span>
+                    <span>
+                      Buka kunci layar ponsel &gt; Ketuk notifikasi sambungan USB &gt; Pilih opsi <b>"Transfer File"</b> atau <b>"MTP / Transfer Media"</b> (jangan pilih "Hanya Isi Daya").
+                    </span>
+                  </li>
+                </ol>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleScanDevices("MTP")}
+                disabled={scanning}
+                className="w-full py-3.5 bg-cyan-700 hover:bg-cyan-800 text-white rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-cyan-200/50 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+              >
+                <RefreshCw className={cn("w-4 h-4", scanning && "animate-spin")} />
+                {scanning ? "Memindai Sambungan MTP..." : "Pindai Ulang Sambungan MTP"}
+              </button>
+            </div>
+          )}
+
+          {activeTab === "usb" && (
+            /* USB Debugging Tab Content */
             <div className="space-y-5">
               {/* Brand Guide Selector */}
               <div className="space-y-2">
@@ -249,15 +313,17 @@ export function AddDeviceModal({ isOpen, onClose, onDeviceConnected }: AddDevice
               {/* Action Button */}
               <button
                 type="button"
-                onClick={handleScanUsb}
+                onClick={() => handleScanDevices("ADB")}
                 disabled={scanning}
                 className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
               >
                 <RefreshCw className={cn("w-4 h-4", scanning && "animate-spin")} />
-                {scanning ? "Memindai Sambungan USB..." : "Pindai Ulang Sambungan USB"}
+                {scanning ? "Memindai Sambungan ADB..." : "Pindai Ulang Sambungan ADB"}
               </button>
             </div>
-          ) : (
+          )}
+
+          {activeTab === "wireless" && (
             /* Wireless ADB Tab Content */
             <form onSubmit={handleConnectWireless} className="space-y-5">
               <div className="p-4 bg-indigo-50/70 border border-indigo-100 rounded-2xl text-xs text-indigo-900 leading-relaxed font-medium space-y-1">

@@ -22,6 +22,7 @@ impl std::fmt::Display for DeviceId {
 pub enum ConnectionType {
     Usb,
     Wifi,
+    Mtp,
     Unknown,
 }
 

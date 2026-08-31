@@ -1,0 +1,22 @@
+[package]
+name = "phone-backup-adapter-mtp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "MTP (Media Transfer Protocol) device and filesystem adapter for phone backup platform"
+
+[dependencies]
+domain = { workspace = true }
+ports = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+walkdir = { workspace = true }
+sha2 = { workspace = true }
+chrono = { workspace = true }
+sysinfo = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

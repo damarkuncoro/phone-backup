@@ -2,7 +2,7 @@ import { type Device, getDeviceId } from "@/services/deviceService";
 import { cn } from "../../../shared/lib/utils";
 import { useState, useEffect } from "react";
 import { safeListen } from "@/shared/lib/ipc";
-import { Battery, Smartphone, Usb, Wifi } from "lucide-react";
+import { Battery, Smartphone, Usb, Wifi, HardDrive } from "lucide-react";
 import { formatBytes } from "@/shared/lib/formatters";
 
 interface DeviceCardProps {
@@ -81,16 +81,16 @@ export function DeviceCard({ device, isSelected, onSelect, onDetails, onQuickBac
 
       <div className="grid grid-cols-2 gap-3 mb-6">
           <StatusChip
-            icon={device.connection_type === 'Usb' ? Usb : Wifi}
-            label={device.connection_type}
-            value="Active"
-            color="text-emerald-600"
-            bgColor="bg-emerald-50"
+            icon={device.connection_type === 'Mtp' ? HardDrive : device.connection_type === 'Usb' ? Usb : Wifi}
+            label={device.connection_type === 'Mtp' ? 'MTP (USB)' : device.connection_type}
+            value={device.connection_type === 'Mtp' ? 'Plug & Play' : 'Active'}
+            color={device.connection_type === 'Mtp' ? 'text-cyan-600' : 'text-emerald-600'}
+            bgColor={device.connection_type === 'Mtp' ? 'bg-cyan-50' : 'bg-emerald-50'}
           />
           <StatusChip
             icon={Battery}
             label="Battery"
-            value={status ? `${status.battery_level}%` : '--%'}
+            value={status ? `${status.battery_level}%` : (device.connection_type === 'Mtp' ? 'USB Power' : '--%')}
             color={status && status.battery_level < 20 ? "text-red-600" : "text-slate-600"}
             bgColor={status && status.battery_level < 20 ? "bg-red-50" : "bg-slate-50"}
           />

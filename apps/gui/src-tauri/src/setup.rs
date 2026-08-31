@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use tauri::Manager;
 use adapter_adb::{AdbAdapter, AdbClient};
+use adapter_mtp::{CompositeDeviceAdapter, CompositeScannerAdapter, MtpAdapter};
 use adapter_database_sqlite::SqliteRepository;
 use adapter_filesystem::LocalStorage;
 use application::BackupService;
@@ -42,9 +43,20 @@ pub fn init_infrastructure(app: &mut tauri::App, io: SocketIo) -> anyhow::Result
     // 4. Core Engine
     let adb_client = AdbClient::new();
     let adb_adapter = AdbAdapter::new(adb_client);
+    let mtp_adapter = MtpAdapter::new();
+
+    let composite_device = CompositeDeviceAdapter::new(
+        Arc::new(adb_adapter.clone()),
+        Arc::new(mtp_adapter.clone()),
+    );
+    let composite_scanner = CompositeScannerAdapter::new(
+        Arc::new(adb_adapter.clone()),
+        Arc::new(mtp_adapter),
+    );
+
     let engine = Arc::new(BackupService::new(
-        adb_adapter.clone(),
-        adb_adapter.clone(),
+        composite_device.clone(),
+        composite_scanner,
         repository,
         SharedStorage(switcher.clone()),
         adb_adapter.clone(),
@@ -58,7 +70,7 @@ pub fn init_infrastructure(app: &mut tauri::App, io: SocketIo) -> anyhow::Result
     // 5. Background Monitors
     spawn_auto_backup_monitor(engine.clone());
     spawn_hardware_monitor(app.handle().clone(), engine.clone(), adb_adapter.clone());
-    spawn_status_poller(app.handle().clone(), adb_adapter);
+    spawn_status_poller(app.handle().clone(), composite_device);
 
     // 6. Manage State
     app.manage(AppState {
@@ -114,15 +126,15 @@ fn spawn_hardware_monitor(app_handle: tauri::AppHandle, engine: Arc<crate::state
     });
 }
 
-fn spawn_status_poller(app_handle: tauri::AppHandle, adb_adapter: AdbAdapter) {
+fn spawn_status_poller(app_handle: tauri::AppHandle, device_adapter: CompositeDeviceAdapter) {
     use ports::DevicePort;
     use tauri::Emitter;
 
     std::thread::spawn(move || {
         loop {
-            if let Ok(devices) = adb_adapter.discover() {
+            if let Ok(devices) = device_adapter.discover() {
                 for device in devices {
-                    if let Ok((level, temp)) = adb_adapter.battery_status(&device.id) {
+                    if let Ok((level, temp)) = device_adapter.battery_status(&device.id) {
                         let payload = serde_json::json!({
                             "device_id": device.id.0,
                             "battery_level": level,

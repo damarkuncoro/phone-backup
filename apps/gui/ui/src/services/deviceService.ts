@@ -6,7 +6,7 @@ export interface Device {
   model: string;
   serial: string;
   os_version: string;
-  connection_type: 'Usb' | 'Wifi' | 'Unknown';
+  connection_type: 'Usb' | 'Wifi' | 'Mtp' | 'Unknown';
   storage_used_bytes: number;
   storage_total_bytes: number;
   storage_free_bytes: number;

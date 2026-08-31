@@ -17,6 +17,7 @@ application = { workspace = true }
 domain = { workspace = true }
 ports = { workspace = true }
 adapter-adb = { workspace = true }
+adapter-mtp = { workspace = true }
 adapter-database-sqlite = { workspace = true }
 adapter-filesystem = { workspace = true }
 adapter-mock = { workspace = true }

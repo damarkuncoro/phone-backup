@@ -9,6 +9,7 @@ members = [
     "adapters/filesystem",
     "adapters/mock",
     "adapters/adb",
+    "adapters/mtp",
     "adapters/agent",
     "adapters/opendal",
     "infrastructure/database-sqlite",
@@ -70,6 +71,7 @@ ports = { path = "core/ports", package = "phone-backup-ports", version = "0.3.2"
 application = { path = "core/application", package = "phone-backup-application", version = "0.3.2" }
 adapter-mock = { path = "adapters/mock", package = "phone-backup-adapter-mock", version = "0.3.2" }
 adapter-adb = { path = "adapters/adb", package = "phone-backup-adapter-adb", version = "0.3.2" }
+adapter-mtp = { path = "adapters/mtp", package = "phone-backup-adapter-mtp", version = "0.3.2" }
 adapter-agent = { path = "adapters/agent", package = "phone-backup-adapter-agent", version = "0.3.2" }
 adapter-filesystem = { path = "adapters/filesystem", package = "phone-backup-adapter-filesystem", version = "0.3.2" }
 adapter-opendal = { path = "adapters/opendal", package = "phone-backup-adapter-opendal", version = "0.3.2" }

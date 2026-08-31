@@ -18,9 +18,11 @@ pub struct DoctorReport {
     pub db_healthy: bool,
 }
 
+use adapter_mtp::{CompositeDeviceAdapter, CompositeScannerAdapter};
+
 pub type AppEngine = BackupService<
-    AdbAdapter,
-    AdbAdapter,
+    CompositeDeviceAdapter,
+    CompositeScannerAdapter,
     SqliteRepository,
     SharedStorage,
     AdbAdapter,
