@@ -11,6 +11,7 @@ import { useSnapshotExplorer } from '../hooks/useSnapshotExplorer';
 import { useState } from 'react';
 import { ContactsExplorer, getContactPhones } from '../components/ContactsExplorer';
 import { SmsExplorer } from '../components/SmsExplorer';
+import { AppsExplorer } from '../components/AppsExplorer';
 
 interface SnapshotExplorerProps {
   snapshotId: string;
@@ -286,7 +287,14 @@ export function SnapshotExplorer({ snapshotId, onBack }: SnapshotExplorerProps) 
                           />
                       </div>
                   )}
-                  {mode === 'apps' && <AppGrid apps={(Array.isArray(rawData) ? rawData : []).filter((a: any) => a && (a.name || '').toLowerCase().includes(searchQuery.toLowerCase()))} />}
+                  {mode === 'apps' && (
+                      <div className="max-w-6xl mx-auto h-[620px]">
+                          <AppsExplorer
+                            apps={(Array.isArray(rawData) ? rawData : []).filter((a: any) => a && (((a.name || a.app_name || '').toLowerCase().includes(searchQuery.toLowerCase())) || ((a.package_name || '').toLowerCase().includes(searchQuery.toLowerCase()))))}
+                            snapshotId={snapshotId}
+                          />
+                      </div>
+                  )}
 
                   {mode === 'files' && rawData.length === 0 && (
                       <div className="py-20 flex flex-col items-center justify-center text-slate-300">
@@ -313,27 +321,5 @@ function ModeTab({ active, icon: Icon, label, onClick }: { active: boolean, icon
             <Icon className="w-3.5 h-3.5" />
             <span className="hidden lg:block">{label}</span>
         </button>
-    );
-}
-
-
-function AppGrid({ apps }: { apps: any[] }) {
-    return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {apps.map((a, i) => (
-                <div key={i} className="p-6 bg-white border border-slate-100 rounded-[32px] flex items-start gap-5 hover:shadow-xl hover:border-indigo-100 transition-all group">
-                    <div className="w-16 h-16 bg-slate-50 rounded-[24px] flex items-center justify-center group-hover:bg-indigo-50 transition-colors">
-                        <Smartphone className="w-8 h-8 text-slate-200 group-hover:text-indigo-400 transition-colors" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="font-black text-slate-800 truncate text-lg tracking-tight">{a.name}</p>
-                        <p className="text-[10px] font-mono text-slate-400 truncate uppercase tracking-tighter">{a.package_name}</p>
-                        <div className="mt-3 flex gap-2">
-                            <span className="text-[9px] px-2.5 py-1 bg-slate-100 rounded-lg font-black text-slate-500 uppercase tracking-widest">v{a.version_name || '?' }</span>
-                        </div>
-                    </div>
-                </div>
-            ))}
-        </div>
     );
 }

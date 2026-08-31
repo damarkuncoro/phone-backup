@@ -68,6 +68,10 @@ export const backupService = {
 
   async exportSmsJson(snapshotId: string): Promise<string> {
     return await safeInvoke("export_sms_json", { snapshot_id: snapshotId });
+  },
+
+  async getSnapshotApps(snapshotId: string): Promise<any[]> {
+    return await safeInvoke("get_snapshot_apps", { snapshot_id: snapshotId });
   }
 };
 
