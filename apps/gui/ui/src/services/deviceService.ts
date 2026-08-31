@@ -74,5 +74,9 @@ export const deviceService = {
 
   async getStatus() {
     return await safeInvoke("get_doctor_report");
+  },
+
+  async connectWireless(host: string, port: number = 5555): Promise<string> {
+    return await safeInvoke("connect_wireless_device", { host, port });
   }
 };

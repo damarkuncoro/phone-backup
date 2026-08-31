@@ -10,6 +10,7 @@ interface DeviceCardProps {
   isSelected?: boolean;
   onSelect?: (device: Device) => void;
   onDetails?: (device: Device) => void;
+  onQuickBackup?: (device: Device) => void;
 }
 
 interface DeviceStatus {
@@ -17,7 +18,7 @@ interface DeviceStatus {
   temperature: number;
 }
 
-export function DeviceCard({ device, isSelected, onSelect, onDetails }: DeviceCardProps) {
+export function DeviceCard({ device, isSelected, onSelect, onDetails, onQuickBackup }: DeviceCardProps) {
   const [status, setStatus] = useState<DeviceStatus | null>(null);
   const deviceId = getDeviceId(device);
 
@@ -120,10 +121,13 @@ export function DeviceCard({ device, isSelected, onSelect, onDetails }: DeviceCa
           >
             Details
           </button>
-          <button className={cn(
-            "flex-[1.5] py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md",
-            isSelected ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200" : "bg-white text-indigo-600 border border-indigo-100 hover:bg-indigo-50"
-          )}>
+          <button
+            onClick={(e) => { e.stopPropagation(); onQuickBackup?.(device); }}
+            className={cn(
+              "flex-[1.5] py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md",
+              isSelected ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200" : "bg-white text-indigo-600 border border-indigo-100 hover:bg-indigo-50"
+            )}
+          >
             Quick Backup
           </button>
         </div>

@@ -80,8 +80,12 @@ function App() {
       <main className="flex-1 overflow-y-auto bg-white/50 backdrop-blur-sm relative">
         {activeView === 'dashboard' && (
           <Dashboard
-            onBackupClick={() => setActiveView('backup')}
+            onBackupClick={(device) => {
+              if (device) setSelectedDevice(device);
+              setActiveView('backup');
+            }}
             onDeviceDetails={handleOpenDetails}
+            onNavigate={(view) => setActiveView(view as any)}
           />
         )}
         {activeView === 'devices' && (

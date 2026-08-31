@@ -1,32 +1,57 @@
-import { Tablet, Database, Cpu, Plus, Loader2 } from "lucide-react";
+import { Tablet, Database, Cpu, Plus, Loader2, RefreshCw, CheckCircle2 } from "lucide-react";
 import { useDevices } from "../hooks/useDevices";
 import { DeviceCard } from "../components/DeviceCard";
+import { AddDeviceModal } from "../components/AddDeviceModal";
 import { useState, useEffect } from "react";
 import { getDeviceId, type Device } from "@/services/deviceService";
 import { backupService } from "@/services/backupService";
 import { formatBytes } from "@/shared/lib/formatters";
+import { cn } from "@/shared/lib/utils";
 
 interface DashboardProps {
-    onBackupClick?: () => void;
+    onBackupClick?: (device?: Device) => void;
     onDeviceDetails?: (device: Device) => void;
+    onNavigate?: (tab: 'dashboard' | 'devices' | 'backup' | 'files' | 'history' | 'explorer' | 'settings') => void;
 }
 
-export function Dashboard({ onBackupClick, onDeviceDetails }: DashboardProps) {
-  const { devices, loading, error } = useDevices();
+export function Dashboard({ onBackupClick, onDeviceDetails, onNavigate }: DashboardProps) {
+  const { devices, loading, error, refreshDevices } = useDevices();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [stats, setStats] = useState<{ total_logical_bytes: number, total_deduped_bytes: number, total_snapshots: number } | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanToast, setScanToast] = useState<string | null>(null);
+
+  const loadStats = async () => {
+    try {
+      const data = await backupService.getStorageStats();
+      setStats(data);
+    } catch {
+      console.warn("Stats load failed");
+    }
+  };
 
   useEffect(() => {
-    async function loadStats() {
-        try {
-            const data = await backupService.getStorageStats();
-            setStats(data);
-        } catch (e) {
-            console.warn("Stats load failed");
-        }
-    }
     loadStats();
   }, []);
+
+  const handleScanDevice = async () => {
+    setIsScanning(true);
+    setScanToast(null);
+    try {
+      if (typeof refreshDevices === 'function') {
+        await refreshDevices();
+      }
+      await loadStats();
+      setScanToast("Pemindaian selesai: Data perangkat dan penyimpanan diperbarui!");
+      setTimeout(() => setScanToast(null), 3500);
+    } catch {
+      setScanToast("Gagal memindai perangkat.");
+      setTimeout(() => setScanToast(null), 3000);
+    } finally {
+      setIsScanning(false);
+    }
+  };
 
   const selectedDevice = devices.find(d => getDeviceId(d) === selectedDeviceId) || devices[0];
   const dedupeRatio = stats && stats.total_deduped_bytes > 0
@@ -34,22 +59,65 @@ export function Dashboard({ onBackupClick, onDeviceDetails }: DashboardProps) {
     : "1.0";
 
   return (
-    <div className="p-8 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="p-8 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 relative">
+      
+      {/* Scan Feedback Toast */}
+      {scanToast && (
+        <div className="fixed top-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-3 text-xs font-bold animate-in slide-in-from-top-4 duration-300">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{scanToast}</span>
+        </div>
+      )}
+
+      {/* Add Device Modal */}
+      <AddDeviceModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onDeviceConnected={() => {
+          if (typeof refreshDevices === 'function') refreshDevices();
+          loadStats();
+        }}
+      />
+
       <header className="flex justify-between items-end gap-4">
         <div className="min-w-0">
           <h1 className="text-4xl font-black text-slate-900 tracking-tight truncate">Dashboard</h1>
           <p className="text-slate-500 font-medium mt-1 truncate">Manage your connected devices and backups.</p>
         </div>
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 shrink-0">
+        <button
+          onClick={() => setIsAddModalOpen(true)}
+          className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 shrink-0 active:scale-95"
+        >
           <Plus className="w-4 h-4" />
           Add Device
         </button>
       </header>
 
+      {/* Stat Cards with Navigation */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard title="Active Devices" value={devices.length.toString()} icon={Tablet} color="bg-indigo-600" />
-        <StatCard title="Total Backups" value={stats?.total_snapshots.toString() || "0"} icon={Database} color="bg-emerald-600" />
-        <StatCard title="Deduplication" value={`${dedupeRatio}x`} icon={Cpu} color="bg-amber-500" />
+        <StatCard
+          title="Active Devices"
+          value={devices.length.toString()}
+          icon={Tablet}
+          color="bg-indigo-600"
+          subtitle="Buka File Manager"
+          onClick={() => onNavigate?.('files')}
+        />
+        <StatCard
+          title="Total Backups"
+          value={stats?.total_snapshots.toString() || "0"}
+          icon={Database}
+          color="bg-emerald-600"
+          subtitle="Buka Arsip Vault"
+          onClick={() => onNavigate?.('history')}
+        />
+        <StatCard
+          title="Deduplication"
+          value={`${dedupeRatio}x`}
+          icon={Cpu}
+          color="bg-amber-500"
+          subtitle="Efisiensi Ruang Disk"
+        />
       </section>
 
       {selectedDevice && (
@@ -78,18 +146,23 @@ export function Dashboard({ onBackupClick, onDeviceDetails }: DashboardProps) {
                       <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden p-0.5">
                           <div
                             className="h-full bg-indigo-600 rounded-full transition-all duration-1000"
-                            style={{ width: `${Math.round((Number(selectedDevice.storage_used_bytes) / Number(selectedDevice.storage_total_bytes)) * 100)}%` }}
+                            style={{ width: `${Math.round((Number(selectedDevice.storage_used_bytes) / Math.max(1, Number(selectedDevice.storage_total_bytes))) * 100)}%` }}
                           />
                       </div>
                   </div>
 
                   <div className="flex flex-wrap gap-4">
-                      <button className="px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all flex-1 md:flex-none">
-                          Scan Device
+                      <button
+                        onClick={handleScanDevice}
+                        disabled={isScanning}
+                        className="px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 flex-1 md:flex-none active:scale-95 disabled:opacity-50"
+                      >
+                          <RefreshCw className={cn("w-4 h-4", isScanning && "animate-spin")} />
+                          {isScanning ? "Memindai Perangkat..." : "Scan Device"}
                       </button>
                       <button
-                        onClick={onBackupClick}
-                        className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-50 transition-all flex-1 md:flex-none"
+                        onClick={() => onBackupClick?.(selectedDevice)}
+                        className="px-6 py-3 bg-white border border-slate-200 text-slate-600 rounded-2xl font-black text-sm hover:bg-slate-50 transition-all flex-1 md:flex-none active:scale-95"
                       >
                           Backup Now
                       </button>
@@ -125,6 +198,7 @@ export function Dashboard({ onBackupClick, onDeviceDetails }: DashboardProps) {
                   isSelected={getDeviceId(selectedDevice) === id}
                   onSelect={(d) => setSelectedDeviceId(getDeviceId(d))}
                   onDetails={onDeviceDetails}
+                  onQuickBackup={(d) => onBackupClick?.(d)}
               />
             );
           })}
@@ -142,15 +216,33 @@ export function Dashboard({ onBackupClick, onDeviceDetails }: DashboardProps) {
   );
 }
 
-function StatCard({ title, value, icon: Icon, color }: { title: string, value: string, icon: any, color: string }) {
+function StatCard({ title, value, icon: Icon, color, subtitle, onClick }: {
+  title: string;
+  value: string;
+  icon: any;
+  color: string;
+  subtitle?: string;
+  onClick?: () => void;
+}) {
   return (
-    <div className="bg-white p-7 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-5 hover:shadow-md transition-all">
-      <div className={`${color} w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0`}>
+    <div
+      onClick={onClick}
+      className={cn(
+        "bg-white p-7 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-5 transition-all select-none",
+        onClick ? "cursor-pointer hover:shadow-lg hover:border-indigo-100 hover:scale-[1.01] active:scale-95 group" : "hover:shadow-md"
+      )}
+    >
+      <div className={`${color} w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg shrink-0 transition-transform group-hover:scale-105`}>
         <Icon className="w-7 h-7" />
       </div>
       <div className="min-w-0">
         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">{title}</p>
         <p className="text-3xl font-black text-slate-900 tracking-tighter truncate">{value}</p>
+        {subtitle && (
+          <p className="text-[10px] font-bold text-indigo-500 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity truncate">
+            {subtitle} &rarr;
+          </p>
+        )}
       </div>
     </div>
   );
