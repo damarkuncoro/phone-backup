@@ -60,6 +60,10 @@ export const backupService = {
         target_dir: targetDir,
         filter: filters || null
     });
+  },
+
+  async exportContactsVCard(snapshotId: string): Promise<string> {
+    return await safeInvoke("export_contacts_vcard", { snapshot_id: snapshotId });
   }
 };
 

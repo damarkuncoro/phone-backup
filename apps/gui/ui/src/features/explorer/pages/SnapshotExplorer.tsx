@@ -9,6 +9,7 @@ import { FileTree } from '@/shared/components/FileTree';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { useSnapshotExplorer } from '../hooks/useSnapshotExplorer';
 import { useState } from 'react';
+import { ContactsExplorer } from '../components/ContactsExplorer';
 
 interface SnapshotExplorerProps {
   snapshotId: string;
@@ -260,7 +261,14 @@ export function SnapshotExplorer({ snapshotId, onBack }: SnapshotExplorerProps) 
                       </div>
                   )}
 
-                  {mode === 'contacts' && <ContactList contacts={rawData.filter(c => (c.display_name || '').toLowerCase().includes(searchQuery.toLowerCase()))} />}
+                  {mode === 'contacts' && (
+                      <div className="max-w-6xl mx-auto h-[620px]">
+                          <ContactsExplorer
+                            contacts={rawData.filter(c => (c.display_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (c.phone_numbers || []).some((p: string) => p.includes(searchQuery)))}
+                            snapshotId={snapshotId}
+                          />
+                      </div>
+                  )}
                   {mode === 'sms' && <SmsList messages={rawData.filter(m => (m.body || '').toLowerCase().includes(searchQuery.toLowerCase()) || (m.address || '').includes(searchQuery))} />}
                   {mode === 'apps' && <AppGrid apps={rawData.filter(a => (a.name || '').toLowerCase().includes(searchQuery.toLowerCase()))} />}
 
@@ -289,24 +297,6 @@ function ModeTab({ active, icon: Icon, label, onClick }: { active: boolean, icon
             <Icon className="w-3.5 h-3.5" />
             <span className="hidden lg:block">{label}</span>
         </button>
-    );
-}
-
-function ContactList({ contacts }: { contacts: any[] }) {
-    return (
-        <div className="max-w-2xl mx-auto space-y-3">
-            {contacts.map((c, i) => (
-                <div key={i} className="p-5 bg-white border border-slate-100 rounded-[32px] flex items-center gap-5 hover:shadow-lg transition-all group">
-                    <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-sm shadow-inner group-hover:scale-110 transition-transform">
-                        {c.display_name?.[0] || '?'}
-                    </div>
-                    <div className="flex-1">
-                        <p className="font-black text-slate-800 text-lg tracking-tight">{c.display_name}</p>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{c.phone_numbers?.[0] || 'No number'}</p>
-                    </div>
-                </div>
-            ))}
-        </div>
     );
 }
 
