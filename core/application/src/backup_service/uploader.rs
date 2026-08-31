@@ -101,7 +101,7 @@ impl<
         snapshot.total_bytes = total_bytes_atomic.load(Ordering::Relaxed);
         snapshot.deduped_bytes = deduped_bytes_atomic.load(Ordering::Relaxed);
 
-        self.progress.finish("File backup finished.");
+        self.progress.log("File indexing complete. Finalizing metadata...");
         Ok(())
     }
 }

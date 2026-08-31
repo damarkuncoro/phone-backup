@@ -15,7 +15,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 license = "MIT"
 authors = ["Damar Kuncoro <damarkuncoro@gmail.com>"]
@@ -65,13 +65,13 @@ r2d2 = "0.8"
 r2d2_sqlite = "0.24"
 
 # Internal Workspace Dependencies (Short names for convenience)
-domain = { path = "core/domain", package = "phone-backup-domain", version = "0.3.1" }
-ports = { path = "core/ports", package = "phone-backup-ports", version = "0.3.1" }
-application = { path = "core/application", package = "phone-backup-application", version = "0.3.1" }
-adapter-mock = { path = "adapters/mock", package = "phone-backup-adapter-mock", version = "0.3.1" }
-adapter-adb = { path = "adapters/adb", package = "phone-backup-adapter-adb", version = "0.3.1" }
-adapter-agent = { path = "adapters/agent", package = "phone-backup-adapter-agent", version = "0.3.1" }
-adapter-filesystem = { path = "adapters/filesystem", package = "phone-backup-adapter-filesystem", version = "0.3.1" }
-adapter-opendal = { path = "adapters/opendal", package = "phone-backup-adapter-opendal", version = "0.3.1" }
-adapter-database-sqlite = { path = "infrastructure/database-sqlite", package = "phone-backup-adapter-database-sqlite", version = "0.3.1" }
-gui = { path = "apps/gui/src-tauri", package = "phone-backup-gui", version = "0.3.1" }
+domain = { path = "core/domain", package = "phone-backup-domain", version = "0.3.2" }
+ports = { path = "core/ports", package = "phone-backup-ports", version = "0.3.2" }
+application = { path = "core/application", package = "phone-backup-application", version = "0.3.2" }
+adapter-mock = { path = "adapters/mock", package = "phone-backup-adapter-mock", version = "0.3.2" }
+adapter-adb = { path = "adapters/adb", package = "phone-backup-adapter-adb", version = "0.3.2" }
+adapter-agent = { path = "adapters/agent", package = "phone-backup-adapter-agent", version = "0.3.2" }
+adapter-filesystem = { path = "adapters/filesystem", package = "phone-backup-adapter-filesystem", version = "0.3.2" }
+adapter-opendal = { path = "adapters/opendal", package = "phone-backup-adapter-opendal", version = "0.3.2" }
+adapter-database-sqlite = { path = "infrastructure/database-sqlite", package = "phone-backup-adapter-database-sqlite", version = "0.3.2" }
+gui = { path = "apps/gui/src-tauri", package = "phone-backup-gui", version = "0.3.2" }

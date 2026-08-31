@@ -3,6 +3,7 @@ identifier = "allow-app-commands"
 description = "Allows all custom app commands"
 commands.allow = [
     "get_devices",
+    "get_all_known_devices",
     "get_storage_stats",
     "get_snapshots",
     "start_backup",
@@ -31,5 +32,16 @@ commands.allow = [
     "scan_device",
     "switch_to_mock_storage",
     "switch_to_s3_storage",
-    "search_contacts"
+    "search_contacts",
+    "get_settings",
+    "save_settings",
+    "open_restore_folder",
+    "get_contact_diff",
+    "export_contacts_vcard",
+    "get_snapshot_sms",
+    "search_sms",
+    "export_sms_json",
+    "get_snapshot_call_logs",
+    "search_call_logs",
+    "export_call_logs_json"
 ]

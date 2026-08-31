@@ -36,12 +36,13 @@ impl<
         self.check_battery_and_thermal(id)?;
 
         // 2. SCAN DEVICE
+        self.progress.log("Scanning device filesystem...");
         let all_files = self.scanner_adapter.scan(id, policy.include_paths.clone())?;
         let manifest_files: Vec<FileEntry> = all_files
             .into_iter()
             .filter(|f| policy.should_include(&f.path))
             .collect();
-        info!("📋 Manifest built with {} files", manifest_files.len());
+        self.progress.log(&format!("Manifest built with {} files", manifest_files.len()));
 
         // 3. COMPARE PREVIOUS COMPLETED BACKUP (DIFFING)
         let latest_completed_snapshot = self.repository.get_latest_completed_snapshot(id)?;
@@ -68,13 +69,14 @@ impl<
 
         // Determine what actually needs uploading via BackupPlanner
         let plan = crate::BackupPlanner::build_plan(&manifest_files, &previous_files, &already_backed_up);
-        info!(
-            "📊 Backup Plan: {} to upload ({:.2} MB), {} reused, {} deleted",
+        let plan_msg = format!(
+            "Plan: {} to upload ({:.2} MB), {} reused",
             plan.upload_count(),
             plan.upload_bytes as f64 / 1024.0 / 1024.0,
-            plan.reuse_count(),
-            plan.deleted_count()
+            plan.reuse_count()
         );
+        info!("📊 {}", plan_msg);
+        self.progress.log(&plan_msg);
 
         self.check_available_disk_space(plan.upload_bytes)?;
 
@@ -92,6 +94,7 @@ impl<
         self.backup_metadata_and_structured_data(id, guard.snapshot, &encryption)?;
 
         // 6. FINALIZE SNAPSHOT
+        self.progress.log("Cleaning up and applying retention policy...");
         guard.snapshot.complete()?;
         self.repository.update_snapshot(guard.snapshot)?;
         guard.mark_completed();
@@ -100,6 +103,7 @@ impl<
         let _ = self.apply_retention_strategy(id, &domain::KeepCountStrategy { keep_limit: 10 });
 
         info!("✨ Backup Job Completed: {}", snapshot.id.0);
+        self.progress.finish("Backup completed successfully!");
         Ok(snapshot)
     }
 

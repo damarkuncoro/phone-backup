@@ -1,11 +1,12 @@
 {
   "productName": "phone-backup",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "identifier": "com.phonebackup.app",
   "build": {
-    "frontendDist": "../ui",
-    "beforeDevCommand": "",
-    "beforeBuildCommand": ""
+    "frontendDist": "../ui/dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "cd ui && npm run dev",
+    "beforeBuildCommand": "cd ui && npm run build"
   },
   "app": {
     "withGlobalTauri": true,

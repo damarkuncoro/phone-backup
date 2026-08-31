@@ -2,7 +2,24 @@
 
 A high-performance, secure, and professional Android backup platform written in Rust.
 
-**phone-backup** is a comprehensive backup engine designed with **Clean Architecture**, **Hexagonal Architecture**, and **SOLID Design Principles**. It handles device discovery, intelligent indexing, versioned snapshots, military-grade encryption, and storage-efficient deduplication.
+**phone-backup** is an enterprise-grade backup engine designed with **Clean Architecture**, **Hexagonal Architecture**, and **SOLID Design Principles**. It handles USB & Wi-Fi device discovery, intelligent indexing, versioned snapshots, military-grade encryption, and storage-efficient deduplication.
+
+---
+
+## 📑 Documentation Index
+
+| Guide / Document | Description |
+| :--- | :--- |
+| 📖 **[Project Wiki (Full Knowledge Base)](wiki/Home.md)** | Basis pengetahuan lengkap modular (Getting Started, CLI, GUI, Architecture, Security, Storage, Wireless Agent, FAQ, Testing). |
+| 🛠 **[Complete How-To Guide](docs/guides/README.md)** | Step-by-step instructions for CLI, Tauri Desktop GUI, S3/R2 Cloud, Wireless Agent, Scheduler, and Troubleshooting FAQ. |
+| 🏗 **[Software Architecture Document (SAD)](docs/architecture/README.md)** | Hexagonal ports & adapters, CAS deduplication pipeline, FastCDC, and security architecture. |
+| 📱 **[Android Companion Agent Roadmap](docs/architecture/companion-agent-roadmap.md)** | Wi-Fi local backup protocol, mDNS discovery, and APK architecture. |
+| 🚀 **[Project Roadmap & Phases](docs/roadmap/phases.md)** | Detailed changelog from Phase 01 to Phase 43+. |
+| 🧪 **[Test Cases & Benchmark Report](docs/reports/test-cases-report.md)** | Verification reports, test suite isolation, and multi-scenario trials. |
+| 📝 **[Technical Review & Hardware Assessment](docs/reports/hardware-review.md)** | Real device testing report (Xiaomi/Redmi) and engineering findings. |
+| ⚠️ **[Known Limitations](docs/guides/limitations.md)** | Boundaries of ADB vs MTP vs Companion Agent. |
+| 💡 **[Feature Requests & Ideation](docs/roadmap/feature-requests.md)** | Tracked features and future roadmap ideas. |
+| 📑 **[Technical Design References](docs/references/backup-specification.md)** | Specifications for backup engine, contact schema, scanner, and UI design system. |
 
 ---
 
@@ -10,18 +27,16 @@ A high-performance, secure, and professional Android backup platform written in 
 
 ### 🖥 Desktop GUI & Dashboard
 - **Modern Dashboard**: Visual summary of storage efficiency, engine health, and snapshot history built with Tauri, Tailwind CSS, and Chart.js.
-- **Modular UI Architecture**: Highly fragmented and maintainable frontend using **Native Web Components** and specialized managers (Navigation, Search, Events).
+- **Modular UI Architecture**: Highly maintainable frontend using **Native Web Components** and specialized managers (Navigation, Search, Events).
 - **Live Device File Manager**: Real-time file browsing, live search, downloading, uploading, renaming, copying, deleting files, and computing SHA-256 hashes directly on connected Android hardware.
 - **Visual Snapshot Diffing**: Intuitive visual matrix highlighting **New**, **Modified**, **Deleted**, and **Unchanged** files and contacts between backup snapshots.
 - **Installed Apps Explorer**: Live and snapshot inspection of installed Android applications, package metadata, and APK management.
-- **Reactive Monitoring**: Instantly detects when a phone is plugged in or unplugged.
-- **Full-Page Explorers**: Comprehensive views for File Browsing and Android Data (Contacts, SMS, Call Logs).
-- **Global Smart Search**: Instant Full-Text Search (FTS5) across all snapshots, messages, and contacts.
+- **Android Data Explorer**: Comprehensive views for Contacts, SMS, and Call Logs with instant search and vCard export.
 - **Real-time Progress HUD**: Floating status window with animated progress for long-running operations.
 
 ### 🧠 Intelligent Engine
-- **Hybrid MediaStore Scraper**: Extracts rich metadata (GPS locations, image dimensions) directly from Android system databases during scan.
-- **Block-level Deduplication**: Uses Content-Defined Chunking (FastCDC) to deduplicate large files.
+- **Multi-Transport Connectivity**: Supports both **USB ADB** (`--adapter adb`) and **Wireless Companion Agent** (`--adapter agent`).
+- **Block-level Deduplication**: Uses Content-Defined Chunking (FastCDC) to deduplicate large files at the sub-file level.
 - **Resilient Transport**: Automatic **Exponential Backoff Retry** for unstable USB connections.
 - **Safety Guards**: Automatically pauses or warns if the device battery is too low or temperature is too high.
 - **Zero-Copy Streaming**: Direct data transfer from device to storage via memory streams, extending SSD life.
@@ -29,7 +44,7 @@ A high-performance, secure, and professional Android backup platform written in 
 
 ### 🛡 Security & Privacy
 - **Encrypted Metadata Engine**: Database-level encryption using **SQLCipher (AES-256)** with **Argon2id Key Derivation Function (KDF)**.
-- **Tauri ACL Permission Manifests**: Fine-grained access control and permission declarations (`autogenerated.toml`, ACL schemas) enforcing secure execution for hardware and file manager commands.
+- **Tauri ACL Permission Manifests**: Fine-grained access control and permission declarations (`autogenerated.toml`, ACL schemas) enforcing secure execution.
 - **Asymmetric Object Crypto**: Support for **age (X25519)** public-key encryption for all backed-up files.
 - **Zero-Knowledge Storage**: Data is encrypted locally before hitting any storage backend.
 - **Authenticated Integrity**: Every object is hashed and verified to prevent silent data corruption.
@@ -44,242 +59,82 @@ The project follows strict **Clean Architecture** and **Hexagonal Architecture**
 phone-backup/
 ├── apps/
 │   ├── cli/            # Professional Command Line Interface
-│   └── gui/            # Desktop Dashboard (Tauri + Web Components)
+│   ├── gui/            # Desktop Dashboard (Tauri + Web Components)
+│   └── android-agent/  # Native Android Companion APK (Kotlin)
 ├── core/
 │   ├── domain/         # Pure business logic & entities
 │   ├── application/    # Use cases, ObjectManager, and Engine
-│   └── ports/          # Port definitions (Repository, Storage, etc.)
-├── adapters/           # ADB, Cloud Storage (OpenDAL), Filesystem, Mock
-├── infrastructure/     # Persistence (SQLite relational engine + FTS5)
+│   └── ports/          # Port definitions (DevicePort, StoragePort, etc.)
+├── adapters/           # ADB, Agent (Wi-Fi), OpenDAL (Cloud S3), Filesystem, Mock
+├── infrastructure/     # Persistence (SQLite SQLCipher + FTS5)
 └── workspace/          # Centralized data (Encrypted DB, Objects, Logs)
 ```
 
 ---
 
-## 🚦 Panduan Penggunaan Langkah Demi Langkah (Step-by-Step Guide)
+## 🚦 Panduan Penggunaan Cepat (Quick Start Guide)
 
-Ikuti langkah-langkah berikut untuk mulai menggunakan **phone-backup** dari awal hingga data berhasil dicadangkan dan dipulihkan.
-
----
-
-### 📱 Langkah 1: Persiapan Smartphone Android
-
-Sebelum menghubungkan smartphone ke komputer, Anda perlu mengaktifkan mode debugging pada perangkat:
-
-1. **Buka Pengaturan (Settings)** pada Android Anda.
-2. Masuk ke **Tentang Ponsel (About Phone)**.
-3. Cari **Nomor Bentukan (Build Number)** atau versi MIUI/HyperOS, lalu **ketuk sebanyak 7 kali** hingga muncul notifikasi *"Anda sekarang adalah seorang pengembang"* (Developer).
-4. Kembali ke menu utama Pengaturan ➔ **Sistem / Pengaturan Tambahan** ➔ **Opsi Pengembang (Developer Options)**.
-5. Aktifkan toggle **USB Debugging** (Debugging USB).
-6. *(Khusus Pengguna Xiaomi / Redmi / POCO)*:
-   - Aktifkan **USB Debugging (Security settings)** agar aplikasi diizinkan membaca Kontak & SMS.
-   - Aktifkan **Install via USB** jika ingin mengekspor / migrasi aplikasi.
-7. Hubungkan HP ke komputer menggunakan kabel USB data yang berkualitas.
-8. Saat pop-up konfirmasi **"Allow USB Debugging?"** muncul di layar HP, centang *"Always allow from this computer"* lalu tekan **OK / Izinkan**.
-
----
-
-### 💻 Langkah 2: Persiapan Komputer & Instalasi
-
-Pastikan komputer Anda memiliki **ADB** dan compiler **Rust**.
-
-#### 1. Verifikasi / Instalasi ADB:
-- **macOS** (via Homebrew):
-  ```bash
-  brew install android-platform-tools
-  ```
-- **Linux (Ubuntu/Debian)**:
-  ```bash
-  sudo apt update && sudo apt install adb -y
-  ```
-- **Windows**: Unduh Android SDK Platform-Tools dan daftarkan ke System `PATH`.
-
-#### 2. Kloning Repositori & Build Project:
+### 1. Build & Kompilasi Binary:
 ```bash
-git clone https://github.com/damarkuncoro/phone-backup.git
-cd phone-backup
-
-# Build CLI binary versi release
 cargo build --release -p phone-backup
 ```
-*Binary yang dihasilkan akan berada di `./target/release/phone-backup`.*
 
----
-
-### 🩺 Langkah 3: Diagnostik Sistem (Doctor Check)
-
-Sebelum melakukan backup, pastikan semua prasyarat sistem telah siap:
-
+### 2. Diagnostik Sistem (Doctor Check):
 ```bash
 ./target/release/phone-backup doctor
 ```
-**Contoh Output Sehat:**
-```text
-🩺 Phone Backup Doctor - System Diagnostic
------------------------------------------
-Checking ADB installation... ✅ FOUND (Android Debug Bridge version 1.0.41)
-Checking connected devices... ✅ 1 device(s) detected
-Checking workspace integrity... ✅ backup.db found
-Checking storage connectivity... ✅ storage reachable
 
-System is ready for backup operations!
-```
-
----
-
-### 🔍 Langkah 4: Deteksi & Cek Kapabilitas Perangkat
-
-#### 1. Cek Daftar HP yang Terhubung:
+### 3. Deteksi Smartphone Terhubung:
 ```bash
+# Melalui kabel USB (ADB)
 ./target/release/phone-backup --adapter adb devices
-```
-*Catat **ID Perangkat** Anda (misalnya: `fynrorjncy6x4xib` atau `A1B2C3D4`).*
 
-#### 2. Cek Informasi & Matriks Izin Perangkat:
+# Melalui Wi-Fi (Companion Agent)
+./target/release/phone-backup --adapter agent devices
+```
+
+### 4. Eksekusi Backup:
 ```bash
-./target/release/phone-backup --adapter adb device-info <DEVICE_ID>
+# Backup Penuh Terenkripsi Password
+./target/release/phone-backup --adapter adb backup -p "KataSandiSuperKuat" <DEVICE_ID>
+
+# Backup Selektif Folder Tertentu (misal: DCIM/Screenshots)
+./target/release/phone-backup --adapter adb backup -i /storage/emulated/0/DCIM/Screenshots -p "KataSandiSuperKuat" <DEVICE_ID>
+
+# Backup ke Cloud S3 / Cloudflare R2 / MinIO
+./target/release/phone-backup --storage opendal --s3-bucket "my-backups" --adapter adb backup -p "KataSandiSuperKuat" <DEVICE_ID>
 ```
-*Contoh:*
+
+### 5. Pencarian Instan (FTS5):
 ```bash
-./target/release/phone-backup --adapter adb device-info fynrorjncy6x4xib
+./target/release/phone-backup search "document.pdf"
+./target/release/phone-backup contacts "Damar"
+./target/release/phone-backup sms "Bank"
 ```
 
----
-
-### 💾 Langkah 5: Melakukan Backup Data
-
-Anda dapat memilih mode backup sesuai kebutuhan keamanan Anda:
-
-#### Opsi A: Backup Penuh Terenkripsi Password (Sangat Direkomendasikan)
-Mencadangkan seluruh data HP dengan enkripsi AES-256 + Argon2id:
+### 6. Restorasi Data (Restore):
 ```bash
-./target/release/phone-backup --adapter adb backup -p "KataSandiSuperKuat123" <DEVICE_ID>
+# Pulihkan seluruh snapshot ke folder lokal
+./target/release/phone-backup restore -p "KataSandiSuperKuat" -t ./hasil_restore <SNAPSHOT_ID>
+
+# Pulihkan hanya file gambar JPG
+./target/release/phone-backup restore -p "KataSandiSuperKuat" --filter "*.jpg" -t ./foto_restore <SNAPSHOT_ID>
 ```
 
-#### Opsi B: Backup Selektif Folder Tertentu (Misal: Hanya Foto / DCIM)
-Gunakan flag `-i` (`--include`) untuk memilih folder tertentu:
+### 7. Menjalankan Desktop GUI:
 ```bash
-./target/release/phone-backup --adapter adb backup -i /storage/emulated/0/DCIM -p "KataSandiSuperKuat123" <DEVICE_ID>
+cargo tauri dev
 ```
-
-#### Opsi C: Backup Zero-Knowledge dengan Kunci Asimetris (`age` X25519)
-1. **Buat pasangan kunci:**
-   ```bash
-   ./target/release/phone-backup keygen
-   ```
-   *Simpan Public Key (`age1...`) dan Secret Key (`AGE-SECRET-KEY-1...`).*
-2. **Jalankan backup dengan Public Key:**
-   ```bash
-   ./target/release/phone-backup --adapter adb backup --pubkey "age1..." <DEVICE_ID>
-   ```
-
-#### Opsi D: Backup Khusus Kontak & SMS Cepat (< 5 Detik Tanpa File Media Besar)
-Untuk mengamankan buku telepon kontak tanpa menyalin puluhan gigabyte foto/video:
-```bash
-./target/release/phone-backup --adapter adb backup -i /storage/emulated/0/Download/ -p "KataSandiSuperKuat123" <DEVICE_ID>
-```
-*Kontak, SMS, Call Logs, dan Metadata Aplikasi otomatis dicadangkan 100% dan diindeks ke pencarian FTS5.*
-
----
-
-### 📋 Langkah 6: Melihat Daftar Snapshot (Riwayat Backup)
-
-#### 1. Lihat Daftar Semua Snapshot:
-```bash
-./target/release/phone-backup --adapter adb snapshots <DEVICE_ID>
-```
-*Contoh Output:*
-```text
-Available Snapshots for device fynrorjncy6x4xib:
-  - 504f46de-2e86-4fcf-af29-68570cf8d68f | 2026-08-30 19:45:00 | 142 files | 1.84 GB
-```
-
-#### 2. Lihat Rincian Isi Snapshot Tertentu:
-```bash
-./target/release/phone-backup --adapter adb snapshots <DEVICE_ID> -s <SNAPSHOT_ID>
-```
-
----
-
-### 🔎 Langkah 7: Pencarian Cepat Data (Full-Text Search FTS5)
-
-Cari data tanpa harus mengekstrak seluruh backup:
-- **Cari File**:
-  ```bash
-  ./target/release/phone-backup search "laporan_keuangan.pdf"
-  ```
-- **Cari Kontak**:
-  ```bash
-  ./target/release/phone-backup contacts "Budi"
-  ```
-- **Cari Pesan SMS / OTP**:
-  ```bash
-  ./target/release/phone-backup sms "Bank"
-  ```
-
----
-
-### 🔄 Langkah 8: Memulihkan Data (Restore)
-
-#### 1. Restore Seluruh Snapshot ke Folder Lokal:
-```bash
-./target/release/phone-backup restore -p "KataSandiSuperKuat123" -t ./folder_hasil_restore <SNAPSHOT_ID>
-```
-
-#### 2. Restore Selektif dengan Pola Filter (Misal: Hanya file `.jpg`):
-```bash
-./target/release/phone-backup restore -p "KataSandiSuperKuat123" --filter "*.jpg" -t ./foto_restore <SNAPSHOT_ID>
-```
-
-#### 3. Restore Backup yang Terenkripsi Asymmetric Key (`age`):
-```bash
-./target/release/phone-backup --privkey "AGE-SECRET-KEY-1..." restore -t ./folder_hasil_restore <SNAPSHOT_ID>
-```
-
----
-
-### 🖥 Langkah 9: Menggunakan Desktop GUI (Tauri Dashboard)
-
-Bagi pengguna yang lebih menyukai tampilan grafis interaktif:
-
-1. **Jalankan Dashboard GUI:**
-   ```bash
-   cargo tauri dev
-   ```
-2. **Fitur yang Tersedia di GUI:**
-   - **Dashboard Ringkasan**: Grafik efisiensi deduplikasi storage, kapasitas, dan status engine.
-   - **Live Device File Manager**: Jelajahi memori HP, download file ke PC, upload file ke HP, rename, delete, dan hitung hash SHA-256 secara langsung.
-   - **Visual Snapshot Diffing**: Bandingkan dua snapshot secara visual dengan status badge:
-     - 🟢 **New** (File baru).
-     - 🟡 **Modified** (File berubah isi/ukuran).
-     - 🔴 **Deleted** (File dihapus).
-     - ⚪ **Unchanged** (File identik).
-   - **Installed Apps Explorer**: Lihat seluruh aplikasi HP dan ekspor file `.apk` langsung ke komputer.
-   - **Android Data Explorer**: Baca Kontak, SMS, dan Riwayat Panggilan secara visual.
-
----
-
-### 🧹 Langkah 10: Pemeliharaan Repository (Verify & GC)
-
-- **Verifikasi Integritas Data (Mendeteksi file korup/hilang)**:
-  ```bash
-  ./target/release/phone-backup verify -p "KataSandiSuperKuat123"
-  ```
-- **Garbage Collection (Membersihkan data sampah / orphan objects)**:
-  ```bash
-  ./target/release/phone-backup gc
-  ```
 
 ---
 
 ## 🧪 Testing & Quality
-The platform maintains a high-quality codebase with comprehensive testing:
-- **Modular Unit Tests**: Isolated logic tests for parsers, crypto, and hashing.
-- **Database Integration Tests**: Verification of relational integrity and migrations.
-- **E2E Real Device Tests**: Verified against real physical Android hardware (Xiaomi, Pixel, etc.).
+The platform maintains an isolated, 100% pure production codebase with comprehensive tests:
+- **Modular Unit & Integration Tests**: `tests/` suites across all crates.
+- **Real Device E2E Verification**: Tested on real physical Android hardware (Xiaomi, Pixel, etc.).
 
 ```bash
-cargo test --workspace    # Run all tests
+cargo test --workspace
 ```
 
 ---

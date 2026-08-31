@@ -5,6 +5,7 @@ edition.workspace = true
 description.workspace = true
 license.workspace = true
 repository.workspace = true
+publish = false
 
 [dependencies]
 tauri = { version = "2.0", features = [] }

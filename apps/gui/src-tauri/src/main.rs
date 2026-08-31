@@ -37,6 +37,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::device::get_devices,
+            commands::device::get_all_known_devices,
             commands::device::scan_device,
             commands::device::get_live_apps,
             commands::device::browse_directory,
@@ -75,6 +76,7 @@ fn main() {
             commands::system::add_schedule,
             commands::system::get_settings,
             commands::system::save_settings,
+            commands::system::open_restore_folder,
             commands::contact::search_contacts
         ])
         .run(tauri::generate_context!())

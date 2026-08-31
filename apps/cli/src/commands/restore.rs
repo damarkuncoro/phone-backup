@@ -44,7 +44,12 @@ where
         println!("Restoring snapshot {} to {}...", snapshot.id.0, target_dir);
     }
 
-    service.perform_restore(&snapshot.id, &target_dir, encryption, filter)?;
+    service.perform_restore(
+        &snapshot.id,
+        &target_dir,
+        encryption,
+        filter.map(|f| vec![f.to_string()]),
+    )?;
     println!("\nRestore completed successfully to: {}", target_dir);
     Ok(())
 }

@@ -7,3 +7,9 @@ Cargo.lock
 workspace/
 backup.db
 restored_real_device/
+
+# Android / Gradle artifacts
+.gradle/
+build/
+*.apk
+

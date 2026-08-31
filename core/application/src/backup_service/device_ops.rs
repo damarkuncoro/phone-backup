@@ -22,6 +22,11 @@ impl<
     }
 
     #[instrument(skip(self))]
+    pub fn list_all_known_devices(&self) -> Result<Vec<Device>> {
+        self.repository.list_devices()
+    }
+
+    #[instrument(skip(self))]
     pub fn device_info(&self, id: &DeviceId) -> Result<Device> {
         self.device_adapter.info(id)
     }

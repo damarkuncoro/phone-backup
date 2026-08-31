@@ -46,17 +46,17 @@ pub async fn get_structured_data(
     state.engine.get_structured_data(&id, dtype).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn restore_snapshot(
     state: State<'_, AppState>,
     snapshot_id: String,
     target_dir: String,
-    filter: Option<String>,
+    filter: Option<Vec<String>>,
 ) -> Result<(), String> {
     let id = SnapshotId(snapshot_id);
     state
         .engine
-        .perform_restore(&id, &target_dir, domain::EncryptionMode::None, filter.as_deref())
+        .perform_restore(&id, &target_dir, domain::EncryptionMode::None, filter)
         .map_err(|e| e.to_string())
 }
 

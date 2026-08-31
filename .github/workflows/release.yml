@@ -6,8 +6,8 @@ on:
       - 'v*'
 
 jobs:
-  build-release:
-    name: Build Release Assets
+  build-cli:
+    name: Build CLI (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -15,37 +15,69 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            asset_name: phone-backup-linux-x86_64
+            artifact_name: phone-backup-linux
           - os: macos-latest
             target: x86_64-apple-darwin
-            asset_name: phone-backup-macos-x86_64
+            artifact_name: phone-backup-macos-intel
           - os: macos-latest
             target: aarch64-apple-darwin
-            asset_name: phone-backup-macos-aarch64
+            artifact_name: phone-backup-macos-arm
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: phone-backup.exe
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
+      - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@v2
-
+      
       - name: Build CLI
-        run: cargo build --release --bin phone-backup --target ${{ matrix.target }}
-
-      - name: Package Assets
-        run: |
-          mkdir -p dist
-          cp target/${{ matrix.target }}/release/phone-backup dist/${{ matrix.asset_name }}
-          cd dist && zip ../${{ matrix.asset_name }}.zip ${{ matrix.asset_name }}
-
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v2
+        run: cargo build --release --target ${{ matrix.target }} -p phone-backup
+      
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
         with:
-          files: ${{ matrix.asset_name }}.zip
+          name: ${{ matrix.artifact_name }}
+          path: target/${{ matrix.target }}/release/phone-backup${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+
+  build-gui:
+    name: Build GUI (${{ matrix.platform }})
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'
+          - platform: 'ubuntu-22.04'
+          - platform: 'windows-latest'
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+      - name: install dependencies (ubuntu only)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libnm-dev libsoup2.4-dev curl wget libappindicator3-dev librsvg2-dev patchelf
+      - name: install frontend dependencies
+        run: |
+          cd apps/gui/ui
+          npm install
+      - name: build tauri app
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v__VERSION__ # this will be replaced by tauri-action
+          releaseName: 'Phone Backup v__VERSION__'
+          releaseBody: 'See the assets below for the pre-compiled binaries.'
+          releaseDraft: true
+          prerelease: false
+          projectPath: apps/gui

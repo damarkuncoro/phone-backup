@@ -9,6 +9,11 @@ pub async fn get_devices(state: State<'_, AppState>) -> Result<Vec<Device>, Stri
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub async fn get_all_known_devices(state: State<'_, AppState>) -> Result<Vec<Device>, String> {
+    state.engine.list_all_known_devices().map_err(|e| e.to_string())
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub async fn scan_device(state: State<'_, AppState>, device_id: String) -> Result<Vec<domain::FileEntry>, String> {
     let id = DeviceId::new(device_id);
     state.engine.scan_device(&id).map_err(|e| e.to_string())
