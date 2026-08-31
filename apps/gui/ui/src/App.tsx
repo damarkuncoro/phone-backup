@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Sidebar } from './app/layouts/Sidebar'
-import { RightAside } from './app/layouts/RightAside'
 import { Dashboard } from './features/devices/pages/Dashboard'
 import { DevicesPage } from './features/devices/pages/DevicesPage'
 import { BackupWizard } from './features/backup/components/BackupWizard'
@@ -26,8 +25,7 @@ function App() {
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(null)
   const [comparisonIds, setComparisonIds] = useState<{oldId: string, newId: string} | null>(null)
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
-  const [asideCollapsed, setAsideCollapsed] = useState(false)
-  const [logs, setLogs] = useState<LogEntry[]>([
+  const [, setLogs] = useState<LogEntry[]>([
     { time: "Sistem", msg: "Engine siap digunakan" }
   ]);
 
@@ -124,15 +122,6 @@ function App() {
           </div>
         )}
       </main>
-
-      <RightAside
-        activeView={activeView}
-        selectedDevice={selectedDevice}
-        logs={logs}
-        isCollapsed={asideCollapsed}
-        onToggle={() => setAsideCollapsed(!asideCollapsed)}
-        onBackupClick={() => setActiveView('backup')}
-      />
     </div>
   )
 }
