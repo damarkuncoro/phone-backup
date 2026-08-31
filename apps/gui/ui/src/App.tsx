@@ -91,7 +91,12 @@ function App() {
         {activeView === 'devices' && (
           <DevicesPage onDeviceDetails={handleOpenDetails} />
         )}
-        {activeView === 'backup' && <BackupWizard />}
+        {activeView === 'backup' && (
+          <BackupWizard
+            initialDevice={selectedDevice}
+            onFinish={() => setActiveView('dashboard')}
+          />
+        )}
         {activeView === 'files' && <FileBrowser />}
         {activeView === 'history' && <HistoryPage onBrowse={handleOpenExplorer} onCompare={handleCompare} />}
         {activeView === 'explorer' && selectedSnapshotId && (
