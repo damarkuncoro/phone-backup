@@ -1,22 +1,16 @@
 import { useState, useMemo, useRef } from 'react';
-import {
-  Folder, File, ChevronRight, Search,
-  Download, Trash2, Image as ImageIcon, Video, Music, FileText,
-  CheckSquare, Square, X, LayoutGrid, LayoutList,
-  ArrowUpDown, ArrowUp, ArrowDown, Copy, Info,
-  Smartphone, HardDrive, PanelLeftClose, PanelLeft,
-  CheckCircle2, Upload, Edit3
-} from 'lucide-react';
+import { Folder, CheckCircle2, Upload } from 'lucide-react';
 import { getDeviceId, type FileEntry, deviceService } from '@/services/deviceService';
-import { cn } from "../../../shared/lib/utils";
-import { formatBytes, formatDate } from '@/shared/lib/formatters';
-import { isImage, isVideo, isAudio, isDocument, isApk, type SortField } from '../lib/fileUtils';
+import { formatBytes } from '@/shared/lib/formatters';
 import { useFileBrowser } from '../hooks/useFileBrowser';
 import { BreadcrumbNav } from './BreadcrumbNav';
 import { StorageSidebar } from './StorageSidebar';
 import { FileInspector } from './FileInspector';
 import { FileContextMenu } from './FileContextMenu';
-import { systemService } from '@/services/systemService';
+import { FileBrowserHeader } from './FileBrowserHeader';
+import { FileSelectionBar } from './FileSelectionBar';
+import { FileTableView } from './FileTableView';
+import { FileGridView } from './FileGridView';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { RenameModal } from '@/shared/components/RenameModal';
 
@@ -157,7 +151,6 @@ export function FileBrowser() {
   const handleRename = async (newName: string) => {
     if (!renameTarget || !selectedDeviceId) return;
     
-    // Calculate new path by replacing the file name in current path
     const parts = renameTarget.path.split('/');
     parts[parts.length - 1] = newName;
     const newPath = parts.join('/');
@@ -184,7 +177,6 @@ export function FileBrowser() {
     const file = files[0];
     showToast(`Mengunggah "${file.name}" ke ${currentPath}...`);
     
-    // In Tauri environment, if path is available, upload directly
     const targetRemotePath = `${currentPath.replace(/\/$/, '')}/${file.name}`;
     try {
       const localFilePath = (file as any).path || file.name;
@@ -203,63 +195,6 @@ export function FileBrowser() {
     e.preventDefault();
     e.stopPropagation();
     setContextMenu({ x: e.clientX, y: e.clientY, file });
-  };
-
-  const getSortIcon = (field: SortField) => {
-    if (sortBy !== field) return <ArrowUpDown className="w-3.5 h-3.5 text-slate-300 opacity-60 group-hover:opacity-100" />;
-    return sortDirection === 'asc'
-      ? <ArrowUp className="w-3.5 h-3.5 text-indigo-600" />
-      : <ArrowDown className="w-3.5 h-3.5 text-indigo-600" />;
-  };
-
-  const renderFileIcon = (fileName: string, isDir: boolean) => {
-    if (isDir) {
-      return (
-        <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-sm shrink-0">
-          <Folder className="w-5 h-5 fill-current opacity-80" />
-        </div>
-      );
-    }
-    if (isImage(fileName)) {
-      return (
-        <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-sm shrink-0">
-          <ImageIcon className="w-5 h-5" />
-        </div>
-      );
-    }
-    if (isVideo(fileName)) {
-      return (
-        <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shadow-sm shrink-0">
-          <Video className="w-5 h-5" />
-        </div>
-      );
-    }
-    if (isAudio(fileName)) {
-      return (
-        <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shadow-sm shrink-0">
-          <Music className="w-5 h-5" />
-        </div>
-      );
-    }
-    if (isDocument(fileName)) {
-      return (
-        <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm shrink-0">
-          <FileText className="w-5 h-5" />
-        </div>
-      );
-    }
-    if (isApk(fileName)) {
-      return (
-        <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm shrink-0">
-          <Smartphone className="w-5 h-5" />
-        </div>
-      );
-    }
-    return (
-      <div className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center shadow-sm shrink-0">
-        <File className="w-5 h-5" />
-      </div>
-    );
   };
 
   return (
@@ -319,114 +254,25 @@ export function FileBrowser() {
       )}
 
       {/* Dynamic Action Bar for Selection */}
-      {selection.count > 0 && (
-        <div className="absolute top-0 left-0 right-0 z-40 bg-indigo-600 text-white p-4 flex items-center justify-between animate-in slide-in-from-top-4 duration-300 shadow-2xl">
-          <div className="flex items-center gap-6">
-            <button onClick={() => selection.clear()} className="p-2 hover:bg-white/10 rounded-xl transition-all">
-              <X className="w-5 h-5" />
-            </button>
-            <div>
-              <p className="text-[10px] uppercase font-black tracking-widest text-indigo-200">Mode Pilihan</p>
-              <p className="font-black text-sm">{selection.count} Item Terpilih</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleDownloadSelected}
-              className="flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-600 hover:bg-indigo-50 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95"
-            >
-              <Download className="w-4 h-4" /> Download ({selection.count})
-            </button>
-            <button
-              onClick={() => systemService.openDownloadsFolder()}
-              title="Buka folder hasil unduhan di komputer (Finder / Explorer)"
-              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-700/80 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-95"
-            >
-              <Folder className="w-4 h-4" /> Buka Folder PC
-            </button>
-            <button
-              onClick={handleDeleteSelected}
-              className="flex items-center gap-2 px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95"
-            >
-              <Trash2 className="w-4 h-4" /> Hapus
-            </button>
-          </div>
-        </div>
-      )}
+      <FileSelectionBar
+        count={selection.count}
+        onClearSelection={() => selection.clear()}
+        onDownloadSelected={handleDownloadSelected}
+        onDeleteSelected={handleDeleteSelected}
+      />
 
       {/* Main Header */}
-      <header className="px-6 py-4 border-b border-slate-200/80 bg-white/90 backdrop-blur-md flex items-center justify-between gap-4 shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          <button
-            onClick={() => setShowSidebar(!showSidebar)}
-            title={showSidebar ? "Sembunyikan Panel Storage" : "Tampilkan Panel Storage"}
-            className={cn(
-              "p-2.5 rounded-xl border transition-all text-slate-500 hover:text-indigo-600 hover:bg-slate-50",
-              showSidebar ? "bg-slate-100 border-slate-200 text-indigo-600" : "bg-white border-slate-200/80"
-            )}
-          >
-            {showSidebar ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
-          </button>
-
-          <div className="min-w-0">
-            <h1 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2 truncate">
-              File Manager
-            </h1>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 truncate">
-              <HardDrive className="w-3 h-3 text-emerald-500" /> ADB Explorer Pro
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 flex-1 max-w-xl justify-end">
-          {/* Search Box */}
-          <div className="flex-1 relative max-w-xs sm:max-w-sm">
-            <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari file di folder ini..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200/80 pl-10 pr-4 py-2.5 rounded-2xl text-xs focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 outline-none transition-all"
-            />
-          </div>
-
-          {/* View Mode Toggle */}
-          <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200/60 shrink-0">
-            <button
-              onClick={() => setViewMode('list')}
-              title="Tampilan Tabel"
-              className={cn(
-                "p-2 rounded-xl transition-all",
-                viewMode === 'list' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-700"
-              )}
-            >
-              <LayoutList className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('grid')}
-              title="Tampilan Grid Kartu"
-              className={cn(
-                "p-2 rounded-xl transition-all",
-                viewMode === 'grid' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-700"
-              )}
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Device Selector */}
-          <select
-            value={selectedDeviceId || ''}
-            onChange={(e) => setSelectedDeviceId(e.target.value)}
-            className="bg-slate-50 border border-slate-200/80 px-3.5 py-2.5 rounded-2xl text-xs font-black text-slate-700 outline-none hover:bg-white transition-all cursor-pointer shrink-0"
-          >
-            {devices.map(d => (
-              <option key={getDeviceId(d)} value={getDeviceId(d)}>{d.model}</option>
-            ))}
-          </select>
-        </div>
-      </header>
+      <FileBrowserHeader
+        showSidebar={showSidebar}
+        onToggleSidebar={() => setShowSidebar(!showSidebar)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        devices={devices}
+        selectedDeviceId={selectedDeviceId}
+        onSelectDevice={setSelectedDeviceId}
+      />
 
       {/* Main Dual-Pane Body */}
       <div className="flex-1 flex overflow-hidden">
@@ -478,209 +324,35 @@ export function FileBrowser() {
               </div>
             ) : filteredFiles.length > 0 ? (
               viewMode === 'list' ? (
-                /* Table Mode */
-                <table className="w-full text-left border-separate border-spacing-0">
-                  <thead className="sticky top-0 bg-white/95 backdrop-blur-md z-10 border-b border-slate-100 shadow-sm">
-                    <tr>
-                      <th className="px-6 py-3 w-14">
-                        <button
-                          onClick={() => selection.count === filteredFiles.length ? selection.clear() : selection.selectAll(filteredFiles.map(f => f.path))}
-                          className="text-slate-300 hover:text-indigo-600 transition-all"
-                        >
-                          {selection.count === filteredFiles.length ? <CheckSquare className="w-5 h-5 text-indigo-600" /> : <Square className="w-5 h-5" />}
-                        </button>
-                      </th>
-                      <th
-                        onClick={() => handleSort('name')}
-                        className="px-4 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:text-indigo-600 select-none group"
-                      >
-                        <div className="flex items-center gap-2">
-                          Nama Berkas {getSortIcon('name')}
-                        </div>
-                      </th>
-                      <th
-                        onClick={() => handleSort('size')}
-                        className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right cursor-pointer hover:text-indigo-600 select-none group"
-                      >
-                        <div className="flex items-center justify-end gap-2">
-                          Ukuran {getSortIcon('size')}
-                        </div>
-                      </th>
-                      <th
-                        onClick={() => handleSort('date')}
-                        className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest cursor-pointer hover:text-indigo-600 select-none group"
-                      >
-                        <div className="flex items-center gap-2">
-                          Modifikasi {getSortIcon('date')}
-                        </div>
-                      </th>
-                      <th className="px-6 py-3 w-28"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {filteredFiles.map((file, i) => {
-                      const isSelected = selection.isSelected(file.path);
-                      const isInspected = inspectedFile?.path === file.path;
-
-                      return (
-                        <tr
-                          key={i}
-                          onContextMenu={(e) => handleContextMenu(e, file)}
-                          className={cn(
-                            "group transition-all cursor-pointer select-none",
-                            isInspected ? "bg-indigo-50/90" : isSelected ? "bg-indigo-50/60" : "hover:bg-slate-50/80"
-                          )}
-                          onClick={() => {
-                            if (file.is_dir) {
-                              setCurrentPath(file.path);
-                            } else {
-                              setInspectedFile(file);
-                            }
-                          }}
-                          onDoubleClick={() => {
-                            if (file.is_dir) {
-                              setCurrentPath(file.path);
-                            }
-                          }}
-                        >
-                          <td className="px-6 py-3.5" onClick={(e) => e.stopPropagation()}>
-                            <button
-                              onClick={() => selection.toggle(file.path)}
-                              className={cn("transition-all", isSelected ? "text-indigo-600" : "text-slate-200 group-hover:text-slate-400")}
-                            >
-                              {isSelected ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
-                            </button>
-                          </td>
-                          <td className="px-4 py-3.5">
-                            <div className="flex items-center gap-3.5">
-                              {renderFileIcon(file.name, file.is_dir)}
-                              <div className="min-w-0">
-                                <p className={cn("text-xs font-bold truncate", isSelected ? "text-indigo-900" : "text-slate-800")}>
-                                  {file.name}
-                                </p>
-                                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-tight mt-0.5">
-                                  {file.is_dir ? 'Direktori Folder' : file.name.split('.').pop()?.toUpperCase() + ' File'}
-                                </p>
-                              </div>
-                              {file.is_dir && <ChevronRight className="w-3.5 h-3.5 text-slate-300 opacity-0 group-hover:opacity-100 transition-all ml-auto" />}
-                            </div>
-                          </td>
-                          <td className="px-6 py-3.5 text-right">
-                            <span className="text-xs font-mono font-bold text-slate-500">
-                              {file.is_dir ? '--' : formatBytes(file.size_bytes)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-3.5">
-                            <span className="text-xs font-medium text-slate-400">
-                              {formatDate(file.modified_at)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
-                            <div className="opacity-0 group-hover:opacity-100 flex items-center justify-end gap-1 transition-all">
-                              <button
-                                onClick={() => setRenameTarget(file)}
-                                title="Ganti Nama"
-                                className="p-1.5 hover:bg-white rounded-xl text-slate-400 hover:text-indigo-600 shadow-sm border border-transparent hover:border-slate-200 transition-all"
-                              >
-                                <Edit3 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => setInspectedFile(file)}
-                                title="Detail Berkas"
-                                className="p-1.5 hover:bg-white rounded-xl text-slate-400 hover:text-indigo-600 shadow-sm border border-transparent hover:border-slate-200 transition-all"
-                              >
-                                <Info className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleCopyPath(file.path)}
-                                title="Salin Path"
-                                className="p-1.5 hover:bg-white rounded-xl text-slate-400 hover:text-indigo-600 shadow-sm border border-transparent hover:border-slate-200 transition-all"
-                              >
-                                <Copy className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDownload(file)}
-                                title="Unduh ke PC"
-                                className="p-1.5 hover:bg-white rounded-xl text-slate-400 hover:text-indigo-600 shadow-sm border border-transparent hover:border-slate-200 transition-all"
-                              >
-                                <Download className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteSingle(file)}
-                                title="Hapus Berkas"
-                                className="p-1.5 hover:bg-red-50 rounded-xl text-slate-400 hover:text-red-600 shadow-sm border border-transparent hover:border-red-200 transition-all"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <FileTableView
+                  files={filteredFiles}
+                  selectedPaths={selection.selectedPaths}
+                  inspectedFile={inspectedFile}
+                  sortBy={sortBy}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                  onToggleSelect={(p) => selection.toggle(p)}
+                  onToggleSelectAll={() => selection.count === filteredFiles.length ? selection.clear() : selection.selectAll(filteredFiles.map(f => f.path))}
+                  onSelectFile={(f) => setInspectedFile(f)}
+                  onOpenFolder={(p) => setCurrentPath(p)}
+                  onContextMenu={handleContextMenu}
+                  onRename={(f) => setRenameTarget(f)}
+                  onInspect={(f) => setInspectedFile(f)}
+                  onCopyPath={(p) => handleCopyPath(p)}
+                  onDownload={handleDownload}
+                  onDelete={handleDeleteSingle}
+                />
               ) : (
-                /* Grid Cards Mode */
-                <div className="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-                  {filteredFiles.map((file, i) => {
-                    const isSelected = selection.isSelected(file.path);
-                    const isInspected = inspectedFile?.path === file.path;
-
-                    return (
-                      <div
-                        key={i}
-                        onContextMenu={(e) => handleContextMenu(e, file)}
-                        onClick={() => {
-                          if (file.is_dir) {
-                            setCurrentPath(file.path);
-                          } else {
-                            setInspectedFile(file);
-                          }
-                        }}
-                        onDoubleClick={() => {
-                          if (file.is_dir) setCurrentPath(file.path);
-                        }}
-                        className={cn(
-                          "p-4 rounded-3xl border transition-all flex flex-col items-center text-center cursor-pointer select-none group relative",
-                          isInspected
-                            ? "bg-indigo-50 border-indigo-300 ring-2 ring-indigo-500/30 shadow-lg"
-                            : isSelected
-                            ? "bg-indigo-50/80 border-indigo-300 ring-2 ring-indigo-500/20 shadow-md"
-                            : "bg-white border-slate-100 hover:border-indigo-100 hover:shadow-lg hover:bg-slate-50/60"
-                        )}
-                      >
-                        <button
-                          onClick={(e) => { e.stopPropagation(); selection.toggle(file.path); }}
-                          className={cn(
-                            "absolute top-3 left-3 transition-opacity",
-                            isSelected ? "opacity-100 text-indigo-600" : "opacity-0 group-hover:opacity-100 text-slate-300 hover:text-slate-500"
-                          )}
-                        >
-                          {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                        </button>
-
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setInspectedFile(file); }}
-                          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-slate-300 hover:text-indigo-600 transition-opacity"
-                        >
-                          <Info className="w-4 h-4" />
-                        </button>
-
-                        <div className="my-3 scale-110 group-hover:scale-125 transition-transform duration-300">
-                          {renderFileIcon(file.name, file.is_dir)}
-                        </div>
-
-                        <p className={cn("text-xs font-bold truncate w-full mt-1", isSelected ? "text-indigo-900" : "text-slate-800")} title={file.name}>
-                          {file.name}
-                        </p>
-
-                        <p className="text-[10px] font-mono text-slate-400 mt-1">
-                          {file.is_dir ? 'Folder' : formatBytes(file.size_bytes)}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
+                <FileGridView
+                  files={filteredFiles}
+                  selectedPaths={selection.selectedPaths}
+                  inspectedFile={inspectedFile}
+                  onToggleSelect={(p) => selection.toggle(p)}
+                  onSelectFile={(f) => setInspectedFile(f)}
+                  onOpenFolder={(p) => setCurrentPath(p)}
+                  onContextMenu={handleContextMenu}
+                  onInspect={(f) => setInspectedFile(f)}
+                />
               )
             ) : (
               <div className="h-full flex flex-col items-center justify-center bg-slate-50/50 rounded-[32px] m-6 border-2 border-dashed border-slate-100 text-slate-300 py-24">
