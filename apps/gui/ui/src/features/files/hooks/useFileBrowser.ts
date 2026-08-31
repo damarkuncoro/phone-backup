@@ -23,7 +23,7 @@ export const QUICK_ACCESS_ITEMS: QuickAccessItem[] = [
 export function useFileBrowser() {
   const { devices } = useDevices();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
-  const [currentPath, setCurrentPath] = useState<string>('/');
+  const [currentPath, setCurrentPath] = useState<string>('/sdcard');
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');

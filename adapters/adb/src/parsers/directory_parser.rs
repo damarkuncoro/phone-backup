@@ -17,7 +17,7 @@ impl DirectoryParser {
                 let mtime_unix = parts[2].parse::<i64>().unwrap_or(0);
                 let type_str = parts[3].to_lowercase();
 
-                let is_directory = type_str.contains("directory");
+                let is_directory = type_str.contains("directory") || type_str.contains("link");
 
                 let modified_at = Utc.timestamp_opt(mtime_unix, 0)
                     .single()

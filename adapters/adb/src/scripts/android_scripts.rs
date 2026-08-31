@@ -38,9 +38,12 @@ impl AndroidScripts {
     }
 
     pub fn list_dir(path: &str) -> String {
-        // Output format: name|size|mtime|is_dir
-        // using 'stat' to get details for each entry in the directory
-        format!("ls -a1 {} | while read line; do [ \"$line\" = \".\" ] || [ \"$line\" = \"..\" ] || stat -c \"%n|%s|%Y|%F\" \"{}/$line\" 2>/dev/null; done", path, path)
+        let clean_path = path.trim_end_matches('/');
+        let base = if clean_path.is_empty() { "" } else { clean_path };
+        format!(
+            "ls -a1 \"{}\" | while read line; do [ \"$line\" = \".\" ] || [ \"$line\" = \"..\" ] || stat -L -c \"%n|%s|%Y|%F\" \"{}/$line\" 2>/dev/null; done",
+            path, base
+        )
     }
 
     pub fn rm_rf(path: &str) -> String {
