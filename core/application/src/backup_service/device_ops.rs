@@ -75,8 +75,25 @@ impl<
     #[instrument(skip(self))]
     pub fn download_file(&self, id: &DeviceId, remote_path: &str, local_path: &str) -> Result<()> {
         let mut reader = self.device_adapter.read_file(id, remote_path)?;
-        let mut file = std::fs::File::create(local_path)?;
+        
+        let path = std::path::Path::new(local_path);
+        let target_file_path = if path.is_dir() || local_path.ends_with('/') || path.extension().is_none() {
+            let filename = std::path::Path::new(remote_path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("downloaded_file");
+            std::fs::create_dir_all(path)?;
+            path.join(filename)
+        } else {
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            path.to_path_buf()
+        };
+
+        let mut file = std::fs::File::create(&target_file_path)?;
         std::io::copy(&mut reader, &mut file)?;
+        info!("Downloaded {} to {:?}", remote_path, target_file_path);
         Ok(())
     }
 

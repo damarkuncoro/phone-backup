@@ -46,6 +46,10 @@ export const systemService = {
     return await safeInvoke("open_restore_folder");
   },
 
+  async openDownloadsFolder(): Promise<void> {
+    return await safeInvoke("open_downloads_folder");
+  },
+
   async searchFiles(query: string): Promise<any[]> {
     return await safeInvoke("search_files", { query });
   }

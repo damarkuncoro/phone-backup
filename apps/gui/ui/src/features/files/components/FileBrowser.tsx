@@ -10,12 +10,13 @@ import {
 import { getDeviceId, type FileEntry, deviceService } from '@/services/deviceService';
 import { cn } from "../../../shared/lib/utils";
 import { formatBytes, formatDate } from '@/shared/lib/formatters';
-import { isImage, isVideo, isAudio, isDocument, isApk, type SortField, type FileCategory } from '../lib/fileUtils';
+import { isImage, isVideo, isAudio, isDocument, isApk, type SortField } from '../lib/fileUtils';
 import { useFileBrowser } from '../hooks/useFileBrowser';
 import { BreadcrumbNav } from './BreadcrumbNav';
 import { StorageSidebar } from './StorageSidebar';
 import { FileInspector } from './FileInspector';
 import { FileContextMenu } from './FileContextMenu';
+import { systemService } from '@/services/systemService';
 
 export function FileBrowser() {
   const {
@@ -26,7 +27,6 @@ export function FileBrowser() {
     searchQuery, setSearchQuery,
     viewMode, setViewMode,
     sortBy, sortDirection, handleSort,
-    category, setCategory,
     selection,
     filteredFiles,
     breadcrumbs,
@@ -59,10 +59,26 @@ export function FileBrowser() {
     if (selectedDeviceId) {
       try {
         await deviceService.downloadFile(selectedDeviceId, file.path, "workspace/downloads");
-        showToast(`Selesai diunduh: ${file.name}`);
+        showToast(`Tersimpan di workspace/downloads: ${file.name}`);
       } catch (err) {
         console.error("Download failed", err);
+        showToast(`Download gagal: ${err}`);
       }
+    }
+  };
+
+  const handleDownloadSelected = async () => {
+    const paths = Array.from(selection.selectedPaths);
+    if (paths.length === 0 || !selectedDeviceId) return;
+
+    showToast(`Mengunduh ${paths.length} berkas ke workspace/downloads...`);
+    try {
+      for (const p of paths) {
+        await deviceService.downloadFile(selectedDeviceId, p, "workspace/downloads");
+      }
+      showToast(`Berhasil mengunduh ${paths.length} berkas ke workspace/downloads`);
+    } catch (err) {
+      showToast(`Terjadi kesalahan saat mengunduh: ${err}`);
     }
   };
 
@@ -129,15 +145,6 @@ export function FileBrowser() {
     );
   };
 
-  const categories: { id: FileCategory; label: string }[] = [
-    { id: 'all', label: 'Semua' },
-    { id: 'folders', label: 'Folder' },
-    { id: 'images', label: 'Foto & Gambar' },
-    { id: 'videos', label: 'Video' },
-    { id: 'documents', label: 'Dokumen' },
-    { id: 'audio', label: 'Audio' },
-  ];
-
   return (
     <div className="h-full flex flex-col bg-white animate-in fade-in duration-500 relative overflow-hidden">
 
@@ -177,10 +184,17 @@ export function FileBrowser() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => showToast(`Mengunduh ${selection.count} item terpilih...`)}
+              onClick={handleDownloadSelected}
               className="flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-600 hover:bg-indigo-50 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md"
             >
               <Download className="w-4 h-4" /> Download ({selection.count})
+            </button>
+            <button
+              onClick={() => systemService.openDownloadsFolder()}
+              title="Buka folder hasil unduhan di komputer (Finder / Explorer)"
+              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-700/80 hover:bg-indigo-800 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+            >
+              <Folder className="w-4 h-4" /> Buka Folder PC
             </button>
             <button className="flex items-center gap-2 px-5 py-2.5 bg-red-500 hover:bg-red-600 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md">
               <Trash2 className="w-4 h-4" /> Hapus
@@ -278,8 +292,8 @@ export function FileBrowser() {
         {/* Middle Area: Breadcrumbs + Files Table/Grid */}
         <div className="flex-1 flex flex-col min-w-0 bg-white">
 
-          {/* Breadcrumbs & Category Bar */}
-          <div className="p-4 border-b border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-3 bg-white">
+          {/* Breadcrumbs Bar */}
+          <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-3 bg-white">
             <div className="flex-1 min-w-0">
               <BreadcrumbNav
                 currentPath={currentPath}
@@ -288,24 +302,6 @@ export function FileBrowser() {
                 onRefresh={refresh}
                 isLoading={loading}
               />
-            </div>
-
-            {/* Category Filter Pills */}
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar shrink-0 self-start xl:self-auto py-0.5">
-              {categories.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => setCategory(c.id)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border",
-                    category === c.id
-                      ? "bg-slate-900 text-white border-slate-900 shadow-sm"
-                      : "bg-slate-50 text-slate-500 border-slate-200/50 hover:bg-slate-100 hover:text-slate-800"
-                  )}
-                >
-                  {c.label}
-                </button>
-              ))}
             </div>
           </div>
 

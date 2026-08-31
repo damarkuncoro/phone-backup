@@ -110,3 +110,41 @@ pub async fn open_restore_folder() -> Result<(), String> {
 
     Ok(())
 }
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn open_downloads_folder() -> Result<(), String> {
+    let path = std::env::current_dir()
+        .map_err(|e| e.to_string())?
+        .join("workspace")
+        .join("downloads");
+
+    if !path.exists() {
+        std::fs::create_dir_all(&path).map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("explorer")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}

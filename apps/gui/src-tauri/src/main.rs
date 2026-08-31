@@ -77,6 +77,7 @@ fn main() {
             commands::system::get_settings,
             commands::system::save_settings,
             commands::system::open_restore_folder,
+            commands::system::open_downloads_folder,
             commands::contact::search_contacts
         ])
         .run(tauri::generate_context!())
