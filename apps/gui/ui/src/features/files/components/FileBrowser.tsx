@@ -303,7 +303,13 @@ export function FileBrowser() {
                         "group transition-all cursor-pointer select-none",
                         isSelected ? "bg-indigo-50/60" : "hover:bg-slate-50/80"
                       )}
-                      onClick={() => selection.toggle(file.path)}
+                      onClick={() => {
+                        if (file.is_dir) {
+                          setCurrentPath(file.path);
+                        } else {
+                          selection.toggle(file.path);
+                        }
+                      }}
                       onDoubleClick={() => {
                         if (file.is_dir) {
                           setCurrentPath(file.path);
@@ -318,12 +324,7 @@ export function FileBrowser() {
                           {isSelected ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
                         </button>
                       </td>
-                      <td className="px-4 py-4" onClick={(e) => {
-                        if (file.is_dir) {
-                          e.stopPropagation();
-                          setCurrentPath(file.path);
-                        }
-                      }}>
+                      <td className="px-4 py-4">
                         <div className="flex items-center gap-4">
                           {renderFileIcon(file.name, file.is_dir)}
                           <div className="min-w-0">
@@ -377,7 +378,13 @@ export function FileBrowser() {
                 return (
                   <div
                     key={i}
-                    onClick={() => selection.toggle(file.path)}
+                    onClick={() => {
+                      if (file.is_dir) {
+                        setCurrentPath(file.path);
+                      } else {
+                        selection.toggle(file.path);
+                      }
+                    }}
                     onDoubleClick={() => {
                       if (file.is_dir) setCurrentPath(file.path);
                     }}

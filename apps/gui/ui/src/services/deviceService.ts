@@ -17,12 +17,14 @@ export function getDeviceId(device: Device): string {
 }
 
 export interface FileEntry {
+  id?: { 0: string } | string;
   name: string;
   path: string;
   size_bytes: number;
   modified_at: string;
   is_dir: boolean;
   mime_type: string;
+  permissions?: string;
 }
 
 export const deviceService = {
@@ -35,11 +37,19 @@ export const deviceService = {
   },
 
   async scan(deviceId: string): Promise<FileEntry[]> {
-    return await safeInvoke("scan_device", { device_id: deviceId });
+    const list: any[] = await safeInvoke("scan_device", { device_id: deviceId });
+    return (list || []).map(f => ({
+      ...f,
+      is_dir: f.is_dir === true || f.mime_type === 'inode/directory' || (typeof f.permissions === 'string' && f.permissions.startsWith('d'))
+    }));
   },
 
   async browse(deviceId: string, path: string): Promise<FileEntry[]> {
-    return await safeInvoke("browse_directory", { device_id: deviceId, path });
+    const list: any[] = await safeInvoke("browse_directory", { device_id: deviceId, path });
+    return (list || []).map(f => ({
+      ...f,
+      is_dir: f.is_dir === true || f.mime_type === 'inode/directory' || (typeof f.permissions === 'string' && f.permissions.startsWith('d'))
+    }));
   },
 
   async getBattery(deviceId: string): Promise<[number, number]> {
