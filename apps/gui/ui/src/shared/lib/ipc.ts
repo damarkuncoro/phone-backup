@@ -49,7 +49,7 @@ export function safeListen<T>(
             if (mounted) {
                 unlistenFn = fn;
             } else {
-                fn();
+                try { fn(); } catch (_) {}
             }
         } catch (err) {
             console.error(`[Listen Error] Failed "${eventName}":`, err);
@@ -61,7 +61,7 @@ export function safeListen<T>(
     return () => {
         mounted = false;
         if (unlistenFn) {
-            unlistenFn();
+            try { unlistenFn(); } catch (_) {}
         }
     };
 }

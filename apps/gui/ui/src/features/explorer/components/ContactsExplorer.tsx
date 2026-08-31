@@ -32,7 +32,8 @@ const AVATAR_COLORS = [
   'bg-teal-500 text-white',
 ];
 
-function getAvatarColor(name: string): string {
+function getAvatarColor(name?: string): string {
+  if (!name || typeof name !== 'string') return AVATAR_COLORS[0];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -40,21 +41,28 @@ function getAvatarColor(name: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-function getInitials(name: string): string {
-  if (!name) return '?';
+function getInitials(name?: string): string {
+  if (!name || typeof name !== 'string' || !name.trim()) return '?';
   const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) {
+  if (parts.length >= 2 && parts[0][0] && parts[1][0]) {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
-  return name.substring(0, 2).toUpperCase();
+  return name.trim().substring(0, 2).toUpperCase();
 }
 
-export function ContactsExplorer({ contacts, snapshotId }: ContactsExplorerProps) {
-  const [selectedContact, setSelectedContact] = useState<ContactData | null>(contacts[0] || null);
+export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorerProps) {
+  const [selectedContact, setSelectedContact] = useState<ContactData | null>(contacts?.[0] || null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [selectedAlphabet, setSelectedAlphabet] = useState<string>('ALL');
   const [exportingVCard, setExportingVCard] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
+
+  // Sync selected contact when contacts prop changes or is loaded
+  useMemo(() => {
+    if (!selectedContact && contacts && contacts.length > 0) {
+      setSelectedContact(contacts[0]);
+    }
+  }, [contacts, selectedContact]);
 
   // Alphabet list that exists in data
   const alphabetList = useMemo(() => {

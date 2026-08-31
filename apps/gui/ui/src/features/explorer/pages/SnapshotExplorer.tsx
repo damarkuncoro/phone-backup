@@ -264,13 +264,13 @@ export function SnapshotExplorer({ snapshotId, onBack }: SnapshotExplorerProps) 
                   {mode === 'contacts' && (
                       <div className="max-w-6xl mx-auto h-[620px]">
                           <ContactsExplorer
-                            contacts={rawData.filter(c => (c.display_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (c.phone_numbers || []).some((p: string) => p.includes(searchQuery)))}
+                            contacts={(Array.isArray(rawData) ? rawData : []).filter((c: any) => c && ((c.display_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (c.phone_numbers || []).some((p: string) => p && p.includes(searchQuery))))}
                             snapshotId={snapshotId}
                           />
                       </div>
                   )}
-                  {mode === 'sms' && <SmsList messages={rawData.filter(m => (m.body || '').toLowerCase().includes(searchQuery.toLowerCase()) || (m.address || '').includes(searchQuery))} />}
-                  {mode === 'apps' && <AppGrid apps={rawData.filter(a => (a.name || '').toLowerCase().includes(searchQuery.toLowerCase()))} />}
+                  {mode === 'sms' && <SmsList messages={(Array.isArray(rawData) ? rawData : []).filter((m: any) => m && (((m.body || '').toLowerCase().includes(searchQuery.toLowerCase())) || ((m.address || '').includes(searchQuery))))} />}
+                  {mode === 'apps' && <AppGrid apps={(Array.isArray(rawData) ? rawData : []).filter((a: any) => a && (a.name || '').toLowerCase().includes(searchQuery.toLowerCase()))} />}
 
                   {mode === 'files' && rawData.length === 0 && (
                       <div className="py-20 flex flex-col items-center justify-center text-slate-300">
