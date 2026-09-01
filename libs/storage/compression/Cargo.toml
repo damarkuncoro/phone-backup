@@ -1,0 +1,15 @@
+[package]
+name = "phone-backup-compression"
+version.workspace = true
+edition.workspace = true
+description = "Expert compression library for phone-backup with multiple strategies"
+license.workspace = true
+
+[dependencies]
+zstd.workspace = true
+anyhow.workspace = true
+serde = { workspace = true, optional = true }
+
+[features]
+default = []
+derive = ["serde"]

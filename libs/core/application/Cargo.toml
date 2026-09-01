@@ -10,6 +10,8 @@ repository.workspace = true
 domain = { workspace = true }
 ports = { workspace = true }
 chunking = { workspace = true }
+compression = { workspace = true }
+security = { workspace = true }
 anyhow.workspace = true
 blake3 = "1.5"
 chrono.workspace = true

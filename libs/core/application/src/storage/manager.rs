@@ -1,9 +1,7 @@
 use anyhow::Result;
 use domain::EncryptionMode;
 use ports::{StoragePort, RepositoryPort};
-use super::{Chunker, Chunk, ChunkConfig, ChunkingMethod};
-use super::compression::CompressionEngine;
-use super::security::EncryptionEngine;
+use super::{Chunker, Chunk, ChunkConfig, ChunkingMethod, CompressionAlgorithm, CompressionEngine, EncryptionEngine};
 use super::store::ObjectStoreKey;
 use super::hashing::calculate_hash;
 
@@ -45,12 +43,12 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
 
         // 3. Compress (Optional)
         if data.len() > 1024 {
-            processed_data = CompressionEngine::compress(&processed_data)?;
+            processed_data = CompressionEngine::compress(&processed_data, CompressionAlgorithm::Zstd)?;
             comp_alg = "zstd".to_string();
         }
 
         // 4. Encrypt (Optional but recommended in V4.0)
-        let enc_version = if self.encryption.is_encrypted() { 1 } else { 0 };
+        let _enc_version = if self.encryption.is_encrypted() { 1 } else { 0 };
         processed_data = match self.encryption {
             EncryptionMode::Password(pwd) => EncryptionEngine::encrypt(&processed_data, pwd)?,
             EncryptionMode::PublicKey(pk) => EncryptionEngine::encrypt_with_key(&processed_data, pk)?,
@@ -79,7 +77,7 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
             &storage_key,
             stored_size,
             &comp_alg,
-            enc_version
+            if self.encryption.is_encrypted() { 1 } else { 0 }
         )?;
 
         Ok((chunk_id.to_string(), true))
@@ -104,7 +102,9 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
             };
         }
 
-        if let Ok(decompressed) = CompressionEngine::decompress(&data) {
+        // Decompress if it looks like zstd or based on metadata
+        // In expert mode, we use the strategy. For now fallback to zstd if it fails none
+        if let Ok(decompressed) = CompressionEngine::decompress(&data, CompressionAlgorithm::Zstd) {
             data = decompressed;
         }
 

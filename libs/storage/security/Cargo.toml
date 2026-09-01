@@ -1,0 +1,22 @@
+[package]
+name = "phone-backup-security"
+version.workspace = true
+edition.workspace = true
+description = "Expert security and encryption library for phone-backup with multiple strategies and HKDF support"
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+chacha20poly1305 = "0.10"
+aes-gcm.workspace = true
+hkdf = "0.12"
+sha2.workspace = true
+argon2.workspace = true
+age.workspace = true
+rand.workspace = true
+secrecy.workspace = true
+serde = { workspace = true, optional = true }
+
+[features]
+default = []
+derive = ["serde"]

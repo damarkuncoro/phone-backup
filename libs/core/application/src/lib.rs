@@ -15,8 +15,8 @@ pub use backup::progress::ProgressEstimator;
 
 pub use storage::manager::ObjectManager;
 pub use storage::store::ObjectStoreKey;
-pub use storage::security::EncryptionEngine;
-pub use storage::compression::CompressionEngine;
+pub use storage::EncryptionEngine;
+pub use storage::CompressionEngine;
 pub use storage::hashing::calculate_hash;
 
 pub use analysis::media::MediaAnalyzer;

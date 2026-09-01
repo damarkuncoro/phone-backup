@@ -106,7 +106,7 @@ fn test_asymmetric_backup_restore_lifecycle() {
     let device_id = devices[0].id.clone();
 
     // 1. Generate Keypair
-    let (secret, public) = phone_backup_application::storage::security::EncryptionEngine::generate_keypair();
+    let (secret, public) = phone_backup_application::storage::EncryptionEngine::generate_keypair();
     let encryption = domain::EncryptionMode::PublicKey(public);
     let decryption = domain::EncryptionMode::PublicKey(secret);
 

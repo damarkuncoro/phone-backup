@@ -7,6 +7,8 @@ members = [
     "libs/core/application",
     "libs/core/ports",
     "libs/storage/chunking",
+    "libs/storage/compression",
+    "libs/storage/security",
     "libs/adapters/filesystem",
     "libs/adapters/mock",
     "libs/adapters/adb",
@@ -78,4 +80,6 @@ adapter-filesystem = { path = "libs/adapters/filesystem", package = "phone-backu
 adapter-opendal = { path = "libs/adapters/opendal", package = "phone-backup-adapter-opendal", version = "0.4.0" }
 adapter-database-sqlite = { path = "libs/infrastructure/database-sqlite", package = "phone-backup-adapter-database-sqlite", version = "0.4.0" }
 chunking = { path = "libs/storage/chunking", package = "phone-backup-chunking", version = "0.4.0" }
+compression = { path = "libs/storage/compression", package = "phone-backup-compression", version = "0.4.0" }
+security = { path = "libs/storage/security", package = "phone-backup-security", version = "0.4.0" }
 gui = { path = "apps/gui/src-tauri", package = "phone-backup-gui", version = "0.4.0" }
