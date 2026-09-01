@@ -13,3 +13,8 @@ restored_real_device/
 build/
 *.apk
 
+# Test artifacts
+test_expert_v4/
+test_phone_data/
+random_extra.bin
+

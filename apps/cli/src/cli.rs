@@ -24,6 +24,21 @@ pub struct Cli {
     #[arg(long, env = "S3_SECRET_KEY")]
     pub s3_secret_key: Option<String>,
 
+    #[arg(long, env = "GCS_BUCKET")]
+    pub gcs_bucket: Option<String>,
+
+    #[arg(long, env = "GCS_CREDENTIAL")]
+    pub gcs_credential: Option<String>,
+
+    #[arg(long, env = "AZURE_CONTAINER")]
+    pub azure_container: Option<String>,
+
+    #[arg(long, env = "AZURE_ACCOUNT_NAME")]
+    pub azure_account_name: Option<String>,
+
+    #[arg(long, env = "AZURE_ACCOUNT_KEY")]
+    pub azure_account_key: Option<String>,
+
     /// Public key for asymmetric encryption
     #[arg(long, env = "PB_PUBKEY")]
     pub pubkey: Option<String>,

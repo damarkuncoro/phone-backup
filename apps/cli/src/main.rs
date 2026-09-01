@@ -71,6 +71,33 @@ fn main() -> Result<()> {
             );
             execute_command(cli, service)
         }
+        "mtp" => {
+            let mtp_adapter = adapter_mtp::MtpAdapter::default();
+            let service = BackupService::new(
+                mtp_adapter.clone(),
+                mtp_adapter.clone(),
+                repository,
+                storage,
+                adapter_mock::MockAppProvider,
+                adapter_mock::MockDataProvider,
+                CliProgress::new(),
+            );
+            execute_command(cli, service)
+        }
+        "folder" => {
+            // Treat current directory as the device root for testing
+            let folder_adapter = adapter_mtp::MtpAdapter::with_root(std::env::current_dir()?);
+            let service = BackupService::new(
+                folder_adapter.clone(),
+                folder_adapter.clone(),
+                repository,
+                storage,
+                adapter_mock::MockAppProvider,
+                adapter_mock::MockDataProvider,
+                CliProgress::new(),
+            );
+            execute_command(cli, service)
+        }
         _ => {
             let service = BackupService::new(
                 MockDeviceAdapter::default(),

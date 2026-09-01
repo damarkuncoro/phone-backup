@@ -1,0 +1,40 @@
+[package]
+name = "phone-backup-application"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+domain = { workspace = true }
+ports = { workspace = true }
+chunking = { workspace = true }
+anyhow.workspace = true
+blake3 = "1.5"
+chrono.workspace = true
+sha2.workspace = true
+zstd.workspace = true
+mime_guess.workspace = true
+aes-gcm.workspace = true
+argon2.workspace = true
+rand.workspace = true
+kamadak-exif.workspace = true
+mp4.workspace = true
+age.workspace = true
+secrecy.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sysinfo.workspace = true
+rayon.workspace = true
+indicatif.workspace = true
+tracing.workspace = true
+fastcdc.workspace = true
+uuid.workspace = true
+image = { version = "0.24", default-features = false, features = ["jpeg", "png"] }
+
+[dev-dependencies]
+tempfile.workspace = true
+adapter-mock = { workspace = true }
+adapter-filesystem = { workspace = true }
+adapter-database-sqlite = { workspace = true }

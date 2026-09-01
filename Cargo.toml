@@ -3,16 +3,17 @@ resolver = "2"
 members = [
     "apps/cli",
     "apps/gui/src-tauri",
-    "core/domain",
-    "core/application",
-    "core/ports",
-    "adapters/filesystem",
-    "adapters/mock",
-    "adapters/adb",
-    "adapters/mtp",
-    "adapters/agent",
-    "adapters/opendal",
-    "infrastructure/database-sqlite",
+    "libs/core/domain",
+    "libs/core/application",
+    "libs/core/ports",
+    "libs/storage/chunking",
+    "libs/adapters/filesystem",
+    "libs/adapters/mock",
+    "libs/adapters/adb",
+    "libs/adapters/mtp",
+    "libs/adapters/agent",
+    "libs/adapters/opendal",
+    "libs/infrastructure/database-sqlite",
 ]
 
 [workspace.package]
@@ -36,7 +37,7 @@ chrono = { version = "0.4", features = ["serde"] }
 clap = { version = "=4.4.18", features = ["derive", "env"] }
 walkdir = "2"
 rusqlite = { version = "0.31", features = ["bundled-sqlcipher"] }
-uuid = { version = "1", features = ["v4", "serde"] }
+uuid = { version = "1", features = ["v4", "v7", "serde"] }
 sha2 = "0.10"
 zstd = "0.13"
 mime_guess = "2"
@@ -50,7 +51,7 @@ which = "6.0"
 indicatif = "0.17"
 number_prefix = "0.4"
 rayon = "1.10"
-opendal = { version = "0.48", features = ["services-s3", "layers-blocking"] }
+opendal = { version = "0.48", features = ["services-s3", "services-gcs", "services-azblob", "layers-blocking"] }
 tempfile = "3"
 age = { version = "0.10", features = ["armor"] }
 secrecy = "0.8"
@@ -66,14 +67,15 @@ r2d2 = "0.8"
 r2d2_sqlite = "0.24"
 
 # Internal Workspace Dependencies (Short names for convenience)
-domain = { path = "core/domain", package = "phone-backup-domain", version = "0.3.2" }
-ports = { path = "core/ports", package = "phone-backup-ports", version = "0.3.2" }
-application = { path = "core/application", package = "phone-backup-application", version = "0.3.2" }
-adapter-mock = { path = "adapters/mock", package = "phone-backup-adapter-mock", version = "0.3.2" }
-adapter-adb = { path = "adapters/adb", package = "phone-backup-adapter-adb", version = "0.3.2" }
-adapter-mtp = { path = "adapters/mtp", package = "phone-backup-adapter-mtp", version = "0.3.2" }
-adapter-agent = { path = "adapters/agent", package = "phone-backup-adapter-agent", version = "0.3.2" }
-adapter-filesystem = { path = "adapters/filesystem", package = "phone-backup-adapter-filesystem", version = "0.3.2" }
-adapter-opendal = { path = "adapters/opendal", package = "phone-backup-adapter-opendal", version = "0.3.2" }
-adapter-database-sqlite = { path = "infrastructure/database-sqlite", package = "phone-backup-adapter-database-sqlite", version = "0.3.2" }
+domain = { path = "libs/core/domain", package = "phone-backup-domain", version = "0.3.2" }
+ports = { path = "libs/core/ports", package = "phone-backup-ports", version = "0.3.2" }
+application = { path = "libs/core/application", package = "phone-backup-application", version = "0.3.2" }
+adapter-mock = { path = "libs/adapters/mock", package = "phone-backup-adapter-mock", version = "0.3.2" }
+adapter-adb = { path = "libs/adapters/adb", package = "phone-backup-adapter-adb", version = "0.3.2" }
+adapter-mtp = { path = "libs/adapters/mtp", package = "phone-backup-adapter-mtp", version = "0.3.2" }
+adapter-agent = { path = "libs/adapters/agent", package = "phone-backup-adapter-agent", version = "0.3.2" }
+adapter-filesystem = { path = "libs/adapters/filesystem", package = "phone-backup-adapter-filesystem", version = "0.3.2" }
+adapter-opendal = { path = "libs/adapters/opendal", package = "phone-backup-adapter-opendal", version = "0.3.2" }
+adapter-database-sqlite = { path = "libs/infrastructure/database-sqlite", package = "phone-backup-adapter-database-sqlite", version = "0.3.2" }
+chunking = { path = "libs/storage/chunking", package = "phone-backup-chunking", version = "0.3.2" }
 gui = { path = "apps/gui/src-tauri", package = "phone-backup-gui", version = "0.3.2" }

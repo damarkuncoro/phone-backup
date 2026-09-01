@@ -19,6 +19,22 @@ impl StorageFactory {
                 let storage = CloudStorage::new_s3(bucket, region, endpoint, access, secret)?;
                 Ok(Box::new(storage))
             }
+            "gcs" => {
+                use adapter_opendal::CloudStorage;
+                let bucket = cli.gcs_bucket.as_deref().unwrap_or("");
+                let credential = cli.gcs_credential.as_deref().unwrap_or("");
+                let storage = CloudStorage::new_gcs(bucket, credential)?;
+                Ok(Box::new(storage))
+            }
+            "azure" => {
+                use adapter_opendal::CloudStorage;
+                let container = cli.azure_container.as_deref().unwrap_or("");
+                let endpoint = cli.s3_endpoint.as_deref().unwrap_or(""); // Use S3 endpoint arg if shared or add specific
+                let account = cli.azure_account_name.as_deref().unwrap_or("");
+                let key = cli.azure_account_key.as_deref().unwrap_or("");
+                let storage = CloudStorage::new_azblob(container, endpoint, account, key)?;
+                Ok(Box::new(storage))
+            }
             _ => {
                 let storage = LocalStorage::new("workspace/backups")?;
                 Ok(Box::new(storage))

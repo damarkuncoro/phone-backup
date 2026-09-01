@@ -53,21 +53,20 @@ A high-performance, secure, and professional Android backup platform written in 
 
 ## 🏗 Architecture
 
-The project follows strict **Clean Architecture** and **Hexagonal Architecture**:
+The project follows strict **Clean Architecture**, **Hexagonal Architecture**, and a **Standardized Monorepo** structure:
 
 ```text
 phone-backup/
-├── apps/
+├── apps/               # Executable Entry Points
 │   ├── cli/            # Professional Command Line Interface
-│   ├── gui/            # Desktop Dashboard (Tauri + Web Components)
-│   └── android-agent/  # Native Android Companion APK (Kotlin)
-├── core/
-│   ├── domain/         # Pure business logic & entities
-│   ├── application/    # Use cases, ObjectManager, and Engine
-│   └── ports/          # Port definitions (DevicePort, StoragePort, etc.)
-├── adapters/           # ADB, Agent (Wi-Fi), OpenDAL (Cloud S3), Filesystem, Mock
-├── infrastructure/     # Persistence (SQLite SQLCipher + FTS5)
-└── workspace/          # Centralized data (Encrypted DB, Objects, Logs)
+│   └── gui/            # Desktop Dashboard (Tauri + Web Components)
+├── libs/               # Internal Shared Libraries
+│   ├── core/           # Domain, Application, and Ports (Business Logic)
+│   ├── storage/        # Specialized Data Processing (Chunking, Hashing)
+│   ├── adapters/       # IO Implementations (ADB, Wi-Fi, Filesystem)
+│   └── infrastructure/ # Persistence & Security (SQLite SQLCipher)
+├── docs/               # Technical Documentation & Specifications
+└── scripts/            # Build, Release, and Dev Automation
 ```
 
 ---
