@@ -2,6 +2,7 @@ use anyhow::Result;
 use domain::{CapabilityMatrix, Device, DeviceId, FileEntry};
 use ports::{DevicePort, ScannerPort};
 use std::sync::Arc;
+use tracing::{info, error};
 
 #[derive(Clone)]
 pub struct CompositeDeviceAdapter {
@@ -29,11 +30,19 @@ impl CompositeDeviceAdapter {
 impl DevicePort for CompositeDeviceAdapter {
     fn discover(&self) -> Result<Vec<Device>> {
         let mut all = Vec::new();
-        if let Ok(adb_devs) = self.adb_device.discover() {
-            all.extend(adb_devs);
+        match self.adb_device.discover() {
+            Ok(adb_devs) => {
+                info!("Composite Discovery: Found {} ADB devices", adb_devs.len());
+                all.extend(adb_devs);
+            },
+            Err(e) => error!("Composite Discovery: ADB discovery failed: {}", e),
         }
-        if let Ok(mtp_devs) = self.mtp_device.discover() {
-            all.extend(mtp_devs);
+        match self.mtp_device.discover() {
+            Ok(mtp_devs) => {
+                info!("Composite Discovery: Found {} MTP devices", mtp_devs.len());
+                all.extend(mtp_devs);
+            },
+            Err(e) => error!("Composite Discovery: MTP discovery failed: {}", e),
         }
         Ok(all)
     }
