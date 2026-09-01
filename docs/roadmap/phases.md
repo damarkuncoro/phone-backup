@@ -4,7 +4,7 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 
 ---
 
-# STATUS PROYEK: v0.3.5-stable 🚀
+# STATUS PROYEK: v0.4.0-stable (Final V4.0 Specifications) 🚀
 
 ## ✅ PHASE 01 — Project Foundation
 *   Struktur Workspace (10 package).
@@ -153,6 +153,17 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 *   **CLI Integration**: Dukungan penuh flag `--adapter agent` pada CLI `phone-backup`.
 *   **Scaffolding Android APK**: Inisialisasi struktur proyek native `apps/android-agent/` (Kotlin + Jetpack Compose + CameraX + `AndroidManifest.xml`).
 *   **Isolated Integration Tests**: Test suite terisolasi di `adapters/agent/tests/agent_adapter_test.rs`.
+
+## ✅ PHASE 44 — Monorepo Architecture & Expert Storage Foundation
+*   **Reorganisasi Monorepo**: Pemisahan yang bersih antara aplikasi (`apps/`) dan pustaka internal (`libs/`).
+*   **Expert Chunking Library**: Implementasi `phone-backup-chunking` dengan strategi polimorfik (FastCDC v2020, FixedSize, FullFile).
+*   **True Streaming Pipeline**: Pemrosesan data berukuran besar tanpa membebani RAM melalui bounded channels.
+
+## ✅ PHASE 45 — V4.0 Specification: Logical & Physical Separation
+*   **Two-Tier Deduplication**: Pemisahan Identitas Konten (Logical Chunks) dari Representasi Penyimpanan (Physical Objects).
+*   **UUIDv7 Storage Key**: Penggunaan identitas acak untuk file fisik guna obfuscation dan privasi data di sistem file.
+*   **Snapshot Commit Protocol**: Implementasi Manifest JSON immutable sebagai "Root of Trust" untuk integritas snapshot.
+*   **Cloud Storage Multi-Provider**: Dukungan native untuk GCS, Azure Blob, dan S3 via integrasi OpenDAL yang diperluas.
 
 ---
 
