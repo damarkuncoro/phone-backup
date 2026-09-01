@@ -21,9 +21,7 @@ export function Sidebar({ activeView, onViewChange, searchQuery, onSearchChange 
   return (
     <div className="w-60 h-full bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800">
       <div className="p-6 border-b border-white/10 flex items-center gap-3">
-        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
-          <Tablet className="w-5 h-5 text-white" />
-        </div>
+        <img src="/img/logo.png" alt="Phone Backup Logo" className="w-9 h-9 object-contain" />
         <span className="text-xl font-black tracking-tighter italic text-white">PB PRO</span>
       </div>
 

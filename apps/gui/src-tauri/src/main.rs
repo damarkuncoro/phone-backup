@@ -7,17 +7,31 @@ mod setup;
 
 use socketioxide::SocketIo;
 use tower_http::cors::CorsLayer;
+use tracing::{info, error};
 
 fn on_connect(socket: socketioxide::extract::SocketRef) {
-    println!("New remote monitor connected: {}", socket.id);
+    info!("New remote monitor connected: {}", socket.id);
 }
 
 fn main() {
+    // 1. Initialize formal logging
+    tracing_subscriber::fmt::init();
+
+    // 2. Setup diagnostic panic hook
+    std::panic::set_hook(Box::new(|info| {
+        error!("====================================================");
+        error!("🔥 CRITICAL: PHONE BACKUP GUI PANICKED!");
+        error!("Details: {}", info);
+        error!("====================================================");
+    }));
+
     let (layer, io) = SocketIo::new_layer();
     io.ns("/", on_connect);
 
-    tauri::Builder::default()
+    let app_result = tauri::Builder::default()
         .setup(move |app| {
+            info!("🚀 Tauri setup phase started");
+
             // 1. Background Web Server (Socket.io)
             let layer_clone = layer.clone();
             tauri::async_runtime::spawn(async move {
@@ -31,8 +45,14 @@ fn main() {
             });
 
             // 2. Initialize Infrastructure & Services
-            setup::init_infrastructure(app, io.clone())?;
+            info!("📦 Initializing Infrastructure...");
+            setup::init_infrastructure(app, io.clone())
+                .map_err(|e| {
+                    error!("❌ Infrastructure Initialization Failed: {}", e);
+                    e
+                })?;
 
+            info!("✅ Setup completed successfully");
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -80,6 +100,9 @@ fn main() {
             commands::system::open_downloads_folder,
             commands::contact::search_contacts
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .run(tauri::generate_context!());
+
+    if let Err(e) = app_result {
+        error!("❌ Tauri Application runtime error: {}", e);
+    }
 }

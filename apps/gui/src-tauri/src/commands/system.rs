@@ -1,4 +1,4 @@
-use tauri::State;
+use tauri::{State, Manager};
 use crate::state::{AppState, DoctorReport};
 
 #[tauri::command(rename_all = "snake_case")]
@@ -74,8 +74,8 @@ pub async fn save_settings(state: State<'_, AppState>, settings: domain::AppSett
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn open_restore_folder() -> Result<(), String> {
-    let path = std::env::current_dir()
+pub async fn open_restore_folder(app_handle: tauri::AppHandle) -> Result<(), String> {
+    let path = app_handle.path().app_data_dir()
         .map_err(|e| e.to_string())?
         .join("workspace")
         .join("restored_data");
@@ -112,8 +112,8 @@ pub async fn open_restore_folder() -> Result<(), String> {
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn open_downloads_folder() -> Result<(), String> {
-    let path = std::env::current_dir()
+pub async fn open_downloads_folder(app_handle: tauri::AppHandle) -> Result<(), String> {
+    let path = app_handle.path().app_data_dir()
         .map_err(|e| e.to_string())?
         .join("workspace")
         .join("downloads");
