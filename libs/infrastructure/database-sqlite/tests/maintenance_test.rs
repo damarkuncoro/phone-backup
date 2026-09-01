@@ -44,7 +44,7 @@ fn test_maintenance_referenced_hashes() {
 
     let all_hashes = repo.get_all_referenced_hashes().unwrap();
     assert!(all_hashes.contains("hash-file-1"));
-    assert!(all_hashes.contains("hash-chunk-1"));
+    assert!(all_hashes.contains("uuid-1")); // Storage key, not content hash
 }
 
 #[test]

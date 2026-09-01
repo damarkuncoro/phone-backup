@@ -17,7 +17,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.3.2"
+version = "0.4.0"
 edition = "2021"
 license = "MIT"
 authors = ["Damar Kuncoro <damarkuncoro@gmail.com>"]
@@ -67,15 +67,15 @@ r2d2 = "0.8"
 r2d2_sqlite = "0.24"
 
 # Internal Workspace Dependencies (Short names for convenience)
-domain = { path = "libs/core/domain", package = "phone-backup-domain", version = "0.3.2" }
-ports = { path = "libs/core/ports", package = "phone-backup-ports", version = "0.3.2" }
-application = { path = "libs/core/application", package = "phone-backup-application", version = "0.3.2" }
-adapter-mock = { path = "libs/adapters/mock", package = "phone-backup-adapter-mock", version = "0.3.2" }
-adapter-adb = { path = "libs/adapters/adb", package = "phone-backup-adapter-adb", version = "0.3.2" }
-adapter-mtp = { path = "libs/adapters/mtp", package = "phone-backup-adapter-mtp", version = "0.3.2" }
-adapter-agent = { path = "libs/adapters/agent", package = "phone-backup-adapter-agent", version = "0.3.2" }
-adapter-filesystem = { path = "libs/adapters/filesystem", package = "phone-backup-adapter-filesystem", version = "0.3.2" }
-adapter-opendal = { path = "libs/adapters/opendal", package = "phone-backup-adapter-opendal", version = "0.3.2" }
-adapter-database-sqlite = { path = "libs/infrastructure/database-sqlite", package = "phone-backup-adapter-database-sqlite", version = "0.3.2" }
-chunking = { path = "libs/storage/chunking", package = "phone-backup-chunking", version = "0.3.2" }
-gui = { path = "apps/gui/src-tauri", package = "phone-backup-gui", version = "0.3.2" }
+domain = { path = "libs/core/domain", package = "phone-backup-domain", version = "0.4.0" }
+ports = { path = "libs/core/ports", package = "phone-backup-ports", version = "0.4.0" }
+application = { path = "libs/core/application", package = "phone-backup-application", version = "0.4.0" }
+adapter-mock = { path = "libs/adapters/mock", package = "phone-backup-adapter-mock", version = "0.4.0" }
+adapter-adb = { path = "libs/adapters/adb", package = "phone-backup-adapter-adb", version = "0.4.0" }
+adapter-mtp = { path = "libs/adapters/mtp", package = "phone-backup-adapter-mtp", version = "0.4.0" }
+adapter-agent = { path = "libs/adapters/agent", package = "phone-backup-adapter-agent", version = "0.4.0" }
+adapter-filesystem = { path = "libs/adapters/filesystem", package = "phone-backup-adapter-filesystem", version = "0.4.0" }
+adapter-opendal = { path = "libs/adapters/opendal", package = "phone-backup-adapter-opendal", version = "0.4.0" }
+adapter-database-sqlite = { path = "libs/infrastructure/database-sqlite", package = "phone-backup-adapter-database-sqlite", version = "0.4.0" }
+chunking = { path = "libs/storage/chunking", package = "phone-backup-chunking", version = "0.4.0" }
+gui = { path = "apps/gui/src-tauri", package = "phone-backup-gui", version = "0.4.0" }
