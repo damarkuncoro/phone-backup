@@ -4,6 +4,9 @@
 # Single Source of Truth for crate dependencies, topological order, and version paths.
 # ==============================================================================
 
+# Ensure standard tool paths (Node, Homebrew, Android SDK) are in PATH
+export PATH="$PATH:/usr/local/bin:/opt/homebrew/bin:$HOME/Library/Android/sdk/platform-tools"
+
 # Topological order of crates for builds, publishing, and dependency checks.
 # Dependencies must be built/published before dependees.
 export WORKSPACE_CRATES_TOPOLOGICAL=(
