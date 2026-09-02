@@ -18,3 +18,8 @@ test_expert_v4/
 test_phone_data/
 random_extra.bin
 
+# Node.js
+node_modules/
+dist/
+
+

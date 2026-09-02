@@ -101,17 +101,8 @@ jobs:
           echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
       - name: install frontend dependencies
         run: |
-          cd apps/gui/ui
-          npm install
-          npm run build
-          cd ..
-          npm install
-      
-      - name: Debug - List workspace state
-        shell: bash
-        run: |
-          pwd
-          ls -R apps/gui
+          npm --prefix apps/gui/ui install
+          npm --prefix apps/gui install
 
       - name: build tauri app
         uses: tauri-apps/tauri-action@v0
