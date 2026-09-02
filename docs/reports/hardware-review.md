@@ -36,6 +36,7 @@ Hasil pengujian *end-to-end* secara langsung pada HP Android fisik real (`Xiaomi
 | **2** | **Keterbatasan Ruang Disk untuk Full Backup** | Backup penuh HP membaca seluruh memori media ($> 3.1\text{ GB}$), yang memicu perlindungan *disk check failure* jika sisa ruang disk komputer terbatas ($< 2.1\text{ GB}$). | Diatasi dengan menggunakan opsi selektif `-i /sdcard/DCIM/Screenshots` untuk backup terarah. |
 | **3** | **Izin Akses Data di Perangkat Xiaomi/MIUI** | Pembacaan database SMS & Kontak pada perangkat Xiaomi/HyperOS membutuhkan izin khusus di Developer Options. | Diperlukan pengaktifan opsi *"USB Debugging (Security settings)"* pada perangkat HP Xiaomi. |
 | **4** | **Kontensi Threadpool pada Integration Test Concurrency** | Pengujian integrasi paralel di Rayon threadpool sempat memicu kontensi resource antar test binary. | Berhasil diselesaikan dengan menambahkan guard `TEST_LOCK` pada suite `backup_integration.rs`. |
+| **5** | **Eksklusivitas Daemon `ptpcamerad` macOS pada USB MTP** | macOS secara otomatis memicu LaunchAgent `com.apple.ptpcamerad` saat USB terhubung, mengunci endpoint MTP secara eksklusif. | Diselesaikan dengan `MtpConflictResolver` yang mengirimkan sinyal `SIGSTOP` sebelum mematikan proses, mencegah respawn instan launchd. |
 
 ---
 
@@ -59,4 +60,4 @@ Hasil pengujian *end-to-end* secara langsung pada HP Android fisik real (`Xiaomi
 ---
 
 ### 💡 Kesimpulan
-Platform **phone-backup** sudah mencapai tahap **v0.3.5-stable (Production-Ready Codebase)** dengan arsitektur yang sangat terstruktur, aman, dan siap untuk terus dikembangkan ke skala yang lebih besar.
+Platform **phone-backup** sudah mencapai tahap **v0.4.1-stable (Production-Ready Codebase)** dengan arsitektur yang sangat terstruktur, aman, dan siap untuk terus dikembangkan ke skala yang lebih besar.

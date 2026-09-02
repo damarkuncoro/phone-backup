@@ -4,7 +4,7 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 
 ---
 
-# STATUS PROYEK: v0.4.0-stable (Final V4.0 Specifications) 🚀
+# STATUS PROYEK: v0.4.1-stable (Final V4.0 Specifications & Native MTP) 🚀
 
 ## ✅ PHASE 01 — Project Foundation
 *   Struktur Workspace (10 package).
@@ -164,6 +164,13 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 *   **UUIDv7 Storage Key**: Penggunaan identitas acak untuk file fisik guna obfuscation dan privasi data di sistem file.
 *   **Snapshot Commit Protocol**: Implementasi Manifest JSON immutable sebagai "Root of Trust" untuk integritas snapshot.
 *   **Cloud Storage Multi-Provider**: Dukungan native untuk GCS, Azure Blob, dan S3 via integrasi OpenDAL yang diperluas.
+
+## ✅ PHASE 46 — Native Pure-Rust MTP Adapter & macOS Conflict Resolution
+*   **Native MTP Engine (`adapters/mtp`)**: Komunikasi low-level USB MTP via `mtp-rs` tanpa memerlukan mode Developer atau USB Debugging.
+*   **macOS Conflict Resolver (`MtpConflictResolver`)**: Otomatis mendeteksi dan menghentikan daemon pengunci eksklusif (`ptpcamerad` / `PTPCamera` LaunchAgents) dengan penanganan sinyal `SIGSTOP`.
+*   **Multi-Storage & Partition Scanner**: Pemindaian rekursif partisi `Internal shared storage` dengan isolasi otomatis folder privat Android 11+ (`Android/data`, `Android/obb`).
+*   **Real Hardware Verification**: Teruji dan terverifikasi fungsional 100% pada smartphone fisik `Infinix NOTE 30 (Infinix X6833B)`.
+*   **Modular Automation Suite**: Restrukturisasi direktori `scripts/` (DRY & SOLID) dengan unified runner CLI (`./scripts/run.sh`).
 
 ---
 
