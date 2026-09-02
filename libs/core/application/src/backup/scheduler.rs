@@ -48,6 +48,9 @@ impl<
 
     #[instrument(skip(self))]
     pub fn add_schedule(&self, device_id: DeviceId, frequency: ScheduleFrequency) -> Result<()> {
+        if let Ok(device) = self.device_adapter.info(&device_id) {
+            let _ = self.repository.save_device(&device);
+        }
         let schedule = BackupSchedule {
             device_id,
             frequency,

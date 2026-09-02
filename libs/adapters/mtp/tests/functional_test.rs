@@ -77,11 +77,12 @@ fn test_mtp_scanner_recursive() {
 #[test]
 fn test_composite_adapter_routing() {
     // This tests if the composite adapter correctly routes requests based on ID prefix
-    let root = tempdir().unwrap();
-    let mtp_adapter = Arc::new(MtpAdapter::with_root(root.path()));
+    let root_mtp = tempdir().unwrap();
+    let root_adb = tempdir().unwrap();
+    let mtp_adapter = Arc::new(MtpAdapter::with_root(root_mtp.path()));
 
-    // We'll use another MtpAdapter as a "mock" for ADB to test routing
-    let adb_mock = Arc::new(MtpAdapter::with_root(root.path()));
+    // We'll use another MtpAdapter with distinct root as a "mock" for ADB to test routing
+    let adb_mock = Arc::new(MtpAdapter::with_root(root_adb.path()));
 
     let composite = CompositeDeviceAdapter::new(adb_mock, mtp_adapter);
 

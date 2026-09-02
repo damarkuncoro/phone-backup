@@ -38,8 +38,15 @@ impl NativeMtpOperations {
             return Ok(dev.clone());
         }
 
+        // Proactively resolve any macOS daemon conflicts before opening session
+        if let Some(ref s) = self.serial {
+            let _ = crate::resolver::MtpConflictResolver::resolve_conflicts(s);
+        } else {
+            let _ = crate::resolver::MtpConflictResolver::kill_conflicts();
+        }
+
         let mut last_error = anyhow!("Unknown error");
-        for attempt in 1..=3 {
+        for attempt in 1..=4 {
             let result = if let Some(ref s) = self.serial {
                 match MtpDevice::open_by_serial(s).await {
                     Ok(d) => Ok(d),
@@ -73,13 +80,15 @@ impl NativeMtpOperations {
                     let err_msg = e.to_string();
                     last_error = anyhow!(err_msg.clone());
 
-                    if err_msg.contains("exclusively") || err_msg.contains("timed out") || err_msg.contains("SessionAlreadyOpen") {
-                        info!("MTP: Attempt {} failed ({}). Waiting to retry...", attempt, err_msg);
-                        let _ = std::process::Command::new("killall").args(["-9", "PTPCamera", "ptpcamera", "ptpcamerad"]).output();
-                        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
-                    } else {
-                        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                    info!("MTP: Attempt {} failed ({}). Waiting to retry...", attempt, err_msg);
+                    let _ = std::process::Command::new("killall").args(["-9", "PTPCamera", "ptpcamera", "ptpcamerad"]).output();
+                    
+                    if err_msg.contains("Transaction ID mismatch") {
+                        if let Some(ref s) = self.serial {
+                            let _ = MtpDevice::reset_by_serial(s).await;
+                        }
                     }
+                    tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
                 }
             }
         }

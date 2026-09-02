@@ -46,9 +46,15 @@ async fn main() -> Result<()> {
                 break;
             }
             Err(e) => {
-                println!("   ⚠️ Percobaan #{} gagal ({}). Mencoba lagi...", attempt, e);
-                let _ = std::process::Command::new("killall").args(["-9", "PTPCamera", "ptpcamera", "ptpcamerad"]).output();
-                tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+                let err_str = e.to_string();
+                println!("   ⚠️ Percobaan #{} gagal ({}). Menyelaraskan ulang...", attempt, err_str);
+                let _ = MtpConflictResolver::resolve_conflicts(serial);
+                if err_str.contains("Transaction ID mismatch") {
+                    if let Some(s) = dev_info.serial_number.as_deref() {
+                        let _ = MtpDevice::reset_by_serial(s).await;
+                    }
+                }
+                tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
             }
         }
     }

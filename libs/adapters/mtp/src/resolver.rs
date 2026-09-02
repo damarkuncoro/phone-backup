@@ -214,10 +214,17 @@ impl MtpConflictResolver {
     }
 
     fn plist_path_guess(label: &str) -> String {
-        format!("/System/Library/LaunchDaemons/{label}.plist")
+        let agent_path = format!("/System/Library/LaunchAgents/{label}.plist");
+        if std::path::Path::new(&agent_path).exists() {
+            agent_path
+        } else {
+            format!("/System/Library/LaunchDaemons/{label}.plist")
+        }
     }
 
     fn kill_pid(pid: u32) -> Result<(), std::io::Error> {
+        // First send SIGSTOP to prevent immediate respawn
+        let _ = Command::new("kill").args(["-STOP", &pid.to_string()]).status();
         let status = Command::new("kill")
             .args(["-9", &pid.to_string()])
             .status()?;
@@ -248,13 +255,22 @@ impl MtpConflictResolver {
             let pid_str = fields[0];
             let name = fields[1..].join(" ");
 
-            if Self::FALLBACK_APP_NAMES.iter().any(|known| name.contains(known)) {
+            let is_daemon = Self::KNOWN_DAEMONS
+                .iter()
+                .any(|(dname, _)| name.to_lowercase().contains(&dname.to_lowercase()));
+            let launchd_label = Self::KNOWN_DAEMONS
+                .iter()
+                .find(|(dname, _)| name.to_lowercase().contains(&dname.to_lowercase()))
+                .map(|(_, label)| label.to_string());
+            let is_known_app = Self::FALLBACK_APP_NAMES.iter().any(|known| name.to_lowercase().contains(&known.to_lowercase()));
+
+            if is_daemon || is_known_app {
                 if let Ok(pid) = pid_str.parse::<u32>() {
                     result.push(HoldingProcess {
                         pid,
                         name: name.to_string(),
-                        is_daemon: false,
-                        launchd_label: None,
+                        is_daemon,
+                        launchd_label,
                     });
                 }
             }
