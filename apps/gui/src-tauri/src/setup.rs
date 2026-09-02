@@ -154,8 +154,16 @@ fn spawn_status_poller(app_handle: tauri::AppHandle, device_adapter: CompositeDe
     use tauri::Emitter;
 
     std::thread::spawn(move || {
+        let mut last_device_count = 0;
         loop {
             if let Ok(devices) = device_adapter.discover() {
+                // If count changed, notify UI to refresh
+                if devices.len() != last_device_count {
+                    info!("Status Poller: Device count changed ({} -> {}), notifying UI", last_device_count, devices.len());
+                    let _ = app_handle.emit("device-changed", "poller-update");
+                    last_device_count = devices.len();
+                }
+
                 for device in devices {
                     if let Ok((level, temp)) = device_adapter.battery_status(&device.id) {
                         let payload = serde_json::json!({
@@ -167,7 +175,7 @@ fn spawn_status_poller(app_handle: tauri::AppHandle, device_adapter: CompositeDe
                     }
                 }
             }
-            std::thread::sleep(std::time::Duration::from_secs(30));
+            std::thread::sleep(std::time::Duration::from_secs(10)); // Poll faster (10s) during debug
         }
     });
 }

@@ -12,13 +12,18 @@ Hasil pengujian *end-to-end* secara langsung pada HP Android fisik real (`Xiaomi
    - Engine Rust (`phone-backup-application`) dan adapter ADB (`phone-backup-adapter-adb`) berhasil memindai **165 file media/screenshot** dan **413 aplikasi Android terinstal** secara real-time.
    - Restorasi file terenkripsi berhasil memulihkan 142 screenshot asli ke memori lokal **100% lossless**.
 
-2. **Keamanan Bertingkat (*Zero-Knowledge Security*)**:
+2. **Pengujian Nyata Adapter MTP (`Infinix NOTE 30 / Infinix X6833B`)**:
+   - **Kompatibilitas Plug-and-Play**: Pengujian langsung via USB MTP native tanpa mode Developer / USB Debugging berhasil 100%.
+   - **Manajemen Konflik macOS**: Engine `MtpConflictResolver` berhasil mendeteksi dan secara otomatis mematikan daemon macOS (`ptpcamerad`/`PTPCamera`) yang mengunci USB secara eksklusif.
+   - **Akses Partisi & Metadata**: Berhasil membaca partisi `Internal shared storage` ($227.52\text{ GB}$, $98.7\%$ terpakai), mendeteksi 28 folder root utama, memindai folder `Pictures` (48 item), dan `Download` (392 item).
+
+3. **Keamanan Bertingkat (*Zero-Knowledge Security*)**:
    - Enkripsi **AES-256 GCM**, **Argon2id Key Derivation Function (KDF)** untuk database metadata (`SQLCipher`), dan **kunci asimetris age (X25519)** berjalan sangat solid tanpa korupsi data.
 
-3. **Fitur Keselamatan Perangkat (*Safety Guards*)**:
+4. **Fitur Keselamatan Perangkat (*Safety Guards*)**:
    - Pengecekan otomatis baterai ($82\%$), suhu perangkat ($37.2^\circ\text{C}$), dan **pengecekan ruang penyimpanan lokal** berhasil mencegah bahaya *disk exhaustion* sebelum backup berjalan.
 
-4. **Arsitektur Bersih (*Clean Architecture & Test Isolation*)**:
+5. **Arsitektur Bersih (*Clean Architecture & Test Isolation*)**:
    - Seluruh test suite di workspace (`cargo test --workspace`) lulus **100%** dengan pemisahan penuh antara kode produksi `src/` dan file pengujian `tests/`.
 
 ---

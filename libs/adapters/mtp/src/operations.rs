@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::fs::{self, File};
 use std::io::{self, Read};
 use domain::{FileEntry, FileId, DeviceId};

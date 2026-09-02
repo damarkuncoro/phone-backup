@@ -65,8 +65,6 @@ axum = "0.7"
 socketioxide = { version = "0.15", features = ["v4"] }
 tower = "0.4"
 tower-http = { version = "0.5", features = ["cors"] }
-r2d2 = "0.8"
-r2d2_sqlite = "0.24"
 
 # Internal Workspace Dependencies (Short names for convenience)
 domain = { path = "libs/core/domain", package = "phone-backup-domain", version = "0.4.1" }
@@ -82,4 +80,3 @@ adapter-database-sqlite = { path = "libs/infrastructure/database-sqlite", packag
 chunking = { path = "libs/storage/chunking", package = "phone-backup-chunking", version = "0.4.1" }
 compression = { path = "libs/storage/compression", package = "phone-backup-compression", version = "0.4.1" }
 security = { path = "libs/storage/security", package = "phone-backup-security", version = "0.4.1" }
-gui = { path = "apps/gui/src-tauri", package = "phone-backup-gui", version = "0.4.1" }

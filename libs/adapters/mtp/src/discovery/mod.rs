@@ -1,9 +1,9 @@
 use std::path::PathBuf;
-use std::sync::Arc;
 use tracing::debug;
 
 pub mod macos;
 pub mod linux;
+pub mod native;
 
 pub struct MtpMount {
     pub name: String,
@@ -21,6 +21,9 @@ pub struct DiscoveryOrchestrator {
 impl DiscoveryOrchestrator {
     pub fn new() -> Self {
         let mut strategies: Vec<Box<dyn MtpDiscoveryStrategy>> = Vec::new();
+
+        // High Priority: Native USB Access (doesn't require OS mounting)
+        strategies.push(Box::new(native::NativeMtpDiscovery::new()));
 
         #[cfg(target_os = "macos")]
         strategies.push(Box::new(macos::MacosDiscovery::new()));

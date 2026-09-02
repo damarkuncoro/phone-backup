@@ -74,6 +74,16 @@ pub async fn save_settings(state: State<'_, AppState>, settings: domain::AppSett
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub async fn resolve_mtp_conflicts() -> Result<usize, String> {
+    adapter_mtp::MtpConflictResolver::kill_conflicts().map_err(|e| e.to_string())
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn get_mtp_conflicts() -> Result<Vec<String>, String> {
+    Ok(adapter_mtp::MtpConflictResolver::find_conflicts())
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub async fn open_restore_folder(app_handle: tauri::AppHandle) -> Result<(), String> {
     let path = app_handle.path().app_data_dir()
         .map_err(|e| e.to_string())?

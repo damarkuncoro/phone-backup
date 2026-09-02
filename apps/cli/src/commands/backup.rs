@@ -30,7 +30,30 @@ where
     }
     let policy = builder.build();
 
-    let snapshot = service.perform_backup(&device_id, encryption, Some(policy))?;
+    let snapshot = match service.perform_backup(&device_id, encryption.clone(), Some(policy)) {
+        Ok(s) => s,
+        Err(e) if e.to_string().contains("exclusively") => {
+            println!("\n⚠️  Gagal mengakses HP: Perangkat sedang digunakan oleh aplikasi lain.");
+            print!("Apakah Anda ingin saya mencoba menutup aplikasi pengganggu? (y/n): ");
+            use std::io::{self, Write};
+            std::io::stdout().flush()?;
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+
+            if input.trim().to_lowercase() == "y" {
+                if id.starts_with("usb://serial/") {
+                    let serial = id.trim_start_matches("usb://serial/");
+                    let _ = adapter_mtp::MtpConflictResolver::resolve_conflicts(serial);
+                } else {
+                    let _ = adapter_mtp::MtpConflictResolver::kill_conflicts();
+                }
+                service.perform_backup(&device_id, encryption, None)?
+            } else {
+                return Err(e);
+            }
+        }
+        Err(e) => return Err(e),
+    };
     println!("\nBackup completed successfully!");
     println!("Snapshot ID: {}", snapshot.id.0);
     println!("Files:       {}", snapshot.total_files);

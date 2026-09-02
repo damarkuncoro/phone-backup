@@ -1,4 +1,3 @@
-use std::path::PathBuf;
 use tracing::{info, debug};
 use super::{MtpDiscoveryStrategy, MtpMount};
 

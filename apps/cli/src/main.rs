@@ -30,7 +30,11 @@ fn main() -> Result<()> {
     use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
     tracing_subscriber::registry()
-        .with(EnvFilter::from_default_env().add_directive(tracing::Level::INFO.into()))
+        .with(EnvFilter::from_default_env()
+            .add_directive(tracing::Level::INFO.into())
+            // Silence noisy third-party libraries
+            .add_directive("nusb=off".parse().unwrap())
+            .add_directive("mtp_rs=warn".parse().unwrap()))
         .with(fmt::layer().with_writer(std::io::stderr))
         .with(fmt::layer().with_ansi(false).with_writer(non_blocking))
         .init();

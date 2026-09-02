@@ -14,10 +14,15 @@ where
 {
     let devices = service.list_devices()?;
     println!("Connected Devices\n");
-    println!("{:<15} {:<15} {:<12} {}", "ID", "MODEL", "OS", "STATUS");
-    println!("{}", "-".repeat(50));
+    println!("{:<40} {:<15} {:<12} {}", "ID", "MODEL", "OS", "STATUS");
+    println!("{}", "-".repeat(80));
     for d in devices {
-        println!("{:<15} {:<15} {:<12} {}", d.id, d.model, d.os_version, "Ready");
+        let os_short = if d.os_version.len() > 10 {
+            "MTP".to_string()
+        } else {
+            d.os_version.clone()
+        };
+        println!("{:<40} {:<15} {:<12} {}", d.id, d.model, os_short, "Ready");
     }
     Ok(())
 }
@@ -66,7 +71,37 @@ where
 {
     let device_id = DeviceId::new(id);
     println!("Scanning device {}...", id);
-    let files = service.scan_device(&device_id)?;
+
+    let result = service.scan_device(&device_id);
+
+    let files = match result {
+        Ok(f) => f,
+        Err(e) if e.to_string().contains("exclusively") || e.to_string().contains("timed out") || e.to_string().contains("SessionAlreadyOpen") => {
+            println!("\n⚠️  Gagal mengakses HP: Perangkat sibuk atau sesi menggantung.");
+            println!("Penyebab: {} ", e);
+            print!("Apakah Anda ingin saya mencoba membersihkan agen macOS pengganggu? (y/n): ");
+            use std::io::{self, Write};
+            std::io::stdout().flush()?;
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+
+            if input.trim().to_lowercase() == "y" {
+                println!("🚀 Mencoba menutup aplikasi pengganggu...");
+                let killed = if id.starts_with("usb://serial/") {
+                    let serial = id.trim_start_matches("usb://serial/");
+                    adapter_mtp::MtpConflictResolver::resolve_conflicts(serial).map_err(|e| anyhow::anyhow!(e))?
+                } else {
+                    adapter_mtp::MtpConflictResolver::kill_conflicts()?
+                };
+                println!("✅ Berhasil menutup {} aplikasi. Mencoba memindai ulang...", killed);
+                service.scan_device(&device_id)?
+            } else {
+                return Err(e);
+            }
+        }
+        Err(e) => return Err(e),
+    };
+
     println!("\nFound {} files:", files.len());
     for f in files {
         println!(

@@ -96,6 +96,8 @@ fn main() {
             commands::system::add_schedule,
             commands::system::get_settings,
             commands::system::save_settings,
+            commands::system::get_mtp_conflicts,
+            commands::system::resolve_mtp_conflicts,
             commands::system::open_restore_folder,
             commands::system::open_downloads_folder,
             commands::contact::search_contacts

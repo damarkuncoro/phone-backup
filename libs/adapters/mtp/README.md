@@ -4,16 +4,26 @@ A Media Transfer Protocol (MTP) adapter for the phone-backup engine. This librar
 
 ## Features
 
-- **Plug & Play**: Automatically detects Android devices mounted as storage on macOS and Linux.
-- **Root Discovery**: Intelligently identifies "Internal Storage" and "DCIM" paths.
+- **Plug & Play**: Automatically detects Android devices mounted as storage on macOS and Linux without requiring Developer Mode or USB Debugging.
+- **Native USB & Mount Discovery**: Directly communicates with MTP USB endpoints via `mtp-rs` as well as filesystem mounts.
+- **macOS Conflict Resolver**: Automatically detects and terminates interfering macOS background daemons (`ptpcamerad`, `PTPCamera`, `mscamerad`) that hold exclusive device locks.
 - **Port Implementation**: Fully implements `ports::DevicePort` and `ports::ScannerPort`.
-- **Platform Specific**: 
-  - macOS: Support for `/Volumes` based MTP mounts.
-  - Linux: Support for GVFS/MTP mounts (Phase 36+).
 
-## Architecture
+## Usage & Diagnostics
 
-This is an **I/O Adapter** in the Hexagonal Monorepo. It acts as a bridge between the physical MTP filesystem and the Core Engine's abstract port definitions.
+Test connected MTP devices via CLI:
+```bash
+# List MTP devices
+cargo run --bin phone-backup -- --adapter mtp devices
+
+# Diagnostic scan of physical phone
+cargo run --example real_device_test --package phone-backup-adapter-mtp
+```
+
+## Verified Real Hardware
+
+- **Infinix NOTE 30 (Infinix X6833B)**: Verified 100% functional on macOS (USB MTP session open, storage partition discovery, recursive object/folder listing for DCIM, Pictures, Downloads, Documents).
+- **Xiaomi Redmi Note 12 Pro 5G**: Verified functional via ADB and MTP.
 
 ## Limitations
 

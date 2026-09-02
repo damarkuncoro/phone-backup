@@ -17,7 +17,7 @@ docs/
 │   └── limitations.md                      # Batasan Teknis & Sandbox Keamanan Android OS
 ├── 🧪 reports/                             # Laporan Pengujian & Audit Hardware Fisik
 │   ├── test-cases-report.md                # Laporan Verifikasi & Pengujian Multi-Skenario
-│   └── hardware-review.md                  # Review Teknis & Pengujian HP Android Fisik (Xiaomi/Redmi)
+│   └── hardware-review.md                  # Review Teknis & Pengujian HP Fisik (Xiaomi ADB & Infinix MTP)
 ├── 🚀 roadmap/                             # Perjalanan Pengembangan & Pelacak Fitur
 │   ├── phases.md                           # Kronologi Implementasi Phase 01 hingga Phase 43+
 │   └── feature-requests.md                 # Pelacak Fitur Selesai & Inisiatif Masa Depan
@@ -41,7 +41,7 @@ docs/
 | **🏗 Arsitektur Sistem** | [System Architecture (SAD)](architecture/README.md) | Desain Heksagonal, Ports & Adapters, pipeline CAS deduplikasi, dan enkripsi SQLCipher + Argon2id. |
 | **📱 Agen Nirkabel** | [Companion Agent Roadmap](architecture/companion-agent-roadmap.md) | Blueprint agen Android APK nirkabel, mDNS discovery, dan streaming transfer data via Wi-Fi. |
 | **🧪 Laporan Pengujian** | [Laporan Uji Coba & Benchmarks](reports/test-cases-report.md) | Hasil pengujian multi-skenario, integritas data, dan benchmarking kecepatan enkripsi. |
-| **📝 Audit Perangkat Keras** | [Review Hardware Nyata](reports/hardware-review.md) | Evaluasi pengujian langsung pada smartphone Xiaomi/Redmi dan solusi hambatan sistem. |
+| **📝 Audit Perangkat Keras** | [Review Hardware Nyata](reports/hardware-review.md) | Evaluasi pengujian langsung pada smartphone Xiaomi (ADB) & Infinix (Native MTP) beserta solusi resolusi konflik sistem. |
 | **⚠️ Batasan Sistem** | [Known Limitations](guides/limitations.md) | Batasan ADB vs MTP vs Companion Agent terkait izin sandbox Android OS. |
 | **🚀 Roadmap & Status** | [Project Phases (v0.3.5)](roadmap/phases.md) | Kronologi implementasi fase 01 sampai fase 43+ beserta milestone v1.0.0. |
 

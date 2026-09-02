@@ -19,7 +19,7 @@ impl CompositeDeviceAdapter {
     }
 
     fn select_adapter(&self, id: &DeviceId) -> &Arc<dyn DevicePort> {
-        if id.0.starts_with("mtp:") {
+        if id.0.starts_with("mtp:") || id.0.starts_with("usb://") {
             &self.mtp_device
         } else {
             &self.adb_device
@@ -30,17 +30,31 @@ impl CompositeDeviceAdapter {
 impl DevicePort for CompositeDeviceAdapter {
     fn discover(&self) -> Result<Vec<Device>> {
         let mut all = Vec::new();
+        let mut seen_serials = std::collections::HashSet::new();
+
+        // RECOMMENDATION 10: ADB Priority
         match self.adb_device.discover() {
             Ok(adb_devs) => {
                 info!("Composite Discovery: Found {} ADB devices", adb_devs.len());
-                all.extend(adb_devs);
+                for dev in adb_devs {
+                    seen_serials.insert(dev.serial.clone());
+                    all.push(dev);
+                }
             },
             Err(e) => error!("Composite Discovery: ADB discovery failed: {}", e),
         }
+
         match self.mtp_device.discover() {
             Ok(mtp_devs) => {
                 info!("Composite Discovery: Found {} MTP devices", mtp_devs.len());
-                all.extend(mtp_devs);
+                for dev in mtp_devs {
+                    // Only add if not already present via ADB
+                    if !seen_serials.contains(&dev.serial) {
+                        all.push(dev);
+                    } else {
+                        info!("Composite Discovery: Skipping MTP for device {} (already available via ADB)", dev.serial);
+                    }
+                }
             },
             Err(e) => error!("Composite Discovery: MTP discovery failed: {}", e),
         }
@@ -105,7 +119,7 @@ impl CompositeScannerAdapter {
 
 impl ScannerPort for CompositeScannerAdapter {
     fn scan(&self, id: &DeviceId, target_paths: Vec<String>) -> Result<Vec<FileEntry>> {
-        if id.0.starts_with("mtp:") {
+        if id.0.starts_with("mtp:") || id.0.starts_with("usb://") {
             self.mtp_scanner.scan(id, target_paths)
         } else {
             self.adb_scanner.scan(id, target_paths)
