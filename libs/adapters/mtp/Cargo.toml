@@ -23,6 +23,7 @@ futures = "0.3.34"
 async-stream = "0.3.6"
 blake3 = "1.8.7"
 thiserror.workspace = true
+mime_guess = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }

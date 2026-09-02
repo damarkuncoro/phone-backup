@@ -41,9 +41,24 @@ impl NativeMtpOperations {
         let mut last_error = anyhow!("Unknown error");
         for attempt in 1..=3 {
             let result = if let Some(ref s) = self.serial {
-                MtpDevice::open_by_serial(s).await
+                match MtpDevice::open_by_serial(s).await {
+                    Ok(d) => Ok(d),
+                    Err(_) => {
+                        if let Ok(devices) = MtpDevice::list_devices() {
+                            if let Some(target) = devices.iter().find(|d| d.serial_number.as_deref() == Some(s)) {
+                                MtpDevice::open_by_location(target.location_id).await.map_err(|e| anyhow::anyhow!(e))
+                            } else if let Some(target) = devices.iter().find(|d| !d.manufacturer.as_deref().unwrap_or("").to_lowercase().contains("apple")) {
+                                MtpDevice::open_by_location(target.location_id).await.map_err(|e| anyhow::anyhow!(e))
+                            } else {
+                                Err(anyhow::anyhow!("No MTP device found matching serial {}", s))
+                            }
+                        } else {
+                            Err(anyhow::anyhow!("Failed to enumerate MTP devices"))
+                        }
+                    }
+                }
             } else if let Some(loc) = self.location_id {
-                MtpDevice::open_by_location(loc).await
+                MtpDevice::open_by_location(loc).await.map_err(|e| anyhow::anyhow!(e))
             } else {
                 anyhow::bail!("No identification provided for MTP device")
             };
@@ -60,9 +75,10 @@ impl NativeMtpOperations {
 
                     if err_msg.contains("exclusively") || err_msg.contains("timed out") || err_msg.contains("SessionAlreadyOpen") {
                         info!("MTP: Attempt {} failed ({}). Waiting to retry...", attempt, err_msg);
+                        let _ = std::process::Command::new("killall").args(["-9", "PTPCamera", "ptpcamera", "ptpcamerad"]).output();
                         tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
                     } else {
-                        return Err(last_error);
+                        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
                     }
                 }
             }
@@ -214,14 +230,38 @@ impl NativeMtpOperations {
         let mut stack = vec![(parent, current_path.to_string())];
 
         while let Some((p_handle, p_path)) = stack.pop() {
-            let items = storage.list_objects(p_handle).await?;
+            // Skip Android system private folders that block MTP access in Android 11+
+            if p_path.ends_with("/Android/data") || p_path.ends_with("/Android/obb") || p_path.ends_with("/.trashBin_File") {
+                tracing::debug!("Skipping restricted Android system folder: {}", p_path);
+                continue;
+            }
+
+            let items = match storage.list_objects(p_handle).await {
+                Ok(it) => it,
+                Err(e) => {
+                    tracing::warn!("Skipping inaccessible folder '{}': {}", p_path, e);
+                    continue;
+                }
+            };
+
             for item in items {
-                let info = storage.get_object_info(item.handle).await?;
+                let info = match storage.get_object_info(item.handle).await {
+                    Ok(inf) => inf,
+                    Err(e) => {
+                        tracing::warn!("Skipping inaccessible item '{}/{}': {}", p_path, item.filename, e);
+                        continue;
+                    }
+                };
+
                 let virtual_path = format!("{}/{}", p_path.trim_end_matches('/'), item.filename);
 
                 if info.format.is_association() {
                     stack.push((Some(item.handle), virtual_path));
                 } else {
+                    let mime = mime_guess::from_path(&item.filename)
+                        .first_or_octet_stream()
+                        .to_string();
+
                     results.push(FileEntry {
                         id: FileId(virtual_path.clone()),
                         device_id: device_id.clone(),
@@ -229,7 +269,7 @@ impl NativeMtpOperations {
                         name: item.filename,
                         size_bytes: info.size,
                         modified_at: chrono::Utc::now(),
-                        mime_type: "application/octet-stream".into(),
+                        mime_type: mime,
                         permissions: "-rw-r--r--".into(),
                         hash_sha256: None,
                         thumbnail_hash: None,
