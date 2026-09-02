@@ -55,6 +55,12 @@ pub struct Cli {
 pub enum Commands {
     /// Generate a new key pair for asymmetric encryption
     Keygen,
+    /// Export zero-knowledge printable emergency recovery kit (HTML)
+    RecoveryKit {
+        /// Target HTML file output path
+        #[arg(short, long, default_value = "emergency_recovery_kit.html")]
+        output: String,
+    },
     /// List connected devices
     Devices,
     /// Show detailed info + capability matrix for one device

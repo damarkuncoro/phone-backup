@@ -83,6 +83,75 @@ export function SettingsSecurityTab({
             </div>
           </div>
         </div>
+
+        {/* Zero-Knowledge Emergency Recovery Kit Card */}
+        <div className="p-6 bg-gradient-to-r from-indigo-900 to-slate-900 text-white rounded-3xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl">
+          <div className="space-y-1.5 max-w-xl">
+            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-300 bg-indigo-950/80 px-3 py-1 rounded-full border border-indigo-700/50">
+              Cold Storage Protection
+            </span>
+            <h4 className="text-lg font-black tracking-tight text-white mt-1">
+              Lembar Pemulihan Kunci Darurat (Emergency Recovery Kit)
+            </h4>
+            <p className="text-xs text-slate-300 font-medium leading-relaxed">
+              Cetak salinan fisik kunci rahasia enkripsi Age X25519 dan petunjuk pemulihan ke kertas untuk disimpan di brankas fisik. Lembar ini adalah jaminan Anda bisa memulihkan data jika komputer rusak.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (!keys) {
+                alert("Memuat kunci enkripsi...");
+                return;
+              }
+              const printWindow = window.open('', '_blank');
+              if (printWindow) {
+                const dateStr = new Date().toISOString();
+                printWindow.document.write(`
+                  <!DOCTYPE html>
+                  <html>
+                  <head>
+                    <title>Phone Backup - Emergency Recovery Kit</title>
+                    <style>
+                      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #0f172a; line-height: 1.5; }
+                      .badge { display: inline-block; padding: 4px 12px; background: #e0e7ff; color: #4338ca; border-radius: 9999px; font-weight: 800; font-size: 11px; text-transform: uppercase; }
+                      h1 { margin: 12px 0 6px 0; font-size: 24px; font-weight: 900; }
+                      .box { background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 16px; margin: 20px 0; }
+                      .label { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 6px; }
+                      .key { font-family: monospace; font-size: 13px; font-weight: 700; word-break: break-all; background: #fff; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; }
+                      .warning { background: #fff1f2; border: 1.5px solid #fecdd3; border-radius: 12px; padding: 16px; margin: 20px 0; color: #9f1239; }
+                    </style>
+                  </head>
+                  <body>
+                    <span class="badge">Cold Storage Recovery Document</span>
+                    <h1>Phone Backup Emergency Recovery Kit</h1>
+                    <p style="color: #64748b; font-size: 13px;">Dicetak pada: ${dateStr}</p>
+                    <div class="warning">
+                      <h3 style="margin: 0 0 4px 0;">⚠️ SANGAT RAHASIA - SIMPAN DI BRANKAS</h3>
+                      <p style="margin: 0; font-size: 12px;">Kunci Rahasia ini diperlukan untuk mendekripsi seluruh cadangan Anda.</p>
+                    </div>
+                    <div class="box">
+                      <div class="label">Public Key (Identitas Enkripsi)</div>
+                      <div class="key">${keys[1]}</div>
+                    </div>
+                    <div class="box">
+                      <div class="label">Secret Key (Kunci Privat Pemulihan)</div>
+                      <div class="key">${keys[0]}</div>
+                    </div>
+                  </body>
+                  </html>
+                `);
+                printWindow.document.close();
+                printWindow.focus();
+                printWindow.print();
+              }
+            }}
+            className="px-6 py-3.5 bg-white hover:bg-slate-100 text-slate-900 rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-lg shrink-0 flex items-center gap-2 active:scale-95"
+          >
+            <Shield className="w-4 h-4 text-indigo-600" /> Cetak Lembar Pemulihan
+          </button>
+        </div>
       </div>
     </div>
   );
