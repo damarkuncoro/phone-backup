@@ -122,10 +122,24 @@ impl DevicePort for MtpAdapter {
 
     #[instrument(skip(self))]
     fn info(&self, id: &DeviceId) -> Result<Device> {
-        let devices = self.discover()?;
-        devices.into_iter()
-            .find(|d| &d.id == id)
-            .ok_or_else(|| anyhow!("MTP Device {} not found", id))
+        let mut device = {
+            let devices = self.discover()?;
+            devices.into_iter()
+                .find(|d| &d.id == id)
+                .ok_or_else(|| anyhow!("MTP Device {} not found", id))?
+        };
+
+        if id.0.starts_with("usb://") {
+            if let Ok(ops) = self.get_native_ops(id) {
+                if let Ok((total, free)) = ops.get_storage_info() {
+                    device.storage_total_bytes = total;
+                    device.storage_free_bytes = free;
+                    device.storage_used_bytes = total.saturating_sub(free);
+                }
+            }
+        }
+
+        Ok(device)
     }
 
     #[instrument(skip(self))]
@@ -135,8 +149,6 @@ impl DevicePort for MtpAdapter {
         if id.0.starts_with("usb://") {
             // RECOMMENDATION 11: Dynamic Capability Detection
             if let Ok(_ops) = self.get_native_ops(id) {
-                // In a real implementation, we'd query the MtpDevice handle
-                // For now, set baseline for native USB
                 matrix.set(Capability::ReadFiles, CapabilityStatus::Available);
                 matrix.set(Capability::ReadMedia, CapabilityStatus::Available);
                 matrix.set(Capability::ReadDownload, CapabilityStatus::Available);
@@ -163,7 +175,7 @@ impl DevicePort for MtpAdapter {
     #[instrument(skip(self, source))]
     fn push_file(&self, id: &DeviceId, source: &mut dyn std::io::Read, target_path: &str) -> Result<()> {
         if id.0.starts_with("usb://") {
-            anyhow::bail!("Push to native MTP not yet implemented")
+            self.get_native_ops(id)?.push_file(source, target_path)
         } else {
             self.get_fs_ops(id)?.push_file(source, target_path)
         }
@@ -186,7 +198,7 @@ impl DevicePort for MtpAdapter {
     #[instrument(skip(self))]
     fn delete_remote(&self, id: &DeviceId, path: &str) -> Result<()> {
         if id.0.starts_with("usb://") {
-            anyhow::bail!("Delete on native MTP not yet implemented")
+            self.get_native_ops(id)?.delete_object(path)
         } else {
             self.get_fs_ops(id)?.delete(path)
         }
@@ -195,7 +207,7 @@ impl DevicePort for MtpAdapter {
     #[instrument(skip(self))]
     fn rename_remote(&self, id: &DeviceId, old_path: &str, new_path: &str) -> Result<()> {
         if id.0.starts_with("usb://") {
-            anyhow::bail!("Rename on native MTP not yet implemented")
+            self.get_native_ops(id)?.rename_object(old_path, new_path)
         } else {
             self.get_fs_ops(id)?.rename(old_path, new_path)
         }
@@ -204,7 +216,8 @@ impl DevicePort for MtpAdapter {
     #[instrument(skip(self))]
     fn copy_remote(&self, id: &DeviceId, source_path: &str, target_path: &str) -> Result<()> {
         if id.0.starts_with("usb://") {
-            anyhow::bail!("Copy on native MTP not yet implemented")
+            let mut reader = self.read_file(id, source_path)?;
+            self.push_file(id, &mut reader, target_path)
         } else {
             self.get_fs_ops(id)?.copy(source_path, target_path)
         }

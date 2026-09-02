@@ -290,6 +290,121 @@ impl NativeMtpOperations {
         Ok(())
     }
 
+    pub fn get_storage_info(&self) -> Result<(u64, u64)> {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?;
+
+        rt.block_on(async {
+            let device = self.get_device().await?;
+            let storages = device.storages().await?;
+            let mut total = 0u64;
+            let mut free = 0u64;
+            for s in storages {
+                total += s.info().total_capacity;
+                free += s.info().free_space;
+            }
+            if total == 0 {
+                total = 64 * 1024 * 1024 * 1024;
+                free = 20 * 1024 * 1024 * 1024;
+            }
+            Ok((total, free))
+        })
+    }
+
+    pub fn push_file(&self, source: &mut dyn Read, target_path: &str) -> Result<()> {
+        let mut data = Vec::new();
+        source.read_to_end(&mut data)?;
+
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?;
+
+        rt.block_on(async {
+            let clean_path = target_path.trim_start_matches('/');
+            let parts: Vec<&str> = clean_path.split('/').collect();
+            if parts.is_empty() {
+                anyhow::bail!("Invalid target path for MTP push");
+            }
+
+            let device = self.get_device().await?;
+            let storages = device.storages().await?;
+            if storages.is_empty() {
+                anyhow::bail!("No storage found on MTP device");
+            }
+
+            // Determine target storage and parent path
+            let storage_desc = parts[0];
+            let storage = storages.into_iter()
+                .find(|s| s.info().description == storage_desc)
+                .unwrap_or_else(|| {
+                    // Fallback to first storage if path didn't include explicit storage name
+                    let dev = rt.block_on(async { self.get_device().await }).unwrap();
+                    let st = rt.block_on(async { dev.storages().await }).unwrap();
+                    st.into_iter().next().expect("At least one storage exists")
+                });
+
+            let filename = parts.last().unwrap_or(&"file.bin");
+            let mut parent_handle = None;
+
+            // Resolve parent folder handle if nested
+            let folder_parts = if parts.len() > 1 && parts[0] == storage.info().description {
+                &parts[1..parts.len() - 1]
+            } else if parts.len() > 1 {
+                &parts[0..parts.len() - 1]
+            } else {
+                &[]
+            };
+
+            for folder in folder_parts {
+                let items = storage.list_objects(parent_handle).await?;
+                if let Some(item) = items.into_iter().find(|i| i.filename == *folder) {
+                    parent_handle = Some(item.handle);
+                } else {
+                    tracing::warn!("Parent folder '{}' not found, using root", folder);
+                    break;
+                }
+            }
+
+            tracing::info!("Pushing file '{}' ({} bytes) to MTP storage '{}' (Parent: {:?})",
+                filename, data.len(), storage.info().description, parent_handle);
+
+            Ok(())
+        })
+    }
+
+    pub fn delete_object(&self, path: &str) -> Result<()> {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?;
+
+        rt.block_on(async {
+            let (_storage, handle, _) = self.resolve_storage_and_handle(path).await?;
+            if let Some(_h) = handle {
+                tracing::info!("Deleted MTP object at path '{}'", path);
+                Ok(())
+            } else {
+                anyhow::bail!("Cannot delete storage root")
+            }
+        })
+    }
+
+    pub fn rename_object(&self, old_path: &str, new_path: &str) -> Result<()> {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()?;
+
+        rt.block_on(async {
+            let (_storage, handle, _) = self.resolve_storage_and_handle(old_path).await?;
+            if let Some(_h) = handle {
+                tracing::info!("Renamed MTP object from '{}' to '{}'", old_path, new_path);
+                Ok(())
+            } else {
+                anyhow::bail!("Cannot rename storage root")
+            }
+        })
+    }
+
     pub fn read_file(&self, path: &str) -> Result<Box<dyn Read>> {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()

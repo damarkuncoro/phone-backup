@@ -95,8 +95,24 @@ export function WizardProgressStep({
                 />
               </div>
 
+              {/* Real-time Throughput & Security HUD */}
+              <div className="pt-2 grid grid-cols-3 gap-2 text-center">
+                <div className="bg-white/80 p-2.5 rounded-2xl border border-slate-200/60 shadow-xs">
+                  <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Metode</span>
+                  <span className="text-[11px] font-black text-indigo-600">FastCDC + ZSTD</span>
+                </div>
+                <div className="bg-white/80 p-2.5 rounded-2xl border border-slate-200/60 shadow-xs">
+                  <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Keamanan</span>
+                  <span className="text-[11px] font-black text-emerald-600">Age X25519</span>
+                </div>
+                <div className="bg-white/80 p-2.5 rounded-2xl border border-slate-200/60 shadow-xs">
+                  <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Integritas</span>
+                  <span className="text-[11px] font-black text-slate-700">SHA-256 CAS</span>
+                </div>
+              </div>
+
               {progressPercent > 92 && (
-                <p className="text-[10px] text-amber-600 font-bold animate-pulse flex items-center gap-1.5">
+                <p className="text-[10px] text-amber-600 font-bold animate-pulse flex items-center gap-1.5 justify-center pt-1">
                   <RefreshCw className="w-3 h-3 animate-spin" /> Sedang merampungkan manifest snapshot & enkripsi...
                 </p>
               )}
