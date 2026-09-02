@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
-use chrono::{DateTime, Utc};
 use crate::DeviceId;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ScheduleFrequency {
@@ -26,9 +26,15 @@ impl BackupSchedule {
         let now = Utc::now();
         match (self.last_run_at, self.frequency) {
             (None, _) => true,
-            (Some(last), ScheduleFrequency::Hourly) => now.signed_duration_since(last).num_hours() >= 1,
-            (Some(last), ScheduleFrequency::Daily) => now.signed_duration_since(last).num_days() >= 1,
-            (Some(last), ScheduleFrequency::Weekly) => now.signed_duration_since(last).num_days() >= 7,
+            (Some(last), ScheduleFrequency::Hourly) => {
+                now.signed_duration_since(last).num_hours() >= 1
+            }
+            (Some(last), ScheduleFrequency::Daily) => {
+                now.signed_duration_since(last).num_days() >= 1
+            }
+            (Some(last), ScheduleFrequency::Weekly) => {
+                now.signed_duration_since(last).num_days() >= 7
+            }
             (Some(_), ScheduleFrequency::OnConnect) => false,
         }
     }

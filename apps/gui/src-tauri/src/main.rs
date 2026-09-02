@@ -1,13 +1,13 @@
 // Prevents additional console window on Windows in release
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod state;
 mod commands;
 mod setup;
+mod state;
 
 use socketioxide::SocketIo;
 use tower_http::cors::CorsLayer;
-use tracing::{info, error};
+use tracing::{error, info};
 
 fn on_connect(socket: socketioxide::extract::SocketRef) {
     info!("New remote monitor connected: {}", socket.id);
@@ -36,7 +36,10 @@ fn main() {
             let layer_clone = layer.clone();
             tauri::async_runtime::spawn(async move {
                 let router = axum::Router::new()
-                    .route("/", axum::routing::get(|| async { "Phone Backup Remote Server Active" }))
+                    .route(
+                        "/",
+                        axum::routing::get(|| async { "Phone Backup Remote Server Active" }),
+                    )
                     .layer(layer_clone)
                     .layer(CorsLayer::permissive());
                 if let Ok(listener) = tokio::net::TcpListener::bind("0.0.0.0:3030").await {
@@ -46,11 +49,10 @@ fn main() {
 
             // 2. Initialize Infrastructure & Services
             info!("📦 Initializing Infrastructure...");
-            setup::init_infrastructure(app, io.clone())
-                .map_err(|e| {
-                    error!("❌ Infrastructure Initialization Failed: {}", e);
-                    e
-                })?;
+            setup::init_infrastructure(app, io.clone()).map_err(|e| {
+                error!("❌ Infrastructure Initialization Failed: {}", e);
+                e
+            })?;
 
             info!("✅ Setup completed successfully");
             Ok(())

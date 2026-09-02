@@ -1,6 +1,6 @@
-use tauri::State;
 use crate::state::AppState;
 use domain::Contact;
+use tauri::State;
 
 #[derive(serde::Serialize)]
 pub struct ContactSearchResult {
@@ -9,11 +9,20 @@ pub struct ContactSearchResult {
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn search_contacts(state: State<'_, AppState>, query: String) -> Result<Vec<ContactSearchResult>, String> {
-    let results = state.engine.search_contacts(&query).map_err(|e| e.to_string())?;
+pub async fn search_contacts(
+    state: State<'_, AppState>,
+    query: String,
+) -> Result<Vec<ContactSearchResult>, String> {
+    let results = state
+        .engine
+        .search_contacts(&query)
+        .map_err(|e| e.to_string())?;
 
-    Ok(results.into_iter().map(|(s_id, contact)| ContactSearchResult {
-        snapshot_id: s_id.0,
-        contact,
-    }).collect())
+    Ok(results
+        .into_iter()
+        .map(|(s_id, contact)| ContactSearchResult {
+            snapshot_id: s_id.0,
+            contact,
+        })
+        .collect())
 }

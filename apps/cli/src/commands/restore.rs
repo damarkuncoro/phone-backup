@@ -24,7 +24,9 @@ where
             .ok_or_else(|| anyhow::anyhow!("No snapshots found in repository"))?
     } else {
         let id = SnapshotId(snapshot_id.to_string());
-        service.get_snapshot(&id)?.ok_or_else(|| anyhow::anyhow!("Snapshot {} not found", snapshot_id))?
+        service
+            .get_snapshot(&id)?
+            .ok_or_else(|| anyhow::anyhow!("Snapshot {} not found", snapshot_id))?
     };
 
     let target_dir = match target {

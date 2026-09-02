@@ -1,11 +1,14 @@
+use super::BackupService;
+use crate::storage::manager::ObjectManager;
 use anyhow::Result;
-use domain::{SnapshotId, EncryptionMode};
-use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort, ProgressPort};
+use domain::{EncryptionMode, SnapshotId};
+use ports::{
+    AppProviderPort, DataProviderPort, DevicePort, ProgressPort, RepositoryPort, ScannerPort,
+    StoragePort,
+};
 use std::fs;
 use std::path::Path;
-use crate::storage::manager::ObjectManager;
 use tracing::instrument;
-use super::BackupService;
 
 impl<D, S, R, T, A, DP, P> BackupService<D, S, R, T, A, DP, P>
 where
@@ -31,11 +34,14 @@ where
         let target_base = Path::new(target_dir);
         let object_manager = ObjectManager::new(&self.storage, &self.repository, &encryption);
 
-        self.progress.start(files.len() as u64, "Starting restoration...");
+        self.progress
+            .start(files.len() as u64, "Starting restoration...");
 
         files.into_par_iter().try_for_each(|file| {
             if let Some(ref f_list) = filters {
-                let matches = f_list.iter().any(|f| file.path.starts_with(f) || file.path.contains(f));
+                let matches = f_list
+                    .iter()
+                    .any(|f| file.path.starts_with(f) || file.path.contains(f));
                 if !matches {
                     self.progress.inc(1, "Skipping...");
                     return Ok(());
@@ -54,7 +60,9 @@ where
                 full_data
             } else {
                 // Fallback for old style backups or structured data
-                let hash = file.hash_sha256.as_ref()
+                let hash = file
+                    .hash_sha256
+                    .as_ref()
                     .ok_or_else(|| anyhow::anyhow!("File {} has no hash", file.path))?;
 
                 object_manager.get_chunk(hash)?

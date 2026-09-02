@@ -1,7 +1,7 @@
-use std::io::Read;
-use anyhow::Result;
-use crate::config::ChunkConfig;
 use super::{Chunk, StreamingChunker};
+use crate::config::ChunkConfig;
+use anyhow::Result;
+use std::io::Read;
 
 pub struct FixedChunker<R: Read> {
     reader: R,

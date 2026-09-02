@@ -28,8 +28,7 @@ impl BackupPolicy {
 
         // Check against exclude patterns
         for pattern in &self.exclude_patterns {
-            if pattern.starts_with("*.") {
-                let ext = &pattern[2..];
+            if let Some(ext) = pattern.strip_prefix("*.") {
                 if path.ends_with(ext) {
                     return false;
                 }

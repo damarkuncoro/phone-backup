@@ -1,9 +1,9 @@
+use crate::operations::MtpFileOperations;
 use anyhow::Result;
-use domain::{FileEntry, DeviceId, FileId};
+use domain::{DeviceId, FileEntry, FileId};
 use ports::ScannerPort;
 use std::path::PathBuf;
 use tracing::info;
-use crate::operations::MtpFileOperations;
 
 pub struct MtpScanner {
     ops: MtpFileOperations,
@@ -35,7 +35,9 @@ impl ScannerPort for MtpScanner {
 
             for entry in walkdir::WalkDir::new(&base_dir).into_iter().flatten() {
                 let p = entry.path();
-                if p.is_dir() { continue; }
+                if p.is_dir() {
+                    continue;
+                }
 
                 let meta = entry.metadata()?;
                 let rel = p.strip_prefix(&base_dir).unwrap_or(p);
@@ -43,7 +45,11 @@ impl ScannerPort for MtpScanner {
                 let virtual_path = if base.is_empty() || base == "/" {
                     format!("/{}", rel.to_string_lossy().trim_start_matches('/'))
                 } else {
-                    format!("/{}/{}", base.trim_matches('/'), rel.to_string_lossy().trim_start_matches('/'))
+                    format!(
+                        "/{}/{}",
+                        base.trim_matches('/'),
+                        rel.to_string_lossy().trim_start_matches('/')
+                    )
                 };
 
                 results.push(FileEntry {

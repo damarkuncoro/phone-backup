@@ -1,8 +1,11 @@
-use anyhow::Result;
-use domain::{DeviceId, FileEntry, SnapshotId, FileDiff, ContactDiff};
-use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort, ProgressPort};
-use tracing::instrument;
 use crate::backup::BackupService;
+use anyhow::Result;
+use domain::{ContactDiff, DeviceId, FileDiff, FileEntry, SnapshotId};
+use ports::{
+    AppProviderPort, DataProviderPort, DevicePort, ProgressPort, RepositoryPort, ScannerPort,
+    StoragePort,
+};
+use tracing::instrument;
 
 impl<D, S, R, T, A, DP, P> BackupService<D, S, R, T, A, DP, P>
 where
@@ -40,12 +43,22 @@ where
     }
 
     #[instrument(skip(self))]
-    pub fn get_file_diff(&self, old_snapshot_id: &SnapshotId, new_snapshot_id: &SnapshotId) -> Result<FileDiff> {
-        self.repository.get_file_diff(old_snapshot_id, new_snapshot_id)
+    pub fn get_file_diff(
+        &self,
+        old_snapshot_id: &SnapshotId,
+        new_snapshot_id: &SnapshotId,
+    ) -> Result<FileDiff> {
+        self.repository
+            .get_file_diff(old_snapshot_id, new_snapshot_id)
     }
 
     #[instrument(skip(self))]
-    pub fn get_contact_diff(&self, old_snapshot_id: &SnapshotId, new_snapshot_id: &SnapshotId) -> Result<ContactDiff> {
-        self.repository.get_contact_diff(old_snapshot_id, new_snapshot_id)
+    pub fn get_contact_diff(
+        &self,
+        old_snapshot_id: &SnapshotId,
+        new_snapshot_id: &SnapshotId,
+    ) -> Result<ContactDiff> {
+        self.repository
+            .get_contact_diff(old_snapshot_id, new_snapshot_id)
     }
 }

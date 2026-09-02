@@ -1,9 +1,9 @@
 mod common;
 
-use common::setup_test_repo;
-use domain::{Device, DeviceId, ConnectionType, BackupSchedule, ScheduleFrequency};
-use ports::{DeviceRepositoryPort, ScheduleRepositoryPort};
 use chrono::Utc;
+use common::setup_test_repo;
+use domain::{BackupSchedule, ConnectionType, Device, DeviceId, ScheduleFrequency};
+use ports::{DeviceRepositoryPort, ScheduleRepositoryPort};
 
 #[test]
 fn test_schedule_crud() {
@@ -12,11 +12,17 @@ fn test_schedule_crud() {
 
     repo.save_device(&Device {
         id: device_id.clone(),
-        manufacturer: "A".to_string(), model: "B".to_string(), serial: "C".to_string(),
-        os_version: "D".to_string(), sdk_version: None,
-        storage_total_bytes: 0, storage_used_bytes: 0, storage_free_bytes: 0,
+        manufacturer: "A".to_string(),
+        model: "B".to_string(),
+        serial: "C".to_string(),
+        os_version: "D".to_string(),
+        sdk_version: None,
+        storage_total_bytes: 0,
+        storage_used_bytes: 0,
+        storage_free_bytes: 0,
         connection_type: ConnectionType::Usb,
-    }).unwrap();
+    })
+    .unwrap();
 
     // CREATE
     let schedule = BackupSchedule {
@@ -28,9 +34,12 @@ fn test_schedule_crud() {
     repo.save_schedule(&schedule).unwrap();
 
     // READ
-    let saved = repo.get_schedule(&device_id).unwrap().expect("Schedule should exist");
+    let saved = repo
+        .get_schedule(&device_id)
+        .unwrap()
+        .expect("Schedule should exist");
     assert_eq!(saved.frequency, ScheduleFrequency::Daily);
-    assert_eq!(saved.enabled, true);
+    assert!(saved.enabled);
 
     // UPDATE
     let mut updated = saved;

@@ -47,7 +47,10 @@ async fn main() -> Result<()> {
             }
             Err(e) => {
                 let err_str = e.to_string();
-                println!("   ⚠️ Percobaan #{} gagal ({}). Menyelaraskan ulang...", attempt, err_str);
+                println!(
+                    "   ⚠️ Percobaan #{} gagal ({}). Menyelaraskan ulang...",
+                    attempt, err_str
+                );
                 let _ = MtpConflictResolver::resolve_conflicts(serial);
                 if err_str.contains("Transaction ID mismatch") {
                     if let Some(s) = dev_info.serial_number.as_deref() {
@@ -76,7 +79,7 @@ async fn main() -> Result<()> {
 
     println!("\n[5] Memeriksa Partisi Penyimpanan (Storage)...");
     let mut storages = device.storages().await?;
-    
+
     if storages.is_empty() {
         println!("\n⚠️  HP TERKUNCI ATAU DALAM MODE 'CHARGING ONLY'");
         println!("👉 Silakan lakukan langkah berikut di HP Anda:");
@@ -84,9 +87,9 @@ async fn main() -> Result<()> {
         println!("   2. Tarik bar notifikasi -> pilih 'USB untuk transfer file' / 'File Transfer (MTP)'.");
         println!("\n⏳ Menunggu perangkat dibuka kuncinya (tekan Ctrl+C untuk berhenti)...");
 
-        for i in 1..=30 {
+        for _ in 1..=30 {
             tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
-            
+
             // Reopen device session if needed
             let _ = MtpConflictResolver::resolve_conflicts(serial);
             if let Ok(new_dev) = if let Some(s) = dev_info.serial_number.as_deref() {
@@ -121,14 +124,26 @@ async fn main() -> Result<()> {
         println!("\n📦 Partisi #{}: {}", i + 1, s_info.description);
         println!("   - Storage ID:     0x{:x}", s_info.id.0);
         println!("   - Volume Label:   {}", s_info.volume_identifier);
-        println!("   - Total Kapasitas: {:.2} GB ({} bytes)", 
-            s_info.total_capacity as f64 / (1024.0 * 1024.0 * 1024.0), s_info.total_capacity);
-        println!("   - Ruang Bebas:    {:.2} GB ({} bytes)", 
-            s_info.free_space as f64 / (1024.0 * 1024.0 * 1024.0), s_info.free_space);
+        println!(
+            "   - Total Kapasitas: {:.2} GB ({} bytes)",
+            s_info.total_capacity as f64 / (1024.0 * 1024.0 * 1024.0),
+            s_info.total_capacity
+        );
+        println!(
+            "   - Ruang Bebas:    {:.2} GB ({} bytes)",
+            s_info.free_space as f64 / (1024.0 * 1024.0 * 1024.0),
+            s_info.free_space
+        );
         let used = s_info.total_capacity.saturating_sub(s_info.free_space);
-        println!("   - Terpakai:       {:.2} GB ({:.1}%)", 
-            used as f64 / (1024.0 * 1024.0 * 1024.0), 
-            if s_info.total_capacity > 0 { (used as f64 / s_info.total_capacity as f64) * 100.0 } else { 0.0 });
+        println!(
+            "   - Terpakai:       {:.2} GB ({:.1}%)",
+            used as f64 / (1024.0 * 1024.0 * 1024.0),
+            if s_info.total_capacity > 0 {
+                (used as f64 / s_info.total_capacity as f64) * 100.0
+            } else {
+                0.0
+            }
+        );
 
         println!("\n[7] Memindai file & folder di root penyimpanan...");
         match storage.list_objects(None).await {
@@ -138,22 +153,48 @@ async fn main() -> Result<()> {
                     if let Ok(item_info) = storage.get_object_info(obj.handle).await {
                         let is_dir = item_info.format.is_association();
                         let tag = if is_dir { "[FOLDER]" } else { "[FILE]  " };
-                        println!("     {:2}. {} {:<25} (Size: {:>9} B, Handle: 0x{:x})",
-                            idx + 1, tag, obj.filename, item_info.size, obj.handle.0);
+                        println!(
+                            "     {:2}. {} {:<25} (Size: {:>9} B, Handle: 0x{:x})",
+                            idx + 1,
+                            tag,
+                            obj.filename,
+                            item_info.size,
+                            obj.handle.0
+                        );
 
                         // If folder is DCIM or Download or Pictures, list subfolder items
-                        if is_dir && (obj.filename == "DCIM" || obj.filename == "Download" || obj.filename == "Pictures" || obj.filename == "Documents") {
+                        if is_dir
+                            && (obj.filename == "DCIM"
+                                || obj.filename == "Download"
+                                || obj.filename == "Pictures"
+                                || obj.filename == "Documents")
+                        {
                             println!("        ↳ Isi dari '{}':", obj.filename);
                             if let Ok(sub_items) = storage.list_objects(Some(obj.handle)).await {
                                 println!("          (Ditemukan {} item)", sub_items.len());
                                 for (sub_idx, sub) in sub_items.iter().take(5).enumerate() {
-                                    if let Ok(sub_info) = storage.get_object_info(sub.handle).await {
-                                        let sub_tag = if sub_info.format.is_association() { "[DIR] " } else { "[FILE]" };
-                                        println!("            {}.{} {} {:<22} ({} B)", idx + 1, sub_idx + 1, sub_tag, sub.filename, sub_info.size);
+                                    if let Ok(sub_info) = storage.get_object_info(sub.handle).await
+                                    {
+                                        let sub_tag = if sub_info.format.is_association() {
+                                            "[DIR] "
+                                        } else {
+                                            "[FILE]"
+                                        };
+                                        println!(
+                                            "            {}.{} {} {:<22} ({} B)",
+                                            idx + 1,
+                                            sub_idx + 1,
+                                            sub_tag,
+                                            sub.filename,
+                                            sub_info.size
+                                        );
                                     }
                                 }
                                 if sub_items.len() > 5 {
-                                    println!("            ... dan {} item lainnya", sub_items.len() - 5);
+                                    println!(
+                                        "            ... dan {} item lainnya",
+                                        sub_items.len() - 5
+                                    );
                                 }
                             }
                         }

@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
-use std::path::PathBuf;
+use domain::{DeviceId, FileEntry, FileId};
 use std::fs::{self, File};
 use std::io::{self, Read};
-use domain::{FileEntry, FileId, DeviceId};
+use std::path::PathBuf;
 
 pub struct MtpFileOperations {
     root_path: PathBuf,
@@ -14,7 +14,9 @@ impl MtpFileOperations {
     }
 
     pub fn resolve_path(&self, rel_path: &str) -> PathBuf {
-        let clean_rel = rel_path.trim_start_matches('/').trim_start_matches("sdcard/");
+        let clean_rel = rel_path
+            .trim_start_matches('/')
+            .trim_start_matches("sdcard/");
         if clean_rel.is_empty() {
             self.root_path.clone()
         } else {
@@ -52,11 +54,7 @@ impl MtpFileOperations {
             let metadata = entry.metadata()?;
             let file_name = entry.file_name().to_string_lossy().to_string();
 
-            let virtual_path = format!(
-                "{}/{}",
-                path.trim_end_matches('/'),
-                file_name
-            );
+            let virtual_path = format!("{}/{}", path.trim_end_matches('/'), file_name);
 
             entries.push(FileEntry {
                 id: FileId(virtual_path.clone()),
@@ -70,7 +68,11 @@ impl MtpFileOperations {
                 } else {
                     "application/octet-stream".to_string()
                 },
-                permissions: if is_dir { "drwxr-xr-x".to_string() } else { "-rw-r--r--".to_string() },
+                permissions: if is_dir {
+                    "drwxr-xr-x".to_string()
+                } else {
+                    "-rw-r--r--".to_string()
+                },
                 hash_sha256: None,
                 thumbnail_hash: None,
                 media_info: None,

@@ -1,9 +1,11 @@
 mod common;
 
-use common::setup_test_repo;
-use domain::{Device, DeviceId, ConnectionType, Snapshot, SnapshotId, SnapshotStatus, AppInfo, AppId};
-use ports::{DeviceRepositoryPort, SnapshotRepositoryPort, AppRepositoryPort};
 use chrono::Utc;
+use common::setup_test_repo;
+use domain::{
+    AppId, AppInfo, ConnectionType, Device, DeviceId, Snapshot, SnapshotId, SnapshotStatus,
+};
+use ports::{AppRepositoryPort, DeviceRepositoryPort, SnapshotRepositoryPort};
 
 #[test]
 fn test_app_crud_and_linking() {
@@ -15,17 +17,29 @@ fn test_app_crud_and_linking() {
     // Setup Device & Snapshot
     repo.save_device(&Device {
         id: device_id.clone(),
-        manufacturer: "A".to_string(), model: "B".to_string(), serial: "C".to_string(),
-        os_version: "12".to_string(), sdk_version: None,
-        storage_total_bytes: 0, storage_used_bytes: 0, storage_free_bytes: 0,
+        manufacturer: "A".to_string(),
+        model: "B".to_string(),
+        serial: "C".to_string(),
+        os_version: "12".to_string(),
+        sdk_version: None,
+        storage_total_bytes: 0,
+        storage_used_bytes: 0,
+        storage_free_bytes: 0,
         connection_type: ConnectionType::Usb,
-    }).unwrap();
+    })
+    .unwrap();
 
     repo.create_snapshot(&Snapshot {
-        id: snap_id.clone(), device_id: device_id.clone(), started_at: Utc::now(),
-        finished_at: None, status: SnapshotStatus::Pending, total_files: 0,
-        total_bytes: 0, deduped_bytes: 0,
-    }).unwrap();
+        id: snap_id.clone(),
+        device_id: device_id.clone(),
+        started_at: Utc::now(),
+        finished_at: None,
+        status: SnapshotStatus::Pending,
+        total_files: 0,
+        total_bytes: 0,
+        deduped_bytes: 0,
+    })
+    .unwrap();
 
     // CREATE (Save App)
     let app = AppInfo {

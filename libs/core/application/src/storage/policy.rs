@@ -1,5 +1,5 @@
+use super::{ChunkConfig, ChunkingMethod};
 use domain::FileEntry;
-use super::{ChunkingMethod, ChunkConfig};
 
 /// Determines the best chunking strategy for a given file.
 pub trait ChunkingPolicy: Send + Sync {
@@ -31,7 +31,11 @@ impl ChunkingPolicy for DefaultChunkingPolicy {
         }
 
         // 3. Databases and highly structured binaries: FastCDC is best
-        if mime.contains("sqlite") || mime.contains("database") || mime.contains("binary") || file.name.ends_with(".db") {
+        if mime.contains("sqlite")
+            || mime.contains("database")
+            || mime.contains("binary")
+            || file.name.ends_with(".db")
+        {
             return (
                 ChunkingMethod::FastCDC,
                 ChunkConfig {

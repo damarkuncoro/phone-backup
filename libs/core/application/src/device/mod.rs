@@ -1,7 +1,7 @@
-pub mod explorer;
 pub mod apps;
 pub mod data;
-pub mod snapshots;
-pub mod search;
+pub mod explorer;
 pub mod migration;
+pub mod search;
 pub mod settings;
+pub mod snapshots;

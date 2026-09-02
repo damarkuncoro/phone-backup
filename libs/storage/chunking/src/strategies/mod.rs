@@ -1,7 +1,7 @@
 use anyhow::Result;
 
-pub mod fixed;
 pub mod fastcdc;
+pub mod fixed;
 pub mod fullfile;
 
 #[derive(Debug, Clone)]

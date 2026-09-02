@@ -1,18 +1,18 @@
-pub mod device;
 pub mod app;
-pub mod scanner;
 pub mod data;
+pub mod device;
 pub mod facade;
+pub mod scanner;
 
-pub use device::AdbDeviceGateway;
 pub use app::AdbAppGateway;
-pub use scanner::AdbScannerGateway;
 pub use data::AdbDataGateway;
+pub use device::AdbDeviceGateway;
 pub use facade::AdbAdapter;
+pub use scanner::AdbScannerGateway;
 
 use crate::client::AdbClient;
 use crate::repositories::{
-    AdbDeviceRepository, AdbAppRepository, AdbScannerRepository, AdbDataRepository
+    AdbAppRepository, AdbDataRepository, AdbDeviceRepository, AdbScannerRepository,
 };
 
 /// FACTORY Pattern: Centralizes the creation of ADB-related gateways.

@@ -1,9 +1,10 @@
 use anyhow::Result;
 use ports::StoragePort;
-use std::io::{Cursor, Read};
 use std::collections::HashMap;
+use std::io::{Cursor, Read};
 use std::sync::Mutex;
 
+#[derive(Default)]
 pub struct MockStorage {
     data: Mutex<HashMap<String, Vec<u8>>>,
 }
@@ -26,7 +27,9 @@ impl StoragePort for MockStorage {
 
     fn read(&self, id: &str) -> Result<Box<dyn Read>> {
         let guard = self.data.lock().unwrap();
-        let content = guard.get(id).ok_or_else(|| anyhow::anyhow!("Object not found"))?;
+        let content = guard
+            .get(id)
+            .ok_or_else(|| anyhow::anyhow!("Object not found"))?;
         Ok(Box::new(Cursor::new(content.clone())))
     }
 

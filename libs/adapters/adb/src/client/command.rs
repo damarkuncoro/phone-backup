@@ -5,9 +5,18 @@ pub struct AdbCommandBuilder<'a> {
     args: Vec<&'a str>,
 }
 
+impl<'a> Default for AdbCommandBuilder<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a> AdbCommandBuilder<'a> {
     pub fn new() -> Self {
-        Self { serial: None, args: Vec::new() }
+        Self {
+            serial: None,
+            args: Vec::new(),
+        }
     }
 
     pub fn on_device(mut self, serial: &'a str) -> Self {

@@ -1,10 +1,10 @@
 use crate::client::AdbClient;
-use crate::parsers::device_parser::DeviceParser;
 use crate::parsers::battery_parser::BatteryParser;
+use crate::parsers::device_parser::DeviceParser;
 use crate::parsers::directory_parser::DirectoryParser;
 use crate::scripts::AndroidScripts;
 use anyhow::Result;
-use domain::{CapabilityMatrix, Device, DeviceId, ConnectionType};
+use domain::{CapabilityMatrix, ConnectionType, Device, DeviceId};
 use std::io::Read;
 
 #[derive(Clone)]
@@ -38,7 +38,11 @@ impl AdbDeviceRepository {
         let manufacturer = self.client.get_prop(&id.0, "ro.product.manufacturer")?;
         let model = self.client.get_prop(&id.0, "ro.product.model")?;
         let os_version = self.client.get_prop(&id.0, "ro.build.version.release")?;
-        let sdk_version = self.client.get_prop(&id.0, "ro.build.version.sdk")?.parse().ok();
+        let sdk_version = self
+            .client
+            .get_prop(&id.0, "ro.build.version.sdk")?
+            .parse()
+            .ok();
 
         let df_output = self.client.shell(&id.0, AndroidScripts::DISK_USAGE)?;
         let (total, used, free) = DeviceParser::parse_df_output(&df_output);
@@ -59,20 +63,41 @@ impl AdbDeviceRepository {
 
     pub fn get_capabilities(&self, id: &DeviceId) -> Result<CapabilityMatrix> {
         let mut matrix = CapabilityMatrix::new();
-        matrix.set(domain::Capability::ReadFiles, domain::CapabilityStatus::Available);
+        matrix.set(
+            domain::Capability::ReadFiles,
+            domain::CapabilityStatus::Available,
+        );
 
-        let sms_check = self.client.shell(&id.0, &AndroidScripts::content_query("content://sms", "address"));
+        let sms_check = self.client.shell(
+            &id.0,
+            &AndroidScripts::content_query("content://sms", "address"),
+        );
         if sms_check.is_ok() && !sms_check.unwrap().contains("Error") {
-            matrix.set(domain::Capability::ReadSms, domain::CapabilityStatus::Available);
+            matrix.set(
+                domain::Capability::ReadSms,
+                domain::CapabilityStatus::Available,
+            );
         } else {
-            matrix.set(domain::Capability::ReadSms, domain::CapabilityStatus::Denied);
+            matrix.set(
+                domain::Capability::ReadSms,
+                domain::CapabilityStatus::Denied,
+            );
         }
 
-        let contacts_check = self.client.shell(&id.0, &AndroidScripts::content_query("content://com.android.contacts/data", "contact_id"));
+        let contacts_check = self.client.shell(
+            &id.0,
+            &AndroidScripts::content_query("content://com.android.contacts/data", "contact_id"),
+        );
         if contacts_check.is_ok() && !contacts_check.unwrap().contains("Error") {
-            matrix.set(domain::Capability::ReadContacts, domain::CapabilityStatus::Available);
+            matrix.set(
+                domain::Capability::ReadContacts,
+                domain::CapabilityStatus::Available,
+            );
         } else {
-            matrix.set(domain::Capability::ReadContacts, domain::CapabilityStatus::RequiresUserAction);
+            matrix.set(
+                domain::Capability::ReadContacts,
+                domain::CapabilityStatus::RequiresUserAction,
+            );
         }
 
         Ok(matrix)

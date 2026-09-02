@@ -1,4 +1,4 @@
-use domain::{AppInfo, AppId, DeviceId};
+use domain::{AppId, AppInfo, DeviceId};
 use rusqlite::Row;
 
 pub struct AndroidMapper;

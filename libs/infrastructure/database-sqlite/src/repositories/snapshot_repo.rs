@@ -1,10 +1,10 @@
-use rusqlite::params;
-use std::sync::Arc;
-use r2d2::Pool;
-use r2d2_sqlite::SqliteConnectionManager;
+use crate::mappers::BackupMapper;
 use domain::{DeviceId, Snapshot, SnapshotId};
 use ports::SnapshotRepositoryPort;
-use crate::mappers::BackupMapper;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
+use rusqlite::params;
+use std::sync::Arc;
 
 pub struct SnapshotRepository {
     pool: Arc<Pool<SqliteConnectionManager>>,
@@ -49,15 +49,22 @@ impl SnapshotRepositoryPort for SnapshotRepository {
         let conn = self.pool.get()?;
         let mut stmt = conn.prepare("SELECT * FROM snapshots WHERE id = ?1")?;
         let mut snapshot_iter = stmt.query_map([&id.0], BackupMapper::to_snapshot)?;
-        if let Some(s) = snapshot_iter.next() { Ok(Some(s?)) } else { Ok(None) }
+        if let Some(s) = snapshot_iter.next() {
+            Ok(Some(s?))
+        } else {
+            Ok(None)
+        }
     }
 
     fn list_snapshots(&self, device_id: &DeviceId) -> anyhow::Result<Vec<Snapshot>> {
         let conn = self.pool.get()?;
-        let mut stmt = conn.prepare("SELECT * FROM snapshots WHERE device_id = ?1 ORDER BY started_at DESC")?;
+        let mut stmt =
+            conn.prepare("SELECT * FROM snapshots WHERE device_id = ?1 ORDER BY started_at DESC")?;
         let snapshot_iter = stmt.query_map([&device_id.0], BackupMapper::to_snapshot)?;
         let mut snapshots = Vec::new();
-        for s in snapshot_iter { snapshots.push(s?); }
+        for s in snapshot_iter {
+            snapshots.push(s?);
+        }
         Ok(snapshots)
     }
 
@@ -66,7 +73,9 @@ impl SnapshotRepositoryPort for SnapshotRepository {
         let mut stmt = conn.prepare("SELECT * FROM snapshots ORDER BY started_at DESC")?;
         let snapshot_iter = stmt.query_map([], BackupMapper::to_snapshot)?;
         let mut snapshots = Vec::new();
-        for s in snapshot_iter { snapshots.push(s?); }
+        for s in snapshot_iter {
+            snapshots.push(s?);
+        }
         Ok(snapshots)
     }
 
@@ -76,10 +85,17 @@ impl SnapshotRepositoryPort for SnapshotRepository {
             "SELECT * FROM snapshots WHERE device_id = ?1 AND status = 'Completed' ORDER BY started_at DESC LIMIT 1"
         )?;
         let mut snapshot_iter = stmt.query_map([&device_id.0], BackupMapper::to_snapshot)?;
-        if let Some(s) = snapshot_iter.next() { Ok(Some(s?)) } else { Ok(None) }
+        if let Some(s) = snapshot_iter.next() {
+            Ok(Some(s?))
+        } else {
+            Ok(None)
+        }
     }
 
-    fn get_latest_completed_snapshot(&self, device_id: &DeviceId) -> anyhow::Result<Option<Snapshot>> {
+    fn get_latest_completed_snapshot(
+        &self,
+        device_id: &DeviceId,
+    ) -> anyhow::Result<Option<Snapshot>> {
         self.get_latest_snapshot(device_id)
     }
 
@@ -89,14 +105,23 @@ impl SnapshotRepositoryPort for SnapshotRepository {
             "SELECT * FROM snapshots WHERE device_id = ?1 AND status IN ('Running', 'Interrupted') ORDER BY started_at DESC LIMIT 1"
         )?;
         let mut snapshot_iter = stmt.query_map([&device_id.0], BackupMapper::to_snapshot)?;
-        if let Some(s) = snapshot_iter.next() { Ok(Some(s?)) } else { Ok(None) }
+        if let Some(s) = snapshot_iter.next() {
+            Ok(Some(s?))
+        } else {
+            Ok(None)
+        }
     }
 
     fn get_resumable_snapshot(&self, device_id: &DeviceId) -> anyhow::Result<Option<Snapshot>> {
         self.get_incomplete_snapshot(device_id)
     }
 
-    fn save_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: domain::StructuredDataType, object_id: &str) -> anyhow::Result<()> {
+    fn save_structured_data_ref(
+        &self,
+        snapshot_id: &SnapshotId,
+        data_type: domain::StructuredDataType,
+        object_id: &str,
+    ) -> anyhow::Result<()> {
         let conn = self.pool.get()?;
         conn.execute(
             "INSERT OR REPLACE INTO snapshot_data (snapshot_id, data_type, object_id) VALUES (?1, ?2, ?3)",
@@ -105,10 +130,14 @@ impl SnapshotRepositoryPort for SnapshotRepository {
         Ok(())
     }
 
-    fn get_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: domain::StructuredDataType) -> anyhow::Result<Option<String>> {
+    fn get_structured_data_ref(
+        &self,
+        snapshot_id: &SnapshotId,
+        data_type: domain::StructuredDataType,
+    ) -> anyhow::Result<Option<String>> {
         let conn = self.pool.get()?;
         let mut stmt = conn.prepare(
-            "SELECT object_id FROM snapshot_data WHERE snapshot_id = ?1 AND data_type = ?2"
+            "SELECT object_id FROM snapshot_data WHERE snapshot_id = ?1 AND data_type = ?2",
         )?;
         let mut rows = stmt.query(params![snapshot_id.0, data_type.as_str()])?;
         if let Some(row) = rows.next()? {
@@ -120,9 +149,18 @@ impl SnapshotRepositoryPort for SnapshotRepository {
 
     fn delete_snapshot(&self, snapshot_id: &SnapshotId) -> anyhow::Result<()> {
         let conn = self.pool.get()?;
-        conn.execute("DELETE FROM snapshot_files WHERE snapshot_id = ?1", [&snapshot_id.0])?;
-        conn.execute("DELETE FROM snapshot_apps WHERE snapshot_id = ?1", [&snapshot_id.0])?;
-        conn.execute("DELETE FROM snapshot_data WHERE snapshot_id = ?1", [&snapshot_id.0])?;
+        conn.execute(
+            "DELETE FROM snapshot_files WHERE snapshot_id = ?1",
+            [&snapshot_id.0],
+        )?;
+        conn.execute(
+            "DELETE FROM snapshot_apps WHERE snapshot_id = ?1",
+            [&snapshot_id.0],
+        )?;
+        conn.execute(
+            "DELETE FROM snapshot_data WHERE snapshot_id = ?1",
+            [&snapshot_id.0],
+        )?;
         conn.execute("DELETE FROM snapshots WHERE id = ?1", [&snapshot_id.0])?;
         Ok(())
     }

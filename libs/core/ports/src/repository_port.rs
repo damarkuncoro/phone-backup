@@ -1,5 +1,8 @@
 use anyhow::Result;
-use domain::{Device, DeviceId, FileEntry, Snapshot, SnapshotId, BackupSchedule, AppInfo, AppId, Contact, FileId, AppSettings};
+use domain::{
+    AppId, AppInfo, AppSettings, BackupSchedule, Contact, Device, DeviceId, FileEntry, FileId,
+    Snapshot, SnapshotId,
+};
 use std::collections::HashSet;
 
 pub trait DeviceRepositoryPort: Send + Sync {
@@ -21,8 +24,17 @@ pub trait SnapshotRepositoryPort: Send + Sync {
     fn get_incomplete_snapshot(&self, device_id: &DeviceId) -> Result<Option<Snapshot>>;
     fn get_resumable_snapshot(&self, device_id: &DeviceId) -> Result<Option<Snapshot>>;
     fn delete_snapshot(&self, snapshot_id: &SnapshotId) -> Result<()>;
-    fn save_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: domain::StructuredDataType, object_id: &str) -> Result<()>;
-    fn get_structured_data_ref(&self, snapshot_id: &SnapshotId, data_type: domain::StructuredDataType) -> Result<Option<String>>;
+    fn save_structured_data_ref(
+        &self,
+        snapshot_id: &SnapshotId,
+        data_type: domain::StructuredDataType,
+        object_id: &str,
+    ) -> Result<()>;
+    fn get_structured_data_ref(
+        &self,
+        snapshot_id: &SnapshotId,
+        data_type: domain::StructuredDataType,
+    ) -> Result<Option<String>>;
 }
 
 pub trait FileRepositoryPort: Send + Sync {
@@ -31,23 +43,46 @@ pub trait FileRepositoryPort: Send + Sync {
     fn list_files(&self, device_id: &DeviceId) -> Result<Vec<FileEntry>>;
     fn get_snapshot_files(&self, snapshot_id: &SnapshotId) -> Result<Vec<FileEntry>>;
     fn link_file_to_snapshot(&self, snapshot_id: &SnapshotId, file_id: &FileId) -> Result<()>;
-    fn link_files_to_snapshot_batch(&self, snapshot_id: &SnapshotId, file_ids: &[FileId]) -> Result<()>;
+    fn link_files_to_snapshot_batch(
+        &self,
+        snapshot_id: &SnapshotId,
+        file_ids: &[FileId],
+    ) -> Result<()>;
     fn search_files(&self, query: &str) -> Result<Vec<FileEntry>>;
     /// List all files that are identified as media (images/videos).
     fn list_media_files(&self, device_id: &DeviceId) -> Result<Vec<FileEntry>>;
     /// Get recent media files across all devices.
     fn get_recent_media(&self, limit: u32) -> Result<Vec<FileEntry>>;
     /// Get differences between two file snapshots.
-    fn get_file_diff(&self, old_snapshot_id: &SnapshotId, new_snapshot_id: &SnapshotId) -> Result<domain::FileDiff>;
+    fn get_file_diff(
+        &self,
+        old_snapshot_id: &SnapshotId,
+        new_snapshot_id: &SnapshotId,
+    ) -> Result<domain::FileDiff>;
 
     // V4.0 Sub-file Chunking & Physical Objects
     fn save_logical_chunk(&self, content_hash: &str, size: u64) -> Result<String>;
     fn get_logical_chunk_by_hash(&self, content_hash: &str) -> Result<Option<String>>;
-    fn save_physical_object(&self, chunk_id: &str, object_hash: &str, storage_key: &str, stored_size: u64, compression: &str, enc_version: u32) -> Result<String>;
+    fn save_physical_object(
+        &self,
+        chunk_id: &str,
+        object_hash: &str,
+        storage_key: &str,
+        stored_size: u64,
+        compression: &str,
+        enc_version: u32,
+    ) -> Result<String>;
     fn get_physical_object_by_hash(&self, object_hash: &str) -> Result<Option<String>>;
     fn get_storage_key_for_chunk(&self, chunk_id: &str) -> Result<Option<String>>;
 
-    fn save_file_chunk(&self, file_id: &FileId, chunk_id: &str, offset: u64, length: u32, sequence: u32) -> Result<()>;
+    fn save_file_chunk(
+        &self,
+        file_id: &FileId,
+        chunk_id: &str,
+        offset: u64,
+        length: u32,
+        sequence: u32,
+    ) -> Result<()>;
     fn get_file_chunks(&self, file_id: &FileId) -> Result<Vec<(String, u64, u32, String)>>; // (chunk_id, offset, length, storage_key)
 }
 
@@ -62,7 +97,11 @@ pub trait ContactRepositoryPort: Send + Sync {
     fn get_snapshot_contacts(&self, snapshot_id: &SnapshotId) -> Result<Vec<Contact>>;
     fn search_contacts(&self, query: &str) -> Result<Vec<(SnapshotId, Contact)>>;
     /// Get differences between two contact snapshots.
-    fn get_contact_diff(&self, old_snapshot_id: &SnapshotId, new_snapshot_id: &SnapshotId) -> Result<domain::ContactDiff>;
+    fn get_contact_diff(
+        &self,
+        old_snapshot_id: &SnapshotId,
+        new_snapshot_id: &SnapshotId,
+    ) -> Result<domain::ContactDiff>;
 }
 
 pub trait ScheduleRepositoryPort: Send + Sync {
@@ -95,20 +134,27 @@ pub trait SmsRepositoryPort: Send + Sync {
 
 pub trait CallLogRepositoryPort: Send + Sync {
     fn save_call_log(&self, snapshot_id: &SnapshotId, log: &domain::CallLog) -> Result<()>;
-    fn save_call_logs_batch(&self, snapshot_id: &SnapshotId, logs: &[domain::CallLog]) -> Result<()>;
+    fn save_call_logs_batch(
+        &self,
+        snapshot_id: &SnapshotId,
+        logs: &[domain::CallLog],
+    ) -> Result<()>;
     fn get_snapshot_call_logs(&self, snapshot_id: &SnapshotId) -> Result<Vec<domain::CallLog>>;
     fn search_call_logs(&self, query: &str) -> Result<Vec<(SnapshotId, domain::CallLog)>>;
 }
 
 pub trait RepositoryPort:
-    DeviceRepositoryPort +
-    SnapshotRepositoryPort +
-    FileRepositoryPort +
-    AppRepositoryPort +
-    ContactRepositoryPort +
-    ScheduleRepositoryPort +
-    SettingsRepositoryPort +
-    MaintenanceRepositoryPort +
-    SmsRepositoryPort +
-    CallLogRepositoryPort +
-    Send + Sync {}
+    DeviceRepositoryPort
+    + SnapshotRepositoryPort
+    + FileRepositoryPort
+    + AppRepositoryPort
+    + ContactRepositoryPort
+    + ScheduleRepositoryPort
+    + SettingsRepositoryPort
+    + MaintenanceRepositoryPort
+    + SmsRepositoryPort
+    + CallLogRepositoryPort
+    + Send
+    + Sync
+{
+}

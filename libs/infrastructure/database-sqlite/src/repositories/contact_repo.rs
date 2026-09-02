@@ -1,10 +1,10 @@
-use rusqlite::{params, OptionalExtension};
-use std::sync::Arc;
+use chrono::Utc;
+use domain::{Contact, SnapshotId};
+use ports::ContactRepositoryPort;
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
-use domain::{SnapshotId, Contact};
-use ports::ContactRepositoryPort;
-use chrono::Utc;
+use rusqlite::{params, OptionalExtension};
+use std::sync::Arc;
 
 pub struct ContactRepository {
     pool: Arc<Pool<SqliteConnectionManager>>,
@@ -109,8 +109,9 @@ impl ContactRepositoryPort for ContactRepository {
             tx.query_row(
                 "SELECT id FROM contact_objects WHERE content_hash = ?1",
                 params![hash],
-                |row| row.get(0)
-            ).optional()?
+                |row| row.get(0),
+            )
+            .optional()?
         } else {
             None
         };
@@ -161,7 +162,14 @@ impl ContactRepositoryPort for ContactRepository {
                 tx.execute(
                     "INSERT INTO contact_emails (id, contact_id, value, type, label, is_primary)
                      VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                    params![uuid::Uuid::new_v4().to_string(), new_id, email.value, email.email_type, email.label, if email.is_primary { 1 } else { 0 }],
+                    params![
+                        uuid::Uuid::new_v4().to_string(),
+                        new_id,
+                        email.value,
+                        email.email_type,
+                        email.label,
+                        if email.is_primary { 1 } else { 0 }
+                    ],
                 )?;
             }
             for addr in &contact.addresses {
@@ -209,7 +217,13 @@ impl ContactRepositoryPort for ContactRepository {
             tx.execute(
                 "INSERT INTO contact_labels (id, snapshot_id, name, source, source_account)
                  VALUES (?1, ?2, ?3, ?4, ?5)",
-                params![label_id, snapshot_id.0, label_name, contact.source, contact.source_account],
+                params![
+                    label_id,
+                    snapshot_id.0,
+                    label_name,
+                    contact.source,
+                    contact.source_account
+                ],
             )?;
 
             tx.execute(
@@ -230,7 +244,8 @@ impl ContactRepositoryPort for ContactRepository {
         );
         let mut stmt = conn.prepare(&query)?;
 
-        let contacts = stmt.query_map([&snapshot_id.0], Self::map_row_to_contact)?
+        let contacts = stmt
+            .query_map([&snapshot_id.0], Self::map_row_to_contact)?
             .collect::<rusqlite::Result<Vec<_>>>()?;
 
         Ok(contacts)
@@ -249,18 +264,25 @@ impl ContactRepositoryPort for ContactRepository {
         );
 
         let mut stmt = conn.prepare(&sql)?;
-        let results: Vec<(SnapshotId, Contact)> = stmt.query_map([fts_query], |row| {
-            // sc.snapshot_id is not selected in FULL_CONTACT_SELECT, we need to handle it
-            // but for simplicity and following the pattern, we'll select it or just return a dummy if not needed
-            // Actually, let's fix the select to include it or query it
-            let snap_id: String = row.get_ref(0).unwrap().as_str().unwrap().to_string(); // Placeholder
-            Ok((SnapshotId(snap_id), Self::map_row_to_contact(row)?))
-        })?.filter_map(|r| r.ok()).collect();
+        let results: Vec<(SnapshotId, Contact)> = stmt
+            .query_map([fts_query], |row| {
+                // sc.snapshot_id is not selected in FULL_CONTACT_SELECT, we need to handle it
+                // but for simplicity and following the pattern, we'll select it or just return a dummy if not needed
+                // Actually, let's fix the select to include it or query it
+                let snap_id: String = row.get_ref(0).unwrap().as_str().unwrap().to_string(); // Placeholder
+                Ok((SnapshotId(snap_id), Self::map_row_to_contact(row)?))
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
 
         Ok(results)
     }
 
-    fn get_contact_diff(&self, old_snapshot_id: &SnapshotId, new_snapshot_id: &SnapshotId) -> anyhow::Result<domain::ContactDiff> {
+    fn get_contact_diff(
+        &self,
+        old_snapshot_id: &SnapshotId,
+        new_snapshot_id: &SnapshotId,
+    ) -> anyhow::Result<domain::ContactDiff> {
         let old_contacts = self.get_snapshot_contacts(old_snapshot_id)?;
         let new_contacts = self.get_snapshot_contacts(new_snapshot_id)?;
 
@@ -268,12 +290,28 @@ impl ContactRepositoryPort for ContactRepository {
 
         // Maps for efficient lookup (source_id -> Contact)
         // Using String as key, ignoring contacts without source_id for now or using display_name as backup
-        let old_map: std::collections::HashMap<String, Contact> = old_contacts.into_iter()
-            .map(|c| (c.source_id.clone().unwrap_or_else(|| c.display_name.clone()), c))
+        let old_map: std::collections::HashMap<String, Contact> = old_contacts
+            .into_iter()
+            .map(|c| {
+                (
+                    c.source_id
+                        .clone()
+                        .unwrap_or_else(|| c.display_name.clone()),
+                    c,
+                )
+            })
             .collect();
 
-        let mut new_map: std::collections::HashMap<String, Contact> = new_contacts.into_iter()
-            .map(|c| (c.source_id.clone().unwrap_or_else(|| c.display_name.clone()), c))
+        let mut new_map: std::collections::HashMap<String, Contact> = new_contacts
+            .into_iter()
+            .map(|c| {
+                (
+                    c.source_id
+                        .clone()
+                        .unwrap_or_else(|| c.display_name.clone()),
+                    c,
+                )
+            })
             .collect();
 
         for (key, new_contact) in new_map.drain() {
@@ -288,7 +326,8 @@ impl ContactRepositoryPort for ContactRepository {
 
         // Re-collect new_contacts since we drained the map
         let new_contacts_again = self.get_snapshot_contacts(new_snapshot_id)?;
-        let new_keys: std::collections::HashSet<String> = new_contacts_again.into_iter()
+        let new_keys: std::collections::HashSet<String> = new_contacts_again
+            .into_iter()
             .map(|c| c.source_id.unwrap_or(c.display_name))
             .collect();
 

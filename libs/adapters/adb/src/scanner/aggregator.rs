@@ -5,9 +5,7 @@ use anyhow::Result;
 use domain::{DeviceId, FileEntry};
 use std::collections::BTreeMap;
 
-pub const DEFAULT_SCAN_ROOTS: &[&str] = &[
-    "/storage/emulated/0",
-];
+pub const DEFAULT_SCAN_ROOTS: &[&str] = &["/storage/emulated/0"];
 
 /// Coordinator aggregating MediaStore and FileSystem sub-scanners with deterministic sorting.
 #[derive(Clone)]
@@ -57,7 +55,11 @@ impl ScannerAggregator {
         Ok(res.files)
     }
 
-    pub fn scan_with_result(&self, device_id: &DeviceId, roots: Vec<String>) -> Result<domain::ScanResult> {
+    pub fn scan_with_result(
+        &self,
+        device_id: &DeviceId,
+        roots: Vec<String>,
+    ) -> Result<domain::ScanResult> {
         let mut warnings = Vec::new();
 
         let media_entries = match self.mediastore_scanner.scan(device_id) {
@@ -100,6 +102,9 @@ impl ScannerAggregator {
             }
         }
 
-        Ok(domain::ScanResult::new(entries_map.into_values().collect(), warnings))
+        Ok(domain::ScanResult::new(
+            entries_map.into_values().collect(),
+            warnings,
+        ))
     }
 }

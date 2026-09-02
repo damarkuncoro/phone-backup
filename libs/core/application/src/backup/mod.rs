@@ -1,17 +1,20 @@
-pub mod service;
-pub mod uploader;
-pub mod processor;
+pub mod guard;
+pub mod manifest;
 pub mod metadata;
-pub mod verify;
+pub mod planner;
+pub mod processor;
+pub mod progress;
 pub mod restore;
 pub mod scheduler;
-pub mod planner;
-pub mod guard;
-pub mod progress;
-pub mod manifest;
+pub mod service;
+pub mod uploader;
+pub mod verify;
 
+use ports::{
+    AppProviderPort, DataProviderPort, DevicePort, ProgressPort, RepositoryPort, ScannerPort,
+    StoragePort,
+};
 pub use verify::{StorageStats, VerificationReport};
-use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort, ProgressPort};
 
 /// The BackupService orchestrates use cases.
 pub struct BackupService<

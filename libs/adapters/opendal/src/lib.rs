@@ -9,7 +9,13 @@ pub struct CloudStorage {
 
 impl CloudStorage {
     /// Create a new S3-based cloud storage adapter.
-    pub fn new_s3(bucket: &str, region: &str, endpoint: &str, access_key: &str, secret_key: &str) -> Result<Self> {
+    pub fn new_s3(
+        bucket: &str,
+        region: &str,
+        endpoint: &str,
+        access_key: &str,
+        secret_key: &str,
+    ) -> Result<Self> {
         let builder = services::S3::default()
             .bucket(bucket)
             .region(region)
@@ -32,7 +38,12 @@ impl CloudStorage {
     }
 
     /// Create a new Azure Blob-based cloud storage adapter.
-    pub fn new_azblob(container: &str, endpoint: &str, account_name: &str, account_key: &str) -> Result<Self> {
+    pub fn new_azblob(
+        container: &str,
+        endpoint: &str,
+        account_name: &str,
+        account_key: &str,
+    ) -> Result<Self> {
         let builder = services::Azblob::default()
             .container(container)
             .endpoint(endpoint)

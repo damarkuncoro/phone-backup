@@ -95,7 +95,10 @@ fn test_schedule_on_connect() {
 fn test_checksum_value_object() {
     let valid = Checksum::new("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
     assert!(valid.is_ok());
-    assert_eq!(valid.unwrap().as_str(), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+    assert_eq!(
+        valid.unwrap().as_str(),
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    );
 
     let invalid_short = Checksum::new("invalid_hex");
     assert!(invalid_short.is_err());
@@ -162,7 +165,7 @@ fn test_domain_event_bus_pub_sub() {
 
 #[test]
 fn test_scan_result_warning_aggregation() {
-    use phone_backup_domain::{ScanResult, ScanWarning, ScanSource};
+    use phone_backup_domain::{ScanResult, ScanSource, ScanWarning};
 
     let warning = ScanWarning {
         source: ScanSource::FileSystem,

@@ -1,14 +1,14 @@
-pub mod storage;
 pub mod progress;
+pub mod storage;
 
-pub use storage::{SharedStorage, SwitchableStorage};
 pub use progress::CombinedProgress;
+pub use storage::{SharedStorage, SwitchableStorage};
 
-use std::sync::Arc;
-use application::BackupService;
 use adapter_adb::AdbAdapter;
 use adapter_database_sqlite::SqliteRepository;
+use application::BackupService;
 use serde::Serialize;
+use std::sync::Arc;
 
 #[derive(Serialize)]
 pub struct DoctorReport {

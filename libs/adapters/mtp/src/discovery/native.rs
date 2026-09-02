@@ -1,8 +1,9 @@
-use std::path::PathBuf;
-use tracing::debug;
 use super::{MtpDiscoveryStrategy, MtpMount};
 use mtp_rs::MtpDevice;
+use std::path::PathBuf;
+use tracing::debug;
 
+#[derive(Default)]
 pub struct NativeMtpDiscovery;
 
 impl NativeMtpDiscovery {
@@ -28,13 +29,17 @@ impl MtpDiscoveryStrategy for NativeMtpDiscovery {
                         continue;
                     }
 
-                    let name = format!("{} {}",
+                    let name = format!(
+                        "{} {}",
                         manufacturer,
                         device_info.product.as_deref().unwrap_or("Device")
                     );
 
-                    debug!("NativeMtpDiscovery: Found MTP device: {} (Serial: {})",
-                        name, device_info.serial_number.as_deref().unwrap_or("N/A"));
+                    debug!(
+                        "NativeMtpDiscovery: Found MTP device: {} (Serial: {})",
+                        name,
+                        device_info.serial_number.as_deref().unwrap_or("N/A")
+                    );
 
                     if let Some(serial) = device_info.serial_number {
                         mounts.push(MtpMount {
@@ -44,11 +49,14 @@ impl MtpDiscoveryStrategy for NativeMtpDiscovery {
                     } else {
                         mounts.push(MtpMount {
                             name,
-                            path: PathBuf::from(format!("usb://location/{}", device_info.location_id)),
+                            path: PathBuf::from(format!(
+                                "usb://location/{}",
+                                device_info.location_id
+                            )),
                         });
                     }
                 }
-            },
+            }
             Err(_) => {
                 // Ignore errors during USB enumeration as they are usually system probes
             }

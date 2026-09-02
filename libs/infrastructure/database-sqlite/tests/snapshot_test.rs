@@ -1,9 +1,9 @@
 mod common;
 
-use common::setup_test_repo;
-use domain::{Device, DeviceId, ConnectionType, Snapshot, SnapshotId, SnapshotStatus};
-use ports::{DeviceRepositoryPort, SnapshotRepositoryPort};
 use chrono::Utc;
+use common::setup_test_repo;
+use domain::{ConnectionType, Device, DeviceId, Snapshot, SnapshotId, SnapshotStatus};
+use ports::{DeviceRepositoryPort, SnapshotRepositoryPort};
 
 #[test]
 fn test_snapshot_lifecycle() {
@@ -12,11 +12,17 @@ fn test_snapshot_lifecycle() {
 
     repo.save_device(&Device {
         id: device_id.clone(),
-        manufacturer: "A".to_string(), model: "B".to_string(), serial: "C".to_string(),
-        os_version: "D".to_string(), sdk_version: None,
-        storage_total_bytes: 0, storage_used_bytes: 0, storage_free_bytes: 0,
+        manufacturer: "A".to_string(),
+        model: "B".to_string(),
+        serial: "C".to_string(),
+        os_version: "D".to_string(),
+        sdk_version: None,
+        storage_total_bytes: 0,
+        storage_used_bytes: 0,
+        storage_free_bytes: 0,
         connection_type: ConnectionType::Usb,
-    }).unwrap();
+    })
+    .unwrap();
 
     let snap = Snapshot {
         id: SnapshotId("s1".to_string()),
@@ -24,7 +30,9 @@ fn test_snapshot_lifecycle() {
         started_at: Utc::now(),
         finished_at: None,
         status: SnapshotStatus::Pending,
-        total_files: 0, total_bytes: 0, deduped_bytes: 0,
+        total_files: 0,
+        total_bytes: 0,
+        deduped_bytes: 0,
     };
 
     repo.create_snapshot(&snap).unwrap();
@@ -57,7 +65,8 @@ fn test_storage_usage_calculation() {
         storage_used_bytes: 500,
         storage_free_bytes: 500,
         connection_type: ConnectionType::Usb,
-    }).unwrap();
+    })
+    .unwrap();
 
     let s1 = Snapshot {
         id: SnapshotId("s1".to_string()),
@@ -95,17 +104,29 @@ fn test_snapshot_deletion_cascade() {
 
     repo.save_device(&Device {
         id: device_id.clone(),
-        manufacturer: "A".to_string(), model: "B".to_string(), serial: "C".to_string(),
-        os_version: "D".to_string(), sdk_version: None,
-        storage_total_bytes: 0, storage_used_bytes: 0, storage_free_bytes: 0,
+        manufacturer: "A".to_string(),
+        model: "B".to_string(),
+        serial: "C".to_string(),
+        os_version: "D".to_string(),
+        sdk_version: None,
+        storage_total_bytes: 0,
+        storage_used_bytes: 0,
+        storage_free_bytes: 0,
         connection_type: ConnectionType::Usb,
-    }).unwrap();
+    })
+    .unwrap();
 
     repo.create_snapshot(&Snapshot {
-        id: snap_id.clone(), device_id: device_id.clone(), started_at: Utc::now(),
-        finished_at: None, status: SnapshotStatus::Pending, total_files: 0,
-        total_bytes: 0, deduped_bytes: 0,
-    }).unwrap();
+        id: snap_id.clone(),
+        device_id: device_id.clone(),
+        started_at: Utc::now(),
+        finished_at: None,
+        status: SnapshotStatus::Pending,
+        total_files: 0,
+        total_bytes: 0,
+        deduped_bytes: 0,
+    })
+    .unwrap();
 
     repo.delete_snapshot(&snap_id).unwrap();
     assert!(repo.get_snapshot(&snap_id).unwrap().is_none());

@@ -1,15 +1,15 @@
 pub mod builder;
 pub mod command;
-pub mod monitor;
 pub mod execution;
 pub mod io;
+pub mod monitor;
 
 pub use builder::AdbClientBuilder;
 pub use command::AdbCommandBuilder;
 pub use monitor::{AdbMonitor, DeviceEvent};
 
 use anyhow::Result;
-use std::process::{Stdio, Child};
+use std::process::{Child, Stdio};
 use std::time::Duration;
 
 /// Core ADB client providing low-level access to the adb binary
@@ -57,7 +57,10 @@ impl AdbClient {
 
                 let local_app_data = std::env::var("LOCALAPPDATA").unwrap_or_default();
                 if !local_app_data.is_empty() {
-                    candidates.push(format!("{}/Android/Sdk/platform-tools/adb.exe", local_app_data));
+                    candidates.push(format!(
+                        "{}/Android/Sdk/platform-tools/adb.exe",
+                        local_app_data
+                    ));
                 }
 
                 candidates.push("/usr/local/bin/adb".to_string());

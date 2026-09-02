@@ -24,11 +24,7 @@ pub fn export_to_vcard(contacts: &[Contact]) -> String {
 
         // TEL
         for phone in &contact.phones {
-            let ptype = phone
-                .phone_type
-                .as_deref()
-                .unwrap_or("cell")
-                .to_uppercase();
+            let ptype = phone.phone_type.as_deref().unwrap_or("cell").to_uppercase();
             vcard_out.push_str(&format!("TEL;TYPE={}:{}\r\n", ptype, phone.raw_value));
         }
 

@@ -35,7 +35,7 @@ impl RetentionStrategy for KeepCountStrategy {
             .filter(|s| s.status == SnapshotStatus::Completed)
             .collect();
 
-        completed.sort_by(|a, b| b.started_at.cmp(&a.started_at));
+        completed.sort_by_key(|b| std::cmp::Reverse(b.started_at));
 
         if completed.len() > self.keep_limit {
             completed
@@ -64,7 +64,7 @@ impl RetentionStrategy for KeepDailyStrategy {
             .filter(|s| s.status == SnapshotStatus::Completed)
             .collect();
 
-        completed.sort_by(|a, b| b.started_at.cmp(&a.started_at));
+        completed.sort_by_key(|b| std::cmp::Reverse(b.started_at));
 
         let mut seen_days = HashSet::new();
         let mut to_delete = Vec::new();

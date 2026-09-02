@@ -17,10 +17,16 @@ impl BatteryParser {
             if line.starts_with("level:") {
                 level = line.split(':').nth(1).and_then(|v| v.trim().parse().ok());
             } else if line.starts_with("AC powered:") || line.starts_with("USB powered:") {
-                if line.contains("true") { powered = true; }
+                if line.contains("true") {
+                    powered = true;
+                }
             } else if line.starts_with("temperature:") {
                 // Temp is usually in 0.1 degrees Celsius
-                let raw_temp: f32 = line.split(':').nth(1).and_then(|v| v.trim().parse().ok()).unwrap_or(0.0);
+                let raw_temp: f32 = line
+                    .split(':')
+                    .nth(1)
+                    .and_then(|v| v.trim().parse().ok())
+                    .unwrap_or(0.0);
                 temp = raw_temp / 10.0;
             }
         }

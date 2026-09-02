@@ -47,7 +47,8 @@ where
         }
         Commands::RecoveryKit { output } => {
             let (secret, public) = application::EncryptionEngine::generate_keypair();
-            let html = format!(r#"<!DOCTYPE html>
+            let html = format!(
+                r#"<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -103,7 +104,11 @@ where
         <div class="step-item"><strong>Langkah 3:</strong> Jalankan perintah restorasi: <span class="code">phone-backup restore &lt;SNAPSHOT_ID&gt; --target /lokasi/pemulihan/</span></div>
     </div>
 </body>
-</html>"#, date = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"), public = public, secret = secret);
+</html>"#,
+                date = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"),
+                public = public,
+                secret = secret
+            );
 
             std::fs::write(&output, html)?;
             println!("✅ Emergency Recovery Kit berhasil diekspor ke: {}", output);

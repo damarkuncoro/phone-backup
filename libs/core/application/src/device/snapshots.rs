@@ -1,8 +1,11 @@
+use crate::backup::BackupService;
 use anyhow::Result;
 use domain::{AppInfo, DeviceId, FileEntry, Snapshot, SnapshotId, SnapshotStatus};
-use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort, ProgressPort};
+use ports::{
+    AppProviderPort, DataProviderPort, DevicePort, ProgressPort, RepositoryPort, ScannerPort,
+    StoragePort,
+};
 use tracing::{info, instrument};
-use crate::backup::BackupService;
 
 impl<D, S, R, T, A, DP, P> BackupService<D, S, R, T, A, DP, P>
 where
@@ -25,7 +28,10 @@ where
         let mut latest: Option<Snapshot> = None;
         for d in devices {
             if let Ok(snapshots) = self.list_snapshots(&d.id) {
-                if let Some(s) = snapshots.into_iter().find(|s| s.status == SnapshotStatus::Completed) {
+                if let Some(s) = snapshots
+                    .into_iter()
+                    .find(|s| s.status == SnapshotStatus::Completed)
+                {
                     if latest.is_none() || s.started_at > latest.as_ref().unwrap().started_at {
                         latest = Some(s);
                     }
@@ -62,7 +68,10 @@ where
 
         for s in snapshots {
             if s.status != SnapshotStatus::Completed {
-                info!("Pruning incomplete/failed snapshot: {} (status: {:?})", s.id.0, s.status);
+                info!(
+                    "Pruning incomplete/failed snapshot: {} (status: {:?})",
+                    s.id.0, s.status
+                );
                 self.delete_snapshot(&s.id)?;
                 deleted_count += 1;
             }

@@ -1,14 +1,16 @@
 use anyhow::{anyhow, Result};
-use std::path::PathBuf;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use domain::{Capability, CapabilityMatrix, CapabilityStatus, ConnectionType, Device, DeviceId, FileEntry};
+use domain::{
+    Capability, CapabilityMatrix, CapabilityStatus, ConnectionType, Device, DeviceId, FileEntry,
+};
 use ports::{DevicePort, ScannerPort};
-use tracing::{warn, instrument};
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
+use tracing::{instrument, warn};
 
 use crate::discovery::{DiscoveryOrchestrator, MtpMount};
-use crate::operations::MtpFileOperations;
 use crate::native_ops::NativeMtpOperations;
+use crate::operations::MtpFileOperations;
 use crate::scanner::MtpScanner;
 
 #[derive(Clone)]
@@ -74,8 +76,12 @@ impl MtpAdapter {
 
     fn get_fs_ops(&self, _id: &DeviceId) -> Result<MtpFileOperations> {
         let mounts = self.get_active_mounts();
-        let fs_mounts: Vec<_> = mounts.iter().filter(|m| !m.path.to_string_lossy().starts_with("usb://")).collect();
-        let path = fs_mounts.first()
+        let fs_mounts: Vec<_> = mounts
+            .iter()
+            .filter(|m| !m.path.to_string_lossy().starts_with("usb://"))
+            .collect();
+        let path = fs_mounts
+            .first()
             .map(|m| m.path.clone())
             .unwrap_or_else(|| PathBuf::from("/sdcard"));
         Ok(MtpFileOperations::new(path))
@@ -124,7 +130,8 @@ impl DevicePort for MtpAdapter {
     fn info(&self, id: &DeviceId) -> Result<Device> {
         let mut device = {
             let devices = self.discover()?;
-            devices.into_iter()
+            devices
+                .into_iter()
                 .find(|d| &d.id == id)
                 .ok_or_else(|| anyhow!("MTP Device {} not found", id))?
         };
@@ -173,7 +180,12 @@ impl DevicePort for MtpAdapter {
     }
 
     #[instrument(skip(self, source))]
-    fn push_file(&self, id: &DeviceId, source: &mut dyn std::io::Read, target_path: &str) -> Result<()> {
+    fn push_file(
+        &self,
+        id: &DeviceId,
+        source: &mut dyn std::io::Read,
+        target_path: &str,
+    ) -> Result<()> {
         if id.0.starts_with("usb://") {
             self.get_native_ops(id)?.push_file(source, target_path)
         } else {
@@ -250,8 +262,12 @@ impl ScannerPort for MtpAdapter {
                 target_paths
             };
             let mounts = self.get_active_mounts();
-            let fs_mounts: Vec<_> = mounts.iter().filter(|m| !m.path.to_string_lossy().starts_with("usb://")).collect();
-            let path = fs_mounts.first()
+            let fs_mounts: Vec<_> = mounts
+                .iter()
+                .filter(|m| !m.path.to_string_lossy().starts_with("usb://"))
+                .collect();
+            let path = fs_mounts
+                .first()
                 .map(|m| m.path.clone())
                 .unwrap_or_else(|| PathBuf::from("/sdcard"));
 

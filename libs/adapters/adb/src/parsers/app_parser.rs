@@ -11,7 +11,9 @@ impl AppParser {
             // Format: package:com.example versionCode:123
             if let Some(stripped) = line.strip_prefix("package:") {
                 let parts: Vec<&str> = stripped.split_whitespace().collect();
-                if parts.is_empty() { continue; }
+                if parts.is_empty() {
+                    continue;
+                }
 
                 let pkg_name = parts[0];
                 let mut version_code = 0;

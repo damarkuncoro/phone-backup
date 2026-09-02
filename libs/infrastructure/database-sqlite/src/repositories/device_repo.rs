@@ -1,10 +1,10 @@
-use rusqlite::params;
-use std::sync::Arc;
-use r2d2::Pool;
-use r2d2_sqlite::SqliteConnectionManager;
+use crate::mappers::DeviceMapper;
 use domain::{Device, DeviceId};
 use ports::DeviceRepositoryPort;
-use crate::mappers::DeviceMapper;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
+use rusqlite::params;
+use std::sync::Arc;
 
 pub struct DeviceRepository {
     pool: Arc<Pool<SqliteConnectionManager>>,
@@ -37,7 +37,9 @@ impl DeviceRepositoryPort for DeviceRepository {
         let mut stmt = conn.prepare("SELECT id, manufacturer, model, serial, os_version, storage_total_bytes, storage_used_bytes, connection_type FROM devices")?;
         let device_iter = stmt.query_map([], DeviceMapper::to_device)?;
         let mut devices = Vec::new();
-        for d in device_iter { devices.push(d?); }
+        for d in device_iter {
+            devices.push(d?);
+        }
         Ok(devices)
     }
 
@@ -55,7 +57,8 @@ impl DeviceRepositoryPort for DeviceRepository {
 
     fn get_storage_usage_by_device(&self, device_id: &DeviceId) -> anyhow::Result<u64> {
         let conn = self.pool.get()?;
-        let mut stmt = conn.prepare("SELECT SUM(total_bytes) FROM snapshots WHERE device_id = ?1")?;
+        let mut stmt =
+            conn.prepare("SELECT SUM(total_bytes) FROM snapshots WHERE device_id = ?1")?;
         let usage: Option<u64> = stmt.query_row(params![device_id.0], |row| row.get(0))?;
         Ok(usage.unwrap_or(0))
     }

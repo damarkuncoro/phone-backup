@@ -46,7 +46,10 @@ impl ProgressEstimator {
     /// Calculate Estimated Time Remaining (ETA) in seconds.
     pub fn eta_seconds(&self) -> Option<u64> {
         let elapsed_secs = self.start_time.elapsed().as_secs_f64();
-        if elapsed_secs <= 0.001 || self.processed_bytes == 0 || self.processed_bytes >= self.total_bytes {
+        if elapsed_secs <= 0.001
+            || self.processed_bytes == 0
+            || self.processed_bytes >= self.total_bytes
+        {
             None
         } else {
             let bytes_per_sec = self.processed_bytes as f64 / elapsed_secs;

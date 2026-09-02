@@ -17,8 +17,8 @@
 use std::collections::HashSet;
 use std::process::Command;
 use std::time::Duration;
-use tracing::{info, warn};
 use thiserror::Error;
+use tracing::{info, warn};
 
 #[derive(Debug, Clone)]
 pub struct HoldingProcess {
@@ -54,12 +54,15 @@ impl MtpConflictResolver {
         "Preview",
     ];
 
-    pub fn find_holding_processes(device_serial: &str) -> Result<Vec<HoldingProcess>, ResolverError> {
-        info!(device_serial, "Resolver: searching for processes holding device via lsof");
+    pub fn find_holding_processes(
+        device_serial: &str,
+    ) -> Result<Vec<HoldingProcess>, ResolverError> {
+        info!(
+            device_serial,
+            "Resolver: searching for processes holding device via lsof"
+        );
 
-        let output = Command::new("lsof")
-            .args(["-n", "-P"])
-            .output()?;
+        let output = Command::new("lsof").args(["-n", "-P"]).output()?;
 
         let text = String::from_utf8_lossy(&output.stdout);
 
@@ -120,7 +123,10 @@ impl MtpConflictResolver {
         let mut resolved = 0;
 
         // List of all known troublemakers
-        let mut targets: Vec<String> = Self::KNOWN_DAEMONS.iter().map(|d| d.0.to_string()).collect();
+        let mut targets: Vec<String> = Self::KNOWN_DAEMONS
+            .iter()
+            .map(|d| d.0.to_string())
+            .collect();
         targets.extend(Self::FALLBACK_APP_NAMES.iter().map(|s| s.to_string()));
 
         for name in targets {
@@ -224,7 +230,9 @@ impl MtpConflictResolver {
 
     fn kill_pid(pid: u32) -> Result<(), std::io::Error> {
         // First send SIGSTOP to prevent immediate respawn
-        let _ = Command::new("kill").args(["-STOP", &pid.to_string()]).status();
+        let _ = Command::new("kill")
+            .args(["-STOP", &pid.to_string()])
+            .status();
         let status = Command::new("kill")
             .args(["-9", &pid.to_string()])
             .status()?;
@@ -236,7 +244,10 @@ impl MtpConflictResolver {
     }
 
     pub fn find_conflicts() -> Vec<String> {
-        Self::fallback_find_known_apps().into_iter().map(|h| h.name).collect()
+        Self::fallback_find_known_apps()
+            .into_iter()
+            .map(|h| h.name)
+            .collect()
     }
 
     fn fallback_find_known_apps() -> Vec<HoldingProcess> {
@@ -250,7 +261,9 @@ impl MtpConflictResolver {
         for line in text.lines().skip(1) {
             let line = line.trim();
             let fields: Vec<&str> = line.split_whitespace().collect();
-            if fields.len() < 2 { continue; }
+            if fields.len() < 2 {
+                continue;
+            }
 
             let pid_str = fields[0];
             let name = fields[1..].join(" ");
@@ -262,7 +275,9 @@ impl MtpConflictResolver {
                 .iter()
                 .find(|(dname, _)| name.to_lowercase().contains(&dname.to_lowercase()))
                 .map(|(_, label)| label.to_string());
-            let is_known_app = Self::FALLBACK_APP_NAMES.iter().any(|known| name.to_lowercase().contains(&known.to_lowercase()));
+            let is_known_app = Self::FALLBACK_APP_NAMES
+                .iter()
+                .any(|known| name.to_lowercase().contains(&known.to_lowercase()));
 
             if is_daemon || is_known_app {
                 if let Ok(pid) = pid_str.parse::<u32>() {

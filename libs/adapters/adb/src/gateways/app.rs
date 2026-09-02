@@ -1,7 +1,7 @@
-use anyhow::Result;
-use domain::{DeviceId, AppInfo};
-use ports::AppProviderPort;
 use crate::repositories::AdbAppRepository;
+use anyhow::Result;
+use domain::{AppInfo, DeviceId};
+use ports::AppProviderPort;
 
 #[derive(Clone)]
 pub struct AdbAppGateway {

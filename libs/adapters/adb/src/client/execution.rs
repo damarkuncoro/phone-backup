@@ -1,8 +1,8 @@
+use crate::client::AdbClient;
 use anyhow::Result;
 use std::process::Command;
-use tracing::debug;
 use std::time::Duration;
-use crate::client::AdbClient;
+use tracing::debug;
 
 impl AdbClient {
     pub fn run(&self, args: &[&str]) -> Result<String> {
@@ -27,18 +27,26 @@ impl AdbClient {
                     last_error = Some(anyhow::anyhow!("ADB command failed: {}", stderr.trim()));
                 }
                 Err(e) => {
-                    last_error = Some(anyhow::Error::from(e).context(format!("Failed to execute adb at {}", self.adb_path)));
+                    last_error = Some(
+                        anyhow::Error::from(e)
+                            .context(format!("Failed to execute adb at {}", self.adb_path)),
+                    );
                 }
             }
 
             if attempt < max_retries - 1 {
-                tracing::warn!("ADB command failed, retrying in {:?}... (Error: {:?})", delay, last_error);
+                tracing::warn!(
+                    "ADB command failed, retrying in {:?}... (Error: {:?})",
+                    delay,
+                    last_error
+                );
                 std::thread::sleep(delay);
                 delay *= 2; // Exponential backoff
             }
         }
 
-        Err(last_error.unwrap_or_else(|| anyhow::anyhow!("ADB command failed after {} retries", max_retries)))
+        Err(last_error
+            .unwrap_or_else(|| anyhow::anyhow!("ADB command failed after {} retries", max_retries)))
     }
 
     pub fn shell(&self, device_serial: &str, script: &str) -> Result<String> {

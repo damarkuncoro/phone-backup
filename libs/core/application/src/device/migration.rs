@@ -1,8 +1,11 @@
+use crate::backup::BackupService;
 use anyhow::Result;
 use domain::DeviceId;
-use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort, ProgressPort};
+use ports::{
+    AppProviderPort, DataProviderPort, DevicePort, ProgressPort, RepositoryPort, ScannerPort,
+    StoragePort,
+};
 use tracing::{info, instrument};
-use crate::backup::BackupService;
 
 impl<D, S, R, T, A, DP, P> BackupService<D, S, R, T, A, DP, P>
 where
@@ -30,7 +33,9 @@ where
         if let Ok(files) = self.scanner_adapter.scan(source_id, vec![]) {
             for file in files {
                 if let Ok(mut content) = self.device_adapter.read_file(source_id, &file.path) {
-                    let _ = self.device_adapter.push_file(target_id, &mut *content, &file.path);
+                    let _ = self
+                        .device_adapter
+                        .push_file(target_id, &mut *content, &file.path);
                 }
             }
         }

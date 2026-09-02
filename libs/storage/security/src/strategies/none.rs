@@ -1,5 +1,5 @@
-use anyhow::Result;
 use super::EncryptionStrategy;
+use anyhow::Result;
 
 #[derive(Default)]
 pub struct NoEncryptionStrategy;

@@ -50,7 +50,10 @@ impl StoragePort for LocalStorage {
     fn list(&self) -> Result<Vec<String>> {
         use walkdir::WalkDir;
         let mut results = Vec::new();
-        for entry in WalkDir::new(&self.base_dir).into_iter().filter_map(|e| e.ok()) {
+        for entry in WalkDir::new(&self.base_dir)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
             if entry.file_type().is_file() {
                 let rel_path = entry.path().strip_prefix(&self.base_dir)?;
                 results.push(rel_path.to_string_lossy().into_owned());
@@ -61,10 +64,14 @@ impl StoragePort for LocalStorage {
 
     fn available_space(&self) -> Result<u64> {
         let disks = sysinfo::Disks::new_with_refreshed_list();
-        let canonical_base = self.base_dir.canonicalize().unwrap_or_else(|_| self.base_dir.clone());
-        let target_disk = disks.iter().find(|d| {
-            canonical_base.starts_with(d.mount_point())
-        }).or_else(|| disks.iter().next());
+        let canonical_base = self
+            .base_dir
+            .canonicalize()
+            .unwrap_or_else(|_| self.base_dir.clone());
+        let target_disk = disks
+            .iter()
+            .find(|d| canonical_base.starts_with(d.mount_point()))
+            .or_else(|| disks.iter().next());
 
         if let Some(disk) = target_disk {
             Ok(disk.available_space())

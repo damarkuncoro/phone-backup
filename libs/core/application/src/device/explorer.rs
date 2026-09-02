@@ -1,8 +1,11 @@
-use anyhow::Result;
-use domain::{Device, DeviceId, FileEntry, CapabilityMatrix};
-use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort, ProgressPort};
-use tracing::{info, instrument};
 use crate::backup::BackupService;
+use anyhow::Result;
+use domain::{CapabilityMatrix, Device, DeviceId, FileEntry};
+use ports::{
+    AppProviderPort, DataProviderPort, DevicePort, ProgressPort, RepositoryPort, ScannerPort,
+    StoragePort,
+};
+use tracing::{info, instrument};
 
 impl<D, S, R, T, A, DP, P> BackupService<D, S, R, T, A, DP, P>
 where
@@ -57,7 +60,8 @@ where
 
     #[instrument(skip(self))]
     pub fn copy_remote(&self, id: &DeviceId, source_path: &str, target_path: &str) -> Result<()> {
-        self.device_adapter.copy_remote(id, source_path, target_path)
+        self.device_adapter
+            .copy_remote(id, source_path, target_path)
     }
 
     #[instrument(skip(self))]
@@ -76,19 +80,20 @@ where
         let mut reader = self.device_adapter.read_file(id, remote_path)?;
 
         let path = std::path::Path::new(local_path);
-        let target_file_path = if path.is_dir() || local_path.ends_with('/') || path.extension().is_none() {
-            let filename = std::path::Path::new(remote_path)
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("downloaded_file");
-            std::fs::create_dir_all(path)?;
-            path.join(filename)
-        } else {
-            if let Some(parent) = path.parent() {
-                std::fs::create_dir_all(parent)?;
-            }
-            path.to_path_buf()
-        };
+        let target_file_path =
+            if path.is_dir() || local_path.ends_with('/') || path.extension().is_none() {
+                let filename = std::path::Path::new(remote_path)
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("downloaded_file");
+                std::fs::create_dir_all(path)?;
+                path.join(filename)
+            } else {
+                if let Some(parent) = path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                path.to_path_buf()
+            };
 
         let mut file = std::fs::File::create(&target_file_path)?;
         std::io::copy(&mut reader, &mut file)?;

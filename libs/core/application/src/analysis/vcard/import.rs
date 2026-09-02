@@ -21,15 +21,35 @@ pub fn import_from_vcard(vcard_data: &str) -> Result<Vec<Contact>> {
 
         for line in trimmed.lines() {
             let line_str = line.trim();
-            if line_str.starts_with("FN:") {
-                display_name = line_str[3..].to_string();
-            } else if line_str.starts_with("N:") {
-                let parts: Vec<&str> = line_str[2..].split(';').collect();
-                let family_name = parts.get(0).filter(|s| !s.is_empty()).map(|s| s.to_string());
-                let given_name = parts.get(1).filter(|s| !s.is_empty()).map(|s| s.to_string());
-                let middle_name = parts.get(2).filter(|s| !s.is_empty()).map(|s| s.to_string());
-                let prefix = parts.get(3).filter(|s| !s.is_empty()).map(|s| s.to_string());
-                let suffix = parts.get(4).filter(|s| !s.is_empty()).map(|s| s.to_string());
+            if let Some(fn_val) = line_str.strip_prefix("FN:") {
+                display_name = fn_val.to_string();
+            } else if let Some(n_val) = line_str.strip_prefix("N:") {
+                let parts: Vec<&str> = n_val.split(';').collect();
+                let family_name = parts
+                    .first()
+                    .copied()
+                    .filter(|s| !s.is_empty())
+                    .map(|s| s.to_string());
+                let given_name = parts
+                    .get(1)
+                    .copied()
+                    .filter(|s| !s.is_empty())
+                    .map(|s| s.to_string());
+                let middle_name = parts
+                    .get(2)
+                    .copied()
+                    .filter(|s| !s.is_empty())
+                    .map(|s| s.to_string());
+                let prefix = parts
+                    .get(3)
+                    .copied()
+                    .filter(|s| !s.is_empty())
+                    .map(|s| s.to_string());
+                let suffix = parts
+                    .get(4)
+                    .copied()
+                    .filter(|s| !s.is_empty())
+                    .map(|s| s.to_string());
 
                 names.push(ContactName {
                     display_name: if display_name.is_empty() {
@@ -72,23 +92,23 @@ pub fn import_from_vcard(vcard_data: &str) -> Result<Vec<Contact>> {
                         is_primary: emails.is_empty(),
                     });
                 }
-            } else if line_str.starts_with("ORG:") {
+            } else if let Some(org_val) = line_str.strip_prefix("ORG:") {
                 organizations.push(ContactOrganization {
-                    company_name: Some(line_str[4..].to_string()),
+                    company_name: Some(org_val.to_string()),
                     department: None,
                     title: None,
                     job_description: None,
                     org_type: None,
                     label: None,
                 });
-            } else if line_str.starts_with("URL:") {
+            } else if let Some(url_val) = line_str.strip_prefix("URL:") {
                 urls.push(ContactUrl {
-                    url: line_str[4..].to_string(),
+                    url: url_val.to_string(),
                     url_type: None,
                     label: None,
                 });
-            } else if line_str.starts_with("NOTE:") {
-                notes = Some(line_str[5..].replace("\\n", "\n"));
+            } else if let Some(note_val) = line_str.strip_prefix("NOTE:") {
+                notes = Some(note_val.replace("\\n", "\n"));
             }
         }
 

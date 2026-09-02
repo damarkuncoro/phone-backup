@@ -1,9 +1,12 @@
+use super::hashing::calculate_hash;
+use super::store::ObjectStoreKey;
+use super::{
+    Chunk, ChunkConfig, Chunker, ChunkingMethod, CompressionAlgorithm, CompressionEngine,
+    EncryptionEngine,
+};
 use anyhow::Result;
 use domain::EncryptionMode;
-use ports::{StoragePort, RepositoryPort};
-use super::{Chunker, Chunk, ChunkConfig, ChunkingMethod, CompressionAlgorithm, CompressionEngine, EncryptionEngine};
-use super::store::ObjectStoreKey;
-use super::hashing::calculate_hash;
+use ports::{RepositoryPort, StoragePort};
 
 pub struct ObjectManager<'a, T: StoragePort, R: RepositoryPort> {
     storage: &'a T,
@@ -13,7 +16,11 @@ pub struct ObjectManager<'a, T: StoragePort, R: RepositoryPort> {
 
 impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
     pub fn new(storage: &'a T, repository: &'a R, encryption: &'a EncryptionMode) -> Self {
-        Self { storage, repository, encryption }
+        Self {
+            storage,
+            repository,
+            encryption,
+        }
     }
 
     /// V4.0 Object Processing: Hashing -> Dedup -> Compress -> Encrypt -> Store
@@ -25,7 +32,11 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
         // 1. Logical Dedup: Check if this content hash already exists
         if let Some(chunk_id) = self.repository.get_logical_chunk_by_hash(&content_hash)? {
             // Check if we have at least one physical object for it
-            if let Some(_) = self.repository.get_storage_key_for_chunk(&chunk_id)? {
+            if self
+                .repository
+                .get_storage_key_for_chunk(&chunk_id)?
+                .is_some()
+            {
                 return Ok((chunk_id, false));
             }
             // If no physical object exists (unlikely but possible), continue to create one
@@ -33,7 +44,9 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
         }
 
         // 2. New Content: Create Logical Chunk
-        let chunk_id = self.repository.save_logical_chunk(&content_hash, plaintext_size)?;
+        let chunk_id = self
+            .repository
+            .save_logical_chunk(&content_hash, plaintext_size)?;
         self.create_physical_object(&chunk_id, data)
     }
 
@@ -43,7 +56,8 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
 
         // 3. Compress (Optional)
         if data.len() > 1024 {
-            processed_data = CompressionEngine::compress(&processed_data, CompressionAlgorithm::Zstd)?;
+            processed_data =
+                CompressionEngine::compress(&processed_data, CompressionAlgorithm::Zstd)?;
             comp_alg = "zstd".to_string();
         }
 
@@ -51,7 +65,9 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
         let _enc_version = if self.encryption.is_encrypted() { 1 } else { 0 };
         processed_data = match self.encryption {
             EncryptionMode::Password(pwd) => EncryptionEngine::encrypt(&processed_data, pwd)?,
-            EncryptionMode::PublicKey(pk) => EncryptionEngine::encrypt_with_key(&processed_data, pk)?,
+            EncryptionMode::PublicKey(pk) => {
+                EncryptionEngine::encrypt_with_key(&processed_data, pk)?
+            }
             EncryptionMode::None => processed_data,
         };
 
@@ -60,7 +76,11 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
         let stored_size = processed_data.len() as u64;
 
         // 6. Final Dedup Check (Physical level)
-        if let Some(_) = self.repository.get_physical_object_by_hash(&object_hash)? {
+        if self
+            .repository
+            .get_physical_object_by_hash(&object_hash)?
+            .is_some()
+        {
             return Ok((chunk_id.to_string(), false));
         }
 
@@ -68,7 +88,8 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
         let storage_key = ObjectStoreKey::generate_storage_key();
         let storage_path = ObjectStoreKey::compute_object_path_v4(&storage_key);
 
-        self.storage.write(&storage_path, &mut std::io::Cursor::new(processed_data))?;
+        self.storage
+            .write(&storage_path, &mut std::io::Cursor::new(processed_data))?;
 
         // 8. Register Physical Object
         self.repository.save_physical_object(
@@ -77,7 +98,7 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
             &storage_key,
             stored_size,
             &comp_alg,
-            if self.encryption.is_encrypted() { 1 } else { 0 }
+            if self.encryption.is_encrypted() { 1 } else { 0 },
         )?;
 
         Ok((chunk_id.to_string(), true))
@@ -85,7 +106,9 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
 
     pub fn get_chunk(&self, chunk_id: &str) -> Result<Vec<u8>> {
         // Find storage key
-        let storage_key = self.repository.get_storage_key_for_chunk(chunk_id)?
+        let storage_key = self
+            .repository
+            .get_storage_key_for_chunk(chunk_id)?
             .ok_or_else(|| anyhow::anyhow!("Chunk object not found for ID: {}", chunk_id))?;
 
         let storage_path = ObjectStoreKey::compute_object_path_v4(&storage_key);
@@ -118,7 +141,12 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
     }
 
     /// Returns (chunks, bytes_reused)
-    pub fn chunk_and_put(&self, data: &[u8], method: ChunkingMethod, config: ChunkConfig) -> Result<(Vec<Chunk>, u64)> {
+    pub fn chunk_and_put(
+        &self,
+        data: &[u8],
+        method: ChunkingMethod,
+        config: ChunkConfig,
+    ) -> Result<(Vec<Chunk>, u64)> {
         let chunks = Chunker::chunk_data(data, method, config)?;
         let mut results = Vec::new();
         let mut reused_bytes = 0;
@@ -140,7 +168,7 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
         &self,
         reader: R2,
         method: ChunkingMethod,
-        config: ChunkConfig
+        config: ChunkConfig,
     ) -> Result<(Vec<Chunk>, u64)> {
         let mut results = Vec::new();
         let mut reused_bytes = 0;

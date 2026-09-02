@@ -1,6 +1,6 @@
-use domain::{Device, DeviceId, ConnectionType, BackupSchedule, ScheduleFrequency};
-use rusqlite::Row;
 use crate::mappers::parse_date;
+use domain::{BackupSchedule, ConnectionType, Device, DeviceId, ScheduleFrequency};
+use rusqlite::Row;
 
 pub struct DeviceMapper;
 

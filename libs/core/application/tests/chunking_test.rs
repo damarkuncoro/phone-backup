@@ -1,5 +1,5 @@
+use phone_backup_application::storage::{ChunkConfig, Chunker, ChunkingMethod};
 use std::io::Cursor;
-use phone_backup_application::storage::{Chunker, ChunkConfig, ChunkingMethod};
 
 #[test]
 fn test_streaming_chunker_basic() {

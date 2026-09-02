@@ -8,7 +8,12 @@ impl ObjectStoreKey {
 
     pub fn compute_object_path_v4(storage_key: &str) -> String {
         // Obfuscated structure: objects/v4/aa/bb/UUID
-        format!("objects/v4/{}/{}/{}", &storage_key[0..2], &storage_key[2..4], storage_key)
+        format!(
+            "objects/v4/{}/{}/{}",
+            &storage_key[0..2],
+            &storage_key[2..4],
+            storage_key
+        )
     }
 
     /// Legacy support or for structured data that doesn't need obfuscation yet

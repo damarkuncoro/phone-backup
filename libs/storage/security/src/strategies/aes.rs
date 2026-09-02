@@ -1,10 +1,10 @@
-use anyhow::Result;
+use super::EncryptionStrategy;
 use aes_gcm::{
     aead::{Aead, KeyInit, Payload},
     Aes256Gcm, Nonce,
 };
-use rand::{RngCore, thread_rng};
-use super::EncryptionStrategy;
+use anyhow::Result;
+use rand::{thread_rng, RngCore};
 
 #[derive(Default)]
 pub struct AesGcmStrategy;
@@ -23,7 +23,13 @@ impl EncryptionStrategy for AesGcmStrategy {
         let nonce = Nonce::from_slice(&nonce_bytes);
 
         let ciphertext = cipher
-            .encrypt(nonce, Payload { msg: data, aad: b"" })
+            .encrypt(
+                nonce,
+                Payload {
+                    msg: data,
+                    aad: b"",
+                },
+            )
             .map_err(|e| anyhow::anyhow!("AES encryption error: {}", e))?;
 
         let mut result = nonce_bytes.to_vec();
@@ -44,7 +50,13 @@ impl EncryptionStrategy for AesGcmStrategy {
             .map_err(|_| anyhow::anyhow!("Invalid key length for AES"))?;
 
         let plaintext = cipher
-            .decrypt(nonce, Payload { msg: ciphertext, aad: b"" })
+            .decrypt(
+                nonce,
+                Payload {
+                    msg: ciphertext,
+                    aad: b"",
+                },
+            )
             .map_err(|e| anyhow::anyhow!("AES decryption error: {}", e))?;
 
         Ok(plaintext)

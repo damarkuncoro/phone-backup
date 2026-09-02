@@ -1,9 +1,9 @@
-use phone_backup_adapter_adb::parsers::device_parser::DeviceParser;
-use phone_backup_adapter_adb::parsers::app_parser::AppParser;
-use phone_backup_adapter_adb::parsers::contact_parser::ContactParser;
-use phone_backup_adapter_adb::parsers::communication_parser::CommunicationParser;
-use phone_backup_adapter_adb::parsers::media_parser::MediaParser;
 use domain::DeviceId;
+use phone_backup_adapter_adb::parsers::app_parser::AppParser;
+use phone_backup_adapter_adb::parsers::communication_parser::CommunicationParser;
+use phone_backup_adapter_adb::parsers::contact_parser::ContactParser;
+use phone_backup_adapter_adb::parsers::device_parser::DeviceParser;
+use phone_backup_adapter_adb::parsers::media_parser::MediaParser;
 
 #[test]
 fn test_parse_devices_l() {
@@ -101,7 +101,8 @@ fn test_parse_battery() {
                     temperature: 325\n\
                     technology: Li-ion";
 
-    let status = phone_backup_adapter_adb::parsers::battery_parser::BatteryParser::parse(output).unwrap();
+    let status =
+        phone_backup_adapter_adb::parsers::battery_parser::BatteryParser::parse(output).unwrap();
     assert_eq!(status.level, 85);
     assert!(status.is_charging);
     assert_eq!(status.temperature, 32.5);

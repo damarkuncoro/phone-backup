@@ -1,10 +1,8 @@
-use std::sync::{Arc, RwLock};
-use anyhow::{bail, Result};
-use domain::{
-    AppInfo, AppId, CapabilityMatrix, Contact, Device, DeviceId, DomainError, FileEntry,
-};
-use ports::{AppProviderPort, DataProviderPort, DevicePort, ScannerPort};
 use crate::protocol::{AgentHandshake, AgentStructuredDataResponse};
+use anyhow::{bail, Result};
+use domain::{AppId, AppInfo, CapabilityMatrix, Contact, Device, DeviceId, DomainError, FileEntry};
+use ports::{AppProviderPort, DataProviderPort, DevicePort, ScannerPort};
+use std::sync::{Arc, RwLock};
 
 /// In-memory state and registry of active Android Companion Agent sessions.
 #[derive(Clone, Default)]
@@ -101,7 +99,12 @@ impl DevicePort for AgentAdapter {
         Ok(Box::new(std::io::Cursor::new(content)))
     }
 
-    fn push_file(&self, _id: &DeviceId, _source: &mut dyn std::io::Read, _target_path: &str) -> Result<()> {
+    fn push_file(
+        &self,
+        _id: &DeviceId,
+        _source: &mut dyn std::io::Read,
+        _target_path: &str,
+    ) -> Result<()> {
         Ok(())
     }
 
@@ -182,46 +185,44 @@ impl DataProviderPort for AgentAdapter {
             return Ok(data.contacts.clone());
         }
 
-        Ok(vec![
-            Contact {
-                id: "agent_c1".to_string(),
-                snapshot_id: None,
-                source_id: Some("agent_src_1".to_string()),
-                display_name: "Damar Kuncoro (Wireless)".into(),
-                notes: Some("Synced via Companion Agent".into()),
-                source: "companion_agent".to_string(),
-                source_account: None,
-                content_hash: None,
-                metadata_json: None,
-                names: vec![domain::ContactName {
-                    display_name: Some("Damar Kuncoro (Wireless)".into()),
-                    given_name: Some("Damar".into()),
-                    family_name: Some("Kuncoro".into()),
-                    middle_name: None,
-                    prefix: None,
-                    suffix: None,
-                }],
-                phones: vec![domain::ContactPhone {
-                    raw_value: "+6285921495599".into(),
-                    normalized_value: Some("+6285921495599".into()),
-                    phone_type: Some("mobile".into()),
-                    label: None,
-                    is_primary: true,
-                }],
-                emails: vec![domain::ContactEmail {
-                    value: "damar@example.com".into(),
-                    email_type: Some("work".into()),
-                    label: None,
-                    is_primary: true,
-                }],
-                addresses: vec![],
-                organizations: vec![],
-                urls: vec![],
-                events: vec![],
-                photos: vec![],
-                labels: vec![],
-            }
-        ])
+        Ok(vec![Contact {
+            id: "agent_c1".to_string(),
+            snapshot_id: None,
+            source_id: Some("agent_src_1".to_string()),
+            display_name: "Damar Kuncoro (Wireless)".into(),
+            notes: Some("Synced via Companion Agent".into()),
+            source: "companion_agent".to_string(),
+            source_account: None,
+            content_hash: None,
+            metadata_json: None,
+            names: vec![domain::ContactName {
+                display_name: Some("Damar Kuncoro (Wireless)".into()),
+                given_name: Some("Damar".into()),
+                family_name: Some("Kuncoro".into()),
+                middle_name: None,
+                prefix: None,
+                suffix: None,
+            }],
+            phones: vec![domain::ContactPhone {
+                raw_value: "+6285921495599".into(),
+                normalized_value: Some("+6285921495599".into()),
+                phone_type: Some("mobile".into()),
+                label: None,
+                is_primary: true,
+            }],
+            emails: vec![domain::ContactEmail {
+                value: "damar@example.com".into(),
+                email_type: Some("work".into()),
+                label: None,
+                is_primary: true,
+            }],
+            addresses: vec![],
+            organizations: vec![],
+            urls: vec![],
+            events: vec![],
+            photos: vec![],
+            labels: vec![],
+        }])
     }
 
     fn list_sms(&self, _device_id: &DeviceId) -> Result<Vec<domain::Sms>> {
@@ -242,20 +243,22 @@ impl AppProviderPort for AgentAdapter {
             return Ok(data.apps.clone());
         }
 
-        Ok(vec![
-            AppInfo {
-                id: AppId("com.phonebackup.agent".into()),
-                device_id: device_id.clone(),
-                package_name: "com.phonebackup.agent".into(),
-                version_name: "1.0.0".into(),
-                version_code: 1,
-                installer: Some("com.android.vending".into()),
-                app_name: "Phone Backup Companion Agent".into(),
-            }
-        ])
+        Ok(vec![AppInfo {
+            id: AppId("com.phonebackup.agent".into()),
+            device_id: device_id.clone(),
+            package_name: "com.phonebackup.agent".into(),
+            version_name: "1.0.0".into(),
+            version_code: 1,
+            installer: Some("com.android.vending".into()),
+            app_name: "Phone Backup Companion Agent".into(),
+        }])
     }
 
-    fn get_apk(&self, _device_id: &DeviceId, _package_name: &str) -> Result<Box<dyn std::io::Read>> {
+    fn get_apk(
+        &self,
+        _device_id: &DeviceId,
+        _package_name: &str,
+    ) -> Result<Box<dyn std::io::Read>> {
         let content = vec![0u8; 1024];
         Ok(Box::new(std::io::Cursor::new(content)))
     }

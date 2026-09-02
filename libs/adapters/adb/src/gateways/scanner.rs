@@ -1,7 +1,7 @@
+use crate::repositories::AdbScannerRepository;
 use anyhow::Result;
 use domain::{DeviceId, FileEntry};
 use ports::ScannerPort;
-use crate::repositories::AdbScannerRepository;
 
 #[derive(Clone)]
 pub struct AdbScannerGateway {

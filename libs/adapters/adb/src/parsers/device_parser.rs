@@ -7,7 +7,9 @@ impl DeviceParser {
         let mut devices = Vec::new();
 
         for line in output.lines().skip(1) {
-            if line.is_empty() { continue; }
+            if line.is_empty() {
+                continue;
+            }
 
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() < 2 || parts[1] != "device" {

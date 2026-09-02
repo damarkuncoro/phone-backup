@@ -1,7 +1,7 @@
 use anyhow::Result;
 
-pub mod chacha;
 pub mod aes;
+pub mod chacha;
 pub mod none;
 
 pub trait EncryptionStrategy: Send + Sync {

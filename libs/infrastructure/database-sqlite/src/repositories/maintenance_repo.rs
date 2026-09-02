@@ -1,8 +1,8 @@
-use std::collections::HashSet;
-use std::sync::Arc;
+use ports::MaintenanceRepositoryPort;
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
-use ports::MaintenanceRepositoryPort;
+use std::collections::HashSet;
+use std::sync::Arc;
 
 pub struct MaintenanceRepository {
     pool: Arc<Pool<SqliteConnectionManager>>,
@@ -34,7 +34,8 @@ impl MaintenanceRepositoryPort for MaintenanceRepository {
         }
 
         // 3. (Legacy) hash_sha256 from files if still used for anything in storage
-        let mut stmt_files = conn.prepare("SELECT hash_sha256 FROM files WHERE hash_sha256 IS NOT NULL")?;
+        let mut stmt_files =
+            conn.prepare("SELECT hash_sha256 FROM files WHERE hash_sha256 IS NOT NULL")?;
         let file_hash_iter = stmt_files.query_map([], |row| row.get::<_, String>(0))?;
         for h in file_hash_iter {
             hashes.insert(h?);
@@ -48,7 +49,7 @@ impl MaintenanceRepositoryPort for MaintenanceRepository {
         conn.execute_batch(
             "PRAGMA optimize;
              VACUUM;
-             ANALYZE;"
+             ANALYZE;",
         )?;
         Ok(())
     }
@@ -63,21 +64,21 @@ impl MaintenanceRepositoryPort for MaintenanceRepository {
         total_deleted += tx.execute(
             "DELETE FROM contact_objects
              WHERE id NOT IN (SELECT contact_id FROM snapshot_contacts)",
-            []
+            [],
         )? as u64;
 
         // 2. Delete files not linked to any snapshot
         total_deleted += tx.execute(
             "DELETE FROM files
              WHERE id NOT IN (SELECT file_id FROM snapshot_files)",
-            []
+            [],
         )? as u64;
 
         // 3. Delete logical chunks not linked to any file
         total_deleted += tx.execute(
             "DELETE FROM chunks
              WHERE id NOT IN (SELECT chunk_id FROM file_chunks)",
-            []
+            [],
         )? as u64;
 
         tx.commit()?;

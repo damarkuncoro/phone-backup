@@ -103,6 +103,9 @@ jobs:
         run: |
           cd apps/gui/ui
           npm install
+          npm run build
+          cd ..
+          npm install
       
       - name: Debug - List workspace state
         shell: bash

@@ -23,7 +23,12 @@ pub trait DevicePort: Send + Sync {
     fn read_file(&self, id: &DeviceId, path: &str) -> Result<Box<dyn std::io::Read>>;
 
     /// Push a file to the device.
-    fn push_file(&self, id: &DeviceId, source: &mut dyn std::io::Read, target_path: &str) -> Result<()>;
+    fn push_file(
+        &self,
+        id: &DeviceId,
+        source: &mut dyn std::io::Read,
+        target_path: &str,
+    ) -> Result<()>;
 
     /// Check device battery level and temperature.
     fn battery_status(&self, id: &DeviceId) -> Result<(u32, f32)>;

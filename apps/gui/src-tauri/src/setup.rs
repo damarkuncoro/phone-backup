@@ -1,14 +1,14 @@
-use std::sync::Arc;
-use tauri::Manager;
+use crate::state::{AppState, CombinedProgress, SharedStorage, SwitchableStorage};
 use adapter_adb::{AdbAdapter, AdbClient};
-use adapter_mtp::{CompositeDeviceAdapter, CompositeScannerAdapter, MtpAdapter};
 use adapter_database_sqlite::SqliteRepository;
 use adapter_filesystem::LocalStorage;
+use adapter_mtp::{CompositeDeviceAdapter, CompositeScannerAdapter, MtpAdapter};
 use application::BackupService;
 use ports::SettingsRepositoryPort;
-use crate::state::{AppState, CombinedProgress, SharedStorage, SwitchableStorage};
 use socketioxide::SocketIo;
-use tracing::{info, warn, error};
+use std::sync::Arc;
+use tauri::Manager;
+use tracing::{error, info, warn};
 
 pub fn init_infrastructure(app: &mut tauri::App, io: SocketIo) -> anyhow::Result<()> {
     // 1. Initialize Paths - Use App Data Dir for stability on macOS/Windows
@@ -26,7 +26,8 @@ pub fn init_infrastructure(app: &mut tauri::App, io: SocketIo) -> anyhow::Result
 
     // 2. Repositories
     info!("  -> Step 2: Initializing SQLite database at {:?}", db_path);
-    let db_path_str = db_path.to_str()
+    let db_path_str = db_path
+        .to_str()
         .ok_or_else(|| anyhow::anyhow!("Invalid database path encoding"))?;
     let repository = SqliteRepository::new(db_path_str)?;
     let settings = repository.get_settings()?.unwrap_or_default();
@@ -37,17 +38,28 @@ pub fn init_infrastructure(app: &mut tauri::App, io: SocketIo) -> anyhow::Result
         domain::StorageBackend::Local => {
             info!("Using Local Storage at {:?}", storage_path);
             Box::new(LocalStorage::new(storage_path)?)
-        },
+        }
         domain::StorageBackend::Mock => {
             warn!("Using Mock Storage Backend (In-Memory)");
             Box::new(adapter_mock::MockStorage::new())
-        },
-        domain::StorageBackend::S3 { bucket, region, endpoint, access_key, secret_key } => {
+        }
+        domain::StorageBackend::S3 {
+            bucket,
+            region,
+            endpoint,
+            access_key,
+            secret_key,
+        } => {
             info!("Connecting to S3 bucket: {}", bucket);
-            match adapter_opendal::CloudStorage::new_s3(&bucket, &region, &endpoint, &access_key, &secret_key) {
+            match adapter_opendal::CloudStorage::new_s3(
+                bucket, region, endpoint, access_key, secret_key,
+            ) {
                 Ok(s3) => Box::new(s3),
                 Err(e) => {
-                    error!("Failed to connect to saved S3 storage: {}. Falling back to Local.", e);
+                    error!(
+                        "Failed to connect to saved S3 storage: {}. Falling back to Local.",
+                        e
+                    );
                     Box::new(LocalStorage::new(storage_path)?)
                 }
             }
@@ -62,14 +74,10 @@ pub fn init_infrastructure(app: &mut tauri::App, io: SocketIo) -> anyhow::Result
     let adb_adapter = AdbAdapter::new(adb_client);
     let mtp_adapter = MtpAdapter::new();
 
-    let composite_device = CompositeDeviceAdapter::new(
-        Arc::new(adb_adapter.clone()),
-        Arc::new(mtp_adapter.clone()),
-    );
-    let composite_scanner = CompositeScannerAdapter::new(
-        Arc::new(adb_adapter.clone()),
-        Arc::new(mtp_adapter),
-    );
+    let composite_device =
+        CompositeDeviceAdapter::new(Arc::new(adb_adapter.clone()), Arc::new(mtp_adapter.clone()));
+    let composite_scanner =
+        CompositeScannerAdapter::new(Arc::new(adb_adapter.clone()), Arc::new(mtp_adapter));
 
     let engine = Arc::new(BackupService::new(
         composite_device.clone(),
@@ -80,7 +88,7 @@ pub fn init_infrastructure(app: &mut tauri::App, io: SocketIo) -> anyhow::Result
         adb_adapter.clone(),
         CombinedProgress {
             app_handle: app.handle().clone(),
-            io: io
+            io,
         },
     ));
 
@@ -94,7 +102,7 @@ pub fn init_infrastructure(app: &mut tauri::App, io: SocketIo) -> anyhow::Result
     info!("  -> Step 6: Registering application state...");
     app.manage(AppState {
         engine,
-        storage_switcher: switcher
+        storage_switcher: switcher,
     });
 
     info!("  -> Infrastructure initialized successfully.");
@@ -111,7 +119,11 @@ fn spawn_auto_backup_monitor(engine: Arc<crate::state::AppEngine>) {
     });
 }
 
-fn spawn_hardware_monitor(app_handle: tauri::AppHandle, engine: Arc<crate::state::AppEngine>, adb_adapter: AdbAdapter) {
+fn spawn_hardware_monitor(
+    app_handle: tauri::AppHandle,
+    engine: Arc<crate::state::AppEngine>,
+    adb_adapter: AdbAdapter,
+) {
     let adb_monitor = adb_adapter.monitor();
     std::thread::spawn(move || {
         use adapter_adb::DeviceEvent;
@@ -130,11 +142,13 @@ fn spawn_hardware_monitor(app_handle: tauri::AppHandle, engine: Arc<crate::state
                     let dev_id = device.id.clone();
                     tauri::async_runtime::spawn(async move {
                         let _ = app_handle_clone.emit("auto-backup-started", dev_id.0.clone());
-                        let result = engine_clone.trigger_on_connect_backup(&dev_id, domain::EncryptionMode::None);
+                        let result = engine_clone
+                            .trigger_on_connect_backup(&dev_id, domain::EncryptionMode::None);
                         if let Ok(triggered) = result {
                             if triggered {
                                 info!("Auto-backup triggered for device {}", dev_id.0);
-                                let _ = app_handle_clone.emit("auto-backup-finished", dev_id.0.clone());
+                                let _ =
+                                    app_handle_clone.emit("auto-backup-finished", dev_id.0.clone());
                             }
                         }
                     });
@@ -159,7 +173,11 @@ fn spawn_status_poller(app_handle: tauri::AppHandle, device_adapter: CompositeDe
             if let Ok(devices) = device_adapter.discover() {
                 // If count changed, notify UI to refresh
                 if devices.len() != last_device_count {
-                    info!("Status Poller: Device count changed ({} -> {}), notifying UI", last_device_count, devices.len());
+                    info!(
+                        "Status Poller: Device count changed ({} -> {}), notifying UI",
+                        last_device_count,
+                        devices.len()
+                    );
                     let _ = app_handle.emit("device-changed", "poller-update");
                     last_device_count = devices.len();
                 }

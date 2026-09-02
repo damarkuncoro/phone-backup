@@ -1,7 +1,7 @@
 use crate::cli::ScheduleCommands;
 use anyhow::Result;
 use application::BackupService;
-use domain::{ScheduleFrequency, EncryptionMode};
+use domain::{EncryptionMode, ScheduleFrequency};
 
 pub fn handle_schedule<D, S, R, T, A, DP, P>(
     service: &BackupService<D, S, R, T, A, DP, P>,
@@ -36,7 +36,10 @@ where
                     .last_run_at
                     .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
                     .unwrap_or("Never".into());
-                println!("{:<15} {:<10?} {:<20}", s.device_id.0, s.frequency, last_run);
+                println!(
+                    "{:<15} {:<10?} {:<20}",
+                    s.device_id.0, s.frequency, last_run
+                );
             }
         }
         ScheduleCommands::Run { password } => {

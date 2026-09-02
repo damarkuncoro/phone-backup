@@ -38,7 +38,8 @@ impl ScannerPort for FilesystemScanner {
                 if entry.file_type().is_file() {
                     let path = entry.path();
                     let metadata = entry.metadata()?;
-                    let relative_path = path.strip_prefix(base_root)?.to_string_lossy().into_owned();
+                    let relative_path =
+                        path.strip_prefix(base_root)?.to_string_lossy().into_owned();
 
                     let modified: DateTime<Utc> = metadata.modified()?.into();
                     let mime_type = mime_guess::from_path(path)

@@ -1,11 +1,11 @@
 use anyhow::Result;
 use application::BackupService;
-use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort};
+use ports::{
+    AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort,
+};
 use std::process::Command;
 
-pub fn run_doctor<D, S, R, T, A, DP, P>(
-    service: &BackupService<D, S, R, T, A, DP, P>,
-) -> Result<()>
+pub fn run_doctor<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>) -> Result<()>
 where
     D: DevicePort,
     S: ScannerPort,
@@ -24,7 +24,11 @@ where
     let adb_check = Command::new(&adb_path).arg("version").output();
     match adb_check {
         Ok(out) if out.status.success() => {
-            let version = String::from_utf8_lossy(&out.stdout).lines().next().unwrap_or("Unknown").to_string();
+            let version = String::from_utf8_lossy(&out.stdout)
+                .lines()
+                .next()
+                .unwrap_or("Unknown")
+                .to_string();
             println!("✅ FOUND ({}) at {}", version, adb_path);
         }
         _ => println!("❌ NOT FOUND. Please install ADB or set ANDROID_HOME."),

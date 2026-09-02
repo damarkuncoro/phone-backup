@@ -29,7 +29,8 @@ impl AndroidScripts {
             _ => "content://media/external/images/media",
         };
         // data: path, _size: size, date_modified: time, mime_type, width, height, datetaken: creation time, latitude, longitude
-        let projection = "_data:_size:date_modified:mime_type:width:height:datetaken:latitude:longitude";
+        let projection =
+            "_data:_size:date_modified:mime_type:width:height:datetaken:latitude:longitude";
         format!("content query --uri {} --projection {}", uri, projection)
     }
 
@@ -39,7 +40,11 @@ impl AndroidScripts {
 
     pub fn list_dir(path: &str) -> String {
         let clean_path = path.trim_end_matches('/');
-        let base = if clean_path.is_empty() { "" } else { clean_path };
+        let base = if clean_path.is_empty() {
+            ""
+        } else {
+            clean_path
+        };
         format!(
             "ls -a1 \"{}\" | while read line; do [ \"$line\" = \".\" ] || [ \"$line\" = \"..\" ] || stat -L -c \"%n|%s|%Y|%F\" \"{}/$line\" 2>/dev/null; done",
             path, base

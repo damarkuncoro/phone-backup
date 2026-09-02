@@ -28,7 +28,11 @@ impl AppProviderPort for MockAppProvider {
         ])
     }
 
-    fn get_apk(&self, _device_id: &DeviceId, _package_name: &str) -> Result<Box<dyn std::io::Read>> {
+    fn get_apk(
+        &self,
+        _device_id: &DeviceId,
+        _package_name: &str,
+    ) -> Result<Box<dyn std::io::Read>> {
         let content = vec![0u8; 1024];
         Ok(Box::new(std::io::Cursor::new(content)))
     }

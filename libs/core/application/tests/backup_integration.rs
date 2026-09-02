@@ -1,11 +1,11 @@
+use adapter_database_sqlite::SqliteRepository;
+use adapter_filesystem::LocalStorage;
+use adapter_mock::{MockAppProvider, MockDataProvider, MockDeviceAdapter, MockScannerAdapter};
 use phone_backup_application::BackupService;
 use ports::StoragePort;
-use adapter_mock::{MockDeviceAdapter, MockScannerAdapter, MockAppProvider, MockDataProvider};
-use adapter_filesystem::LocalStorage;
-use adapter_database_sqlite::SqliteRepository;
-use tempfile::TempDir;
 use std::fs;
 use std::sync::Mutex;
+use tempfile::TempDir;
 static TEST_LOCK: Mutex<()> = Mutex::new(());
 
 #[test]
@@ -24,7 +24,7 @@ fn test_full_backup_restore_lifecycle() {
     let repository = SqliteRepository::new(db_path.to_str().unwrap()).unwrap();
     let storage = LocalStorage::new(storage_path).unwrap();
     let device_adapter = MockDeviceAdapter::default();
-    let scanner_adapter = MockScannerAdapter::default();
+    let scanner_adapter = MockScannerAdapter;
     let app_provider = MockAppProvider;
     let data_provider = MockDataProvider;
 
@@ -46,7 +46,9 @@ fn test_full_backup_restore_lifecycle() {
     // 4. Perform Backup (Encrypted)
     let password = "test-password";
     let encryption = domain::EncryptionMode::Password(password.to_string());
-    let snapshot = service.perform_backup(&device_id, encryption.clone(), None).expect("Backup failed");
+    let snapshot = service
+        .perform_backup(&device_id, encryption.clone(), None)
+        .expect("Backup failed");
 
     assert!(snapshot.total_files > 0);
     assert!(snapshot.total_bytes > 0);
@@ -66,7 +68,9 @@ fn test_full_backup_restore_lifecycle() {
     assert_eq!(report.verified_files, snapshot.total_files);
 
     // 6. Perform Restore
-    service.perform_restore(&snapshot.id, restore_path, encryption, None).expect("Restore failed");
+    service
+        .perform_restore(&snapshot.id, restore_path, encryption, None)
+        .expect("Restore failed");
 
     // 7. Validate Restored Content
     // MockScannerAdapter seeds "Documents/notes.txt" with "this is mock file content"
@@ -94,7 +98,7 @@ fn test_asymmetric_backup_restore_lifecycle() {
     let storage = LocalStorage::new(storage_path).unwrap();
     let service = BackupService::new(
         MockDeviceAdapter::with_device_id("DEV_ASYM"),
-        MockScannerAdapter::default(),
+        MockScannerAdapter,
         repository,
         storage,
         MockAppProvider,
@@ -111,14 +115,21 @@ fn test_asymmetric_backup_restore_lifecycle() {
     let decryption = domain::EncryptionMode::PublicKey(secret);
 
     // 2. Backup with Public Key
-    let snapshot = service.perform_backup(&device_id, encryption, None).expect("Asym backup failed");
+    let snapshot = service
+        .perform_backup(&device_id, encryption, None)
+        .expect("Asym backup failed");
 
     // 3. Restore with Secret Key
-    service.perform_restore(&snapshot.id, restore_path, decryption, None).expect("Asym restore failed");
+    service
+        .perform_restore(&snapshot.id, restore_path, decryption, None)
+        .expect("Asym restore failed");
 
     let restored_file = tmp_restore_dir.path().join("Documents/notes.txt");
     assert!(restored_file.exists());
-    assert_eq!(fs::read_to_string(restored_file).unwrap(), "this is mock file content");
+    assert_eq!(
+        fs::read_to_string(restored_file).unwrap(),
+        "this is mock file content"
+    );
 
     println!("✅ Asymmetric Integration test passed.");
 }

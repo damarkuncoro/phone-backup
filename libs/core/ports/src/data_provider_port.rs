@@ -1,5 +1,5 @@
 use anyhow::Result;
-use domain::{DeviceId, Contact, Sms, CallLog};
+use domain::{CallLog, Contact, DeviceId, Sms};
 
 pub trait DataProviderPort: Send + Sync {
     fn list_contacts(&self, device_id: &DeviceId) -> Result<Vec<Contact>>;

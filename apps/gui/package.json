@@ -1,0 +1,11 @@
+{
+  "name": "phone-backup-gui",
+  "private": true,
+  "scripts": {
+    "build": "npm run build --prefix ui",
+    "tauri": "npm run tauri --prefix ui --"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.3.0"
+  }
+}

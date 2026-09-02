@@ -1,8 +1,11 @@
+use crate::backup::BackupService;
 use anyhow::Result;
 use domain::{AppInfo, DeviceId};
-use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort, ProgressPort};
+use ports::{
+    AppProviderPort, DataProviderPort, DevicePort, ProgressPort, RepositoryPort, ScannerPort,
+    StoragePort,
+};
 use tracing::{info, instrument};
-use crate::backup::BackupService;
 
 impl<D, S, R, T, A, DP, P> BackupService<D, S, R, T, A, DP, P>
 where
@@ -20,8 +23,16 @@ where
     }
 
     #[instrument(skip(self))]
-    pub fn export_apk(&self, device_id: &DeviceId, package_name: &str, target_path: &str) -> Result<()> {
-        info!("📦 Exporting APK for package '{}' on device {} -> {}", package_name, device_id, target_path);
+    pub fn export_apk(
+        &self,
+        device_id: &DeviceId,
+        package_name: &str,
+        target_path: &str,
+    ) -> Result<()> {
+        info!(
+            "📦 Exporting APK for package '{}' on device {} -> {}",
+            package_name, device_id, target_path
+        );
         let mut apk_reader = self.app_provider.get_apk(device_id, package_name)?;
         let mut target_file = std::fs::File::create(target_path)?;
         std::io::copy(&mut apk_reader, &mut target_file)?;
@@ -30,8 +41,17 @@ where
     }
 
     #[instrument(skip(self))]
-    pub fn export_apk_batch(&self, device_id: &DeviceId, package_names: &[String], target_dir: &str) -> Result<Vec<String>> {
-        info!("📦 Exporting batch of {} APKs to directory: {}", package_names.len(), target_dir);
+    pub fn export_apk_batch(
+        &self,
+        device_id: &DeviceId,
+        package_names: &[String],
+        target_dir: &str,
+    ) -> Result<Vec<String>> {
+        info!(
+            "📦 Exporting batch of {} APKs to directory: {}",
+            package_names.len(),
+            target_dir
+        );
         std::fs::create_dir_all(target_dir)?;
         let mut exported_files = Vec::new();
 
@@ -45,7 +65,10 @@ where
             }
         }
 
-        info!("✨ Batch APK export completed: {} succeeded", exported_files.len());
+        info!(
+            "✨ Batch APK export completed: {} succeeded",
+            exported_files.len()
+        );
         Ok(exported_files)
     }
 }

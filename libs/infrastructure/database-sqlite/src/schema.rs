@@ -1,5 +1,5 @@
 use rusqlite::Connection;
-use tracing::{info, debug};
+use tracing::{debug, info};
 
 pub fn init_schema(conn: &Connection) -> anyhow::Result<()> {
     // Create migrations table if it doesn't exist

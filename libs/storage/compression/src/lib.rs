@@ -1,5 +1,5 @@
-pub mod strategies;
 pub mod config;
+pub mod strategies;
 
 use anyhow::Result;
 pub use config::CompressionAlgorithm;
@@ -10,7 +10,7 @@ pub struct ExpertCompressor;
 impl ExpertCompressor {
     pub fn get_strategy(algo: CompressionAlgorithm) -> Box<dyn CompressionStrategy> {
         match algo {
-            CompressionAlgorithm::None => Box::new(strategies::none::NoCompressionStrategy::default()),
+            CompressionAlgorithm::None => Box::new(strategies::none::NoCompressionStrategy),
             CompressionAlgorithm::Zstd => Box::new(strategies::zstd_strat::ZstdStrategy::default()),
         }
     }
@@ -43,7 +43,8 @@ mod tests {
         let compressed = ExpertCompressor::compress(data, CompressionAlgorithm::Zstd).unwrap();
         assert!(compressed.len() < data.len());
 
-        let decompressed = ExpertCompressor::decompress(&compressed, CompressionAlgorithm::Zstd).unwrap();
+        let decompressed =
+            ExpertCompressor::decompress(&compressed, CompressionAlgorithm::Zstd).unwrap();
         assert_eq!(data.to_vec(), decompressed);
     }
 

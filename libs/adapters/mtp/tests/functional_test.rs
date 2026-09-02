@@ -1,10 +1,10 @@
-use phone_backup_adapter_mtp::{MtpAdapter, CompositeDeviceAdapter};
-use domain::{DeviceId, ConnectionType};
+use domain::{ConnectionType, DeviceId};
+use phone_backup_adapter_mtp::{CompositeDeviceAdapter, MtpAdapter};
 use ports::{DevicePort, ScannerPort};
-use std::sync::Arc;
-use tempfile::tempdir;
 use std::fs::{self, File};
 use std::io::Write;
+use std::sync::Arc;
+use tempfile::tempdir;
 
 #[test]
 fn test_mtp_full_lifecycle_simulation() {
@@ -41,11 +41,15 @@ fn test_mtp_full_lifecycle_simulation() {
 
     // 4. Test File Push (Write)
     let push_data = b"new file content";
-    adapter.push_file(&dev_id, &mut &push_data[..], "/Download/readme.txt").unwrap();
+    adapter
+        .push_file(&dev_id, &mut &push_data[..], "/Download/readme.txt")
+        .unwrap();
     assert!(root_path.join("Download/readme.txt").exists());
 
     // 5. Test Delete
-    adapter.delete_remote(&dev_id, "/Download/readme.txt").unwrap();
+    adapter
+        .delete_remote(&dev_id, "/Download/readme.txt")
+        .unwrap();
     assert!(!root_path.join("Download/readme.txt").exists());
 }
 

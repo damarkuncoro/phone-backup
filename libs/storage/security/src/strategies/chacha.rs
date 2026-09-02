@@ -1,10 +1,10 @@
+use super::EncryptionStrategy;
 use anyhow::Result;
 use chacha20poly1305::{
     aead::{Aead, KeyInit, Payload},
     XChaCha20Poly1305, XNonce,
 };
-use rand::{RngCore, thread_rng};
-use super::EncryptionStrategy;
+use rand::{thread_rng, RngCore};
 
 #[derive(Default)]
 pub struct ChaChaStrategy;
@@ -23,7 +23,13 @@ impl EncryptionStrategy for ChaChaStrategy {
         let nonce = XNonce::from_slice(&nonce_bytes);
 
         let ciphertext = cipher
-            .encrypt(nonce, Payload { msg: data, aad: b"" })
+            .encrypt(
+                nonce,
+                Payload {
+                    msg: data,
+                    aad: b"",
+                },
+            )
             .map_err(|e| anyhow::anyhow!("ChaCha encryption error: {}", e))?;
 
         let mut result = nonce_bytes.to_vec();
@@ -44,7 +50,13 @@ impl EncryptionStrategy for ChaChaStrategy {
             .map_err(|_| anyhow::anyhow!("Invalid key length for ChaCha"))?;
 
         let plaintext = cipher
-            .decrypt(nonce, Payload { msg: ciphertext, aad: b"" })
+            .decrypt(
+                nonce,
+                Payload {
+                    msg: ciphertext,
+                    aad: b"",
+                },
+            )
             .map_err(|e| anyhow::anyhow!("ChaCha decryption error: {}", e))?;
 
         Ok(plaintext)

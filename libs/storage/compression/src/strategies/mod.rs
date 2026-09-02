@@ -1,7 +1,7 @@
 use anyhow::Result;
 
-pub mod zstd_strat;
 pub mod none;
+pub mod zstd_strat;
 
 pub trait CompressionStrategy: Send + Sync {
     fn name(&self) -> &'static str;

@@ -1,5 +1,5 @@
-use ports::ProgressPort;
 use indicatif::{ProgressBar, ProgressStyle};
+use ports::ProgressPort;
 use std::sync::Mutex;
 
 pub struct CliProgress {

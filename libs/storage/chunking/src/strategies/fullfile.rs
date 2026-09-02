@@ -1,7 +1,7 @@
-use std::io::Read;
-use anyhow::Result;
-use crate::config::ChunkConfig;
 use super::{Chunk, StreamingChunker};
+use crate::config::ChunkConfig;
+use anyhow::Result;
+use std::io::Read;
 
 /// A pseudo-chunker that treats the entire stream as one single chunk.
 /// Useful for small files or when chunking is disabled.

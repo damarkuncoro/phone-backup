@@ -13,7 +13,8 @@ impl BackupPlanner {
         let mut upload = Vec::new();
         let mut reuse = Vec::new();
 
-        let current_manifest_paths: HashSet<&str> = manifest_files.iter().map(|f| f.path.as_str()).collect();
+        let current_manifest_paths: HashSet<&str> =
+            manifest_files.iter().map(|f| f.path.as_str()).collect();
 
         for file in manifest_files {
             if already_backed_up.contains(&file.path) {

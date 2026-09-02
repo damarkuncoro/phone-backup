@@ -1,7 +1,5 @@
 use domain::DeviceId;
-use phone_backup_adapter_agent::{
-    AgentAdapter, AgentHandshake, AgentSessionManager,
-};
+use phone_backup_adapter_agent::{AgentAdapter, AgentHandshake, AgentSessionManager};
 use ports::{AppProviderPort, DataProviderPort, DevicePort, ScannerPort};
 
 #[test]
@@ -25,7 +23,9 @@ fn test_agent_adapter_device_lifecycle() {
         temperature_c: Some(31.2),
     });
 
-    let devices = adapter.discover().expect("Failed to discover after register");
+    let devices = adapter
+        .discover()
+        .expect("Failed to discover after register");
     assert_eq!(devices.len(), 1);
     assert_eq!(devices[0].id.0, "WIFI_DEV_999");
     assert_eq!(devices[0].model, "Galaxy S24 Ultra");

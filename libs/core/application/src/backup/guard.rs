@@ -27,7 +27,10 @@ impl<'a, R: RepositoryPort> Drop for SnapshotGuard<'a, R> {
         if !self.completed && self.snapshot.status == SnapshotStatus::Running {
             let _ = self.snapshot.interrupt();
             let _ = self.repository.update_snapshot(self.snapshot);
-            tracing::warn!("⚠️ SnapshotGuard auto-cleaned interrupted snapshot {}", self.snapshot.id.0);
+            tracing::warn!(
+                "⚠️ SnapshotGuard auto-cleaned interrupted snapshot {}",
+                self.snapshot.id.0
+            );
         }
     }
 }

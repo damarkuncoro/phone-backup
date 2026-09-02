@@ -1,4 +1,6 @@
-use domain::{Contact, ContactName, ContactPhone, ContactEmail, ContactAddress, ContactOrganization};
+use domain::{
+    Contact, ContactAddress, ContactEmail, ContactName, ContactOrganization, ContactPhone,
+};
 use phone_backup_application::VCardEngine;
 
 #[test]
@@ -21,46 +23,38 @@ fn test_vcard_export_and_import_roundtrip() {
             prefix: None,
             suffix: None,
         }],
-        phones: vec![
-            ContactPhone {
-                raw_value: "+6281212345678".to_string(),
-                normalized_value: Some("+6281212345678".to_string()),
-                phone_type: Some("mobile".to_string()),
-                label: None,
-                is_primary: true,
-            },
-        ],
-        emails: vec![
-            ContactEmail {
-                value: "damar@example.com".to_string(),
-                email_type: Some("home".to_string()),
-                label: None,
-                is_primary: true,
-            },
-        ],
-        addresses: vec![
-            ContactAddress {
-                formatted_address: Some("Jakarta, Indonesia".to_string()),
-                street: Some("Sudirman".to_string()),
-                city: Some("Jakarta".to_string()),
-                region: Some("DKI".to_string()),
-                postal_code: Some("12190".to_string()),
-                country: Some("Indonesia".to_string()),
-                country_code: None,
-                address_type: Some("work".to_string()),
-                label: None,
-            },
-        ],
-        organizations: vec![
-            ContactOrganization {
-                company_name: Some("Antigravity Inc".to_string()),
-                department: None,
-                title: Some("Senior Developer".to_string()),
-                job_description: None,
-                org_type: None,
-                label: None,
-            },
-        ],
+        phones: vec![ContactPhone {
+            raw_value: "+6281212345678".to_string(),
+            normalized_value: Some("+6281212345678".to_string()),
+            phone_type: Some("mobile".to_string()),
+            label: None,
+            is_primary: true,
+        }],
+        emails: vec![ContactEmail {
+            value: "damar@example.com".to_string(),
+            email_type: Some("home".to_string()),
+            label: None,
+            is_primary: true,
+        }],
+        addresses: vec![ContactAddress {
+            formatted_address: Some("Jakarta, Indonesia".to_string()),
+            street: Some("Sudirman".to_string()),
+            city: Some("Jakarta".to_string()),
+            region: Some("DKI".to_string()),
+            postal_code: Some("12190".to_string()),
+            country: Some("Indonesia".to_string()),
+            country_code: None,
+            address_type: Some("work".to_string()),
+            label: None,
+        }],
+        organizations: vec![ContactOrganization {
+            company_name: Some("Antigravity Inc".to_string()),
+            department: None,
+            title: Some("Senior Developer".to_string()),
+            job_description: None,
+            org_type: None,
+            label: None,
+        }],
         urls: vec![],
         events: vec![],
         photos: vec![],

@@ -60,12 +60,18 @@ where
     println!("Total Size:  {} bytes", snapshot.total_bytes);
     if snapshot.total_bytes > 0 {
         let ratio = (snapshot.deduped_bytes as f64 / snapshot.total_bytes as f64) * 100.0;
-        println!("Deduplication: {:.1}% ({} bytes saved)", ratio, snapshot.deduped_bytes);
+        println!(
+            "Deduplication: {:.1}% ({} bytes saved)",
+            ratio, snapshot.deduped_bytes
+        );
     }
     Ok(())
 }
 
-pub fn list_snapshots<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>, id: &str) -> Result<()>
+pub fn list_snapshots<D, S, R, T, A, DP, P>(
+    service: &BackupService<D, S, R, T, A, DP, P>,
+    id: &str,
+) -> Result<()>
 where
     D: ports::DevicePort,
     S: ports::ScannerPort,
@@ -78,7 +84,10 @@ where
     let device_id = DeviceId::new(id);
     let snapshots = service.list_snapshots(&device_id)?;
     println!("Snapshots for device {}\n", id);
-    println!("{:<40} {:<20} {:<10} {:>10}", "ID", "STARTED", "STATUS", "FILES");
+    println!(
+        "{:<40} {:<20} {:<10} {:>10}",
+        "ID", "STARTED", "STATUS", "FILES"
+    );
     println!("{}", "-".repeat(85));
     for s in snapshots {
         println!(
@@ -114,7 +123,10 @@ where
     println!("----------------");
     println!("ID:          {}", snapshot.id.0);
     println!("Device ID:   {}", snapshot.device_id.0);
-    println!("Started:     {}", snapshot.started_at.format("%Y-%m-%d %H:%M:%S"));
+    println!(
+        "Started:     {}",
+        snapshot.started_at.format("%Y-%m-%d %H:%M:%S")
+    );
     println!(
         "Finished:    {}",
         snapshot
@@ -124,8 +136,14 @@ where
     );
     println!("Status:      {:?}", snapshot.status);
     println!("Total files: {}", snapshot.total_files);
-    println!("Total size:  {:.2} MB", snapshot.total_bytes as f64 / 1024.0 / 1024.0);
-    println!("Saved:       {:.2} MB", snapshot.deduped_bytes as f64 / 1024.0 / 1024.0);
+    println!(
+        "Total size:  {:.2} MB",
+        snapshot.total_bytes as f64 / 1024.0 / 1024.0
+    );
+    println!(
+        "Saved:       {:.2} MB",
+        snapshot.deduped_bytes as f64 / 1024.0 / 1024.0
+    );
 
     let apps = service.get_snapshot_apps(&s_id)?;
     println!("\nApplications ({}):", apps.len());

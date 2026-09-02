@@ -1,6 +1,7 @@
-use tracing::{info, debug};
 use super::{MtpDiscoveryStrategy, MtpMount};
+use tracing::{debug, info};
 
+#[derive(Default)]
 pub struct MacosDiscovery;
 
 impl MacosDiscovery {
@@ -19,7 +20,9 @@ impl MacosDiscovery {
             || name_lower.contains("samsung")
             || name_lower.contains("storage");
 
-        if has_keyword { return true; }
+        if has_keyword {
+            return true;
+        }
 
         // Structure check
         let has_structure = path.join("DCIM").exists()
@@ -27,15 +30,19 @@ impl MacosDiscovery {
             || path.join("Internal Storage").exists()
             || path.join("sdcard").exists();
 
-        if has_structure { return true; }
+        if has_structure {
+            return true;
+        }
 
         // Deeper check
-        std::fs::read_dir(path).map(|dir| {
-            dir.flatten().any(|e| {
-                let n = e.file_name().to_string_lossy().to_lowercase();
-                n.contains("internal") || n.contains("storage") || n.contains("sdcard")
+        std::fs::read_dir(path)
+            .map(|dir| {
+                dir.flatten().any(|e| {
+                    let n = e.file_name().to_string_lossy().to_lowercase();
+                    n.contains("internal") || n.contains("storage") || n.contains("sdcard")
+                })
             })
-        }).unwrap_or(false)
+            .unwrap_or(false)
     }
 }
 

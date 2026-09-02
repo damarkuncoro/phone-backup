@@ -1,5 +1,5 @@
+use crate::{FileEntry, Snapshot};
 use serde::{Deserialize, Serialize};
-use crate::{Snapshot, FileEntry};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Manifest {

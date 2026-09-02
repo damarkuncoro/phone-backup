@@ -1,7 +1,7 @@
+use crate::repositories::AdbDataRepository;
 use anyhow::Result;
 use domain::{CallLog, Contact, DeviceId, Sms};
 use ports::DataProviderPort;
-use crate::repositories::AdbDataRepository;
 
 #[derive(Clone)]
 pub struct AdbDataGateway {

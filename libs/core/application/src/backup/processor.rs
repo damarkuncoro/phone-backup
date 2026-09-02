@@ -1,11 +1,14 @@
-use anyhow::Result;
-use domain::{DeviceId, FileEntry};
-use ports::{DevicePort, RepositoryPort, StoragePort, ScannerPort, AppProviderPort, DataProviderPort, ProgressPort};
-use std::io::Read;
-use std::sync::atomic::{AtomicU64, Ordering};
 use crate::analysis::media::MediaAnalyzer;
 use crate::storage::manager::ObjectManager;
 use crate::storage::Chunk;
+use anyhow::Result;
+use domain::{DeviceId, FileEntry};
+use ports::{
+    AppProviderPort, DataProviderPort, DevicePort, ProgressPort, RepositoryPort, ScannerPort,
+    StoragePort,
+};
+use std::io::Read;
+use std::sync::atomic::{AtomicU64, Ordering};
 use tracing::instrument;
 
 use crate::storage::policy::ChunkingPolicy;
@@ -39,7 +42,12 @@ where
     P: ProgressPort,
 {
     #[instrument(skip(self, id, skip_content), fields(file = %file.path))]
-    pub fn process_file(&self, id: &DeviceId, mut file: FileEntry, skip_content: bool) -> Result<(FileEntry, Vec<Chunk>)> {
+    pub fn process_file(
+        &self,
+        id: &DeviceId,
+        mut file: FileEntry,
+        skip_content: bool,
+    ) -> Result<(FileEntry, Vec<Chunk>)> {
         let mut chunks = Vec::new();
 
         if !skip_content {
@@ -57,22 +65,31 @@ where
                 if let Ok(img) = image::load_from_memory(&content_buf) {
                     let thumbnail = img.thumbnail(256, 256);
                     let mut thumb_buf = std::io::Cursor::new(Vec::new());
-                    if let Ok(_) = thumbnail.write_to(&mut thumb_buf, image::ImageFormat::Jpeg) {
+                    if thumbnail
+                        .write_to(&mut thumb_buf, image::ImageFormat::Jpeg)
+                        .is_ok()
+                    {
                         let data = thumb_buf.into_inner();
-                        if let Ok((hash, _, _)) = self.object_manager.put_object(&data, Some("image/jpeg")) {
+                        if let Ok((hash, _, _)) =
+                            self.object_manager.put_object(&data, Some("image/jpeg"))
+                        {
                             file.thumbnail_hash = Some(hash);
                         }
                     }
                 }
 
                 // Process the image data (FullFile or FastCDC)
-                let (c, reused) = self.object_manager.chunk_and_put(&content_buf, method, config)?;
+                let (c, reused) =
+                    self.object_manager
+                        .chunk_and_put(&content_buf, method, config)?;
                 chunks = c;
                 file.hash_sha256 = Some(crate::storage::hashing::calculate_hash(&content_buf));
                 self.deduped_bytes.fetch_add(reused, Ordering::Relaxed);
             } else {
                 // 2. For non-images (Video, DB, etc.), use true streaming to save memory
-                let (c, reused) = self.object_manager.chunk_and_put_stream(content_reader, method, config)?;
+                let (c, reused) =
+                    self.object_manager
+                        .chunk_and_put_stream(content_reader, method, config)?;
                 chunks = c;
                 self.deduped_bytes.fetch_add(reused, Ordering::Relaxed);
 
@@ -82,7 +99,8 @@ where
             }
         }
 
-        self.total_bytes.fetch_add(file.size_bytes, Ordering::Relaxed);
+        self.total_bytes
+            .fetch_add(file.size_bytes, Ordering::Relaxed);
         self.total_files.fetch_add(1, Ordering::Relaxed);
 
         Ok((file, chunks))

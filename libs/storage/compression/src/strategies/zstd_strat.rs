@@ -1,6 +1,6 @@
+use super::CompressionStrategy;
 use anyhow::Result;
 use std::io::{copy, Cursor};
-use super::CompressionStrategy;
 
 pub struct ZstdStrategy {
     level: i32,

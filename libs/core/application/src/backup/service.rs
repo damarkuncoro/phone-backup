@@ -1,12 +1,14 @@
 use anyhow::Result;
-use domain::{BackupPolicy, DeviceId, FileEntry, Snapshot, SnapshotStatus, EncryptionMode};
-use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort};
+use domain::{BackupPolicy, DeviceId, EncryptionMode, FileEntry, Snapshot, SnapshotStatus};
+use ports::{
+    AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort,
+};
 
 use tracing::{info, instrument};
 
-use super::BackupService;
-use super::planner::BackupPlanner;
 use super::guard::SnapshotGuard;
+use super::planner::BackupPlanner;
+use super::BackupService;
 
 impl<
         D: DevicePort,
@@ -36,12 +38,17 @@ impl<
 
         // 2. SCAN DEVICE
         self.progress.log("Scanning device filesystem...");
-        let all_files = self.scanner_adapter.scan(id, policy.include_paths.clone())?;
+        let all_files = self
+            .scanner_adapter
+            .scan(id, policy.include_paths.clone())?;
         let manifest_files: Vec<FileEntry> = all_files
             .into_iter()
             .filter(|f| policy.should_include(&f.path))
             .collect();
-        self.progress.log(&format!("Manifest built with {} files", manifest_files.len()));
+        self.progress.log(&format!(
+            "Manifest built with {} files",
+            manifest_files.len()
+        ));
 
         // 3. COMPARE PREVIOUS COMPLETED BACKUP (DIFFING)
         let latest_completed_snapshot = self.repository.get_latest_completed_snapshot(id)?;
@@ -87,17 +94,26 @@ impl<
 
         let guard = SnapshotGuard::new(&self.repository, &mut snapshot);
 
-        self.upload_files(id, &plan.upload, &previous_files, &already_backed_up, guard.snapshot, &encryption)?;
+        self.upload_files(
+            id,
+            &plan.upload,
+            &previous_files,
+            &already_backed_up,
+            guard.snapshot,
+            &encryption,
+        )?;
 
         // 5. BACKUP STRUCTURED DATA (Apps, SMS, etc.)
         self.backup_metadata_and_structured_data(id, guard.snapshot, &encryption)?;
 
         // 6. FINALIZE SNAPSHOT & COMMIT MANIFEST
-        self.progress.log("Finalizing snapshot and storing immutable manifest...");
+        self.progress
+            .log("Finalizing snapshot and storing immutable manifest...");
         guard.snapshot.complete()?;
 
         // Snapshot Commit Protocol: Write manifest before updating status in DB to ensure atomicity
-        let manifest_manager = super::manifest::ManifestManager::new(&self.repository, &self.storage);
+        let manifest_manager =
+            super::manifest::ManifestManager::new(&self.repository, &self.storage);
         manifest_manager.create_and_store_manifest(guard.snapshot)?;
 
         self.repository.update_snapshot(guard.snapshot)?;
@@ -117,7 +133,10 @@ impl<
                 anyhow::bail!("Battery too low ({}%). Please charge your device.", level);
             }
             if temp > 45.0 {
-                anyhow::bail!("Device temperature too high ({:.1}°C). Let it cool down.", temp);
+                anyhow::bail!(
+                    "Device temperature too high ({:.1}°C). Let it cool down.",
+                    temp
+                );
             }
             info!("Safety Check: Battery {}%, Temp {}°C - OK", level, temp);
         }
@@ -164,7 +183,11 @@ impl<
         encryption: &EncryptionMode,
     ) -> Result<()> {
         let json = serde_json::to_vec(data)?;
-        let object_manager = crate::storage::manager::ObjectManager::new(&self.storage, &self.repository, encryption);
+        let object_manager = crate::storage::manager::ObjectManager::new(
+            &self.storage,
+            &self.repository,
+            encryption,
+        );
 
         let (chunk_id, _, _) = object_manager.put_object(&json, None)?;
 

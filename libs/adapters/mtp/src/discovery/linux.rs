@@ -1,6 +1,7 @@
-use std::path::PathBuf;
 use super::{MtpDiscoveryStrategy, MtpMount};
+use std::path::PathBuf;
 
+#[derive(Default)]
 pub struct LinuxDiscovery;
 
 impl LinuxDiscovery {

@@ -1,7 +1,7 @@
 mod common;
 
 use common::setup_test_repo;
-use domain::{Device, DeviceId, ConnectionType};
+use domain::{ConnectionType, Device, DeviceId};
 use ports::DeviceRepositoryPort;
 use std::sync::Arc;
 use std::thread;
@@ -51,7 +51,8 @@ fn test_concurrent_writes() {
                 storage_used_bytes: 50,
                 storage_free_bytes: 50,
                 connection_type: ConnectionType::Wifi,
-            }).unwrap();
+            })
+            .unwrap();
         }));
     }
 

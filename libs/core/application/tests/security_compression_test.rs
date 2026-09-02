@@ -1,4 +1,6 @@
-use phone_backup_application::storage::{CompressionEngine, EncryptionEngine, CompressionAlgorithm};
+use phone_backup_application::storage::{
+    CompressionAlgorithm, CompressionEngine, EncryptionEngine,
+};
 
 #[test]
 fn test_derive_database_key() {
@@ -65,9 +67,10 @@ fn test_asymmetric_wrong_key() {
 fn test_compression_decompression_roundtrip() {
     let data = b"data yang berulang-ulang ulang-ulang ulang-ulang";
     let compressed = CompressionEngine::compress(data, CompressionAlgorithm::Zstd).unwrap();
-    assert!(compressed.len() > 0);
+    assert!(!compressed.is_empty());
 
-    let decompressed = CompressionEngine::decompress(&compressed, CompressionAlgorithm::Zstd).unwrap();
+    let decompressed =
+        CompressionEngine::decompress(&compressed, CompressionAlgorithm::Zstd).unwrap();
     assert_eq!(data.to_vec(), decompressed);
 }
 

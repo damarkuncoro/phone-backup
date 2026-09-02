@@ -17,7 +17,7 @@ fn test_export_apk_single_and_batch() {
 
     let service = BackupService::new(
         MockDeviceAdapter::default(),
-        MockScannerAdapter::default(),
+        MockScannerAdapter,
         repository,
         storage,
         MockAppProvider,
@@ -40,8 +40,13 @@ fn test_export_apk_single_and_batch() {
 
     // 3. Export Batch APKs
     let batch_dir = tmp_export_dir.path().join("apks");
-    let batch_packages = vec!["com.whatsapp".to_string(), "com.instagram.android".to_string()];
-    let exported = service.export_apk_batch(&dev_id, &batch_packages, batch_dir.to_str().unwrap()).unwrap();
+    let batch_packages = vec![
+        "com.whatsapp".to_string(),
+        "com.instagram.android".to_string(),
+    ];
+    let exported = service
+        .export_apk_batch(&dev_id, &batch_packages, batch_dir.to_str().unwrap())
+        .unwrap();
 
     assert_eq!(exported.len(), 2);
     assert!(batch_dir.join("com.whatsapp.apk").exists());

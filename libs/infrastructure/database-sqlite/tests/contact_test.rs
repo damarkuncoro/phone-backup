@@ -1,9 +1,12 @@
 mod common;
 
-use common::setup_test_repo;
-use domain::{Device, DeviceId, ConnectionType, Snapshot, SnapshotId, SnapshotStatus, Contact, ContactPhone, ContactEmail};
-use ports::{DeviceRepositoryPort, SnapshotRepositoryPort, ContactRepositoryPort};
 use chrono::Utc;
+use common::setup_test_repo;
+use domain::{
+    ConnectionType, Contact, ContactEmail, ContactPhone, Device, DeviceId, Snapshot, SnapshotId,
+    SnapshotStatus,
+};
+use ports::{ContactRepositoryPort, DeviceRepositoryPort, SnapshotRepositoryPort};
 
 #[test]
 fn test_contact_complex_persistence() {
@@ -14,17 +17,29 @@ fn test_contact_complex_persistence() {
     // Setup Device & Snapshot
     repo.save_device(&Device {
         id: device_id.clone(),
-        manufacturer: "X".to_string(), model: "Y".to_string(), serial: "Z".to_string(),
-        os_version: "13".to_string(), sdk_version: None,
-        storage_total_bytes: 0, storage_used_bytes: 0, storage_free_bytes: 0,
+        manufacturer: "X".to_string(),
+        model: "Y".to_string(),
+        serial: "Z".to_string(),
+        os_version: "13".to_string(),
+        sdk_version: None,
+        storage_total_bytes: 0,
+        storage_used_bytes: 0,
+        storage_free_bytes: 0,
         connection_type: ConnectionType::Usb,
-    }).unwrap();
+    })
+    .unwrap();
 
     repo.create_snapshot(&Snapshot {
-        id: snap_id.clone(), device_id: device_id.clone(), started_at: Utc::now(),
-        finished_at: None, status: SnapshotStatus::Pending, total_files: 0,
-        total_bytes: 0, deduped_bytes: 0,
-    }).unwrap();
+        id: snap_id.clone(),
+        device_id: device_id.clone(),
+        started_at: Utc::now(),
+        finished_at: None,
+        status: SnapshotStatus::Pending,
+        total_files: 0,
+        total_bytes: 0,
+        deduped_bytes: 0,
+    })
+    .unwrap();
 
     // CREATE Contact with multiple sub-entities
     let contact = Contact {
@@ -39,12 +54,27 @@ fn test_contact_complex_persistence() {
         metadata_json: None,
         names: vec![],
         phones: vec![
-            ContactPhone { raw_value: "+12345".to_string(), normalized_value: Some("12345".to_string()), phone_type: Some("mobile".to_string()), label: None, is_primary: true },
-            ContactPhone { raw_value: "+54321".to_string(), normalized_value: Some("54321".to_string()), phone_type: Some("home".to_string()), label: None, is_primary: false },
+            ContactPhone {
+                raw_value: "+12345".to_string(),
+                normalized_value: Some("12345".to_string()),
+                phone_type: Some("mobile".to_string()),
+                label: None,
+                is_primary: true,
+            },
+            ContactPhone {
+                raw_value: "+54321".to_string(),
+                normalized_value: Some("54321".to_string()),
+                phone_type: Some("home".to_string()),
+                label: None,
+                is_primary: false,
+            },
         ],
-        emails: vec![
-            ContactEmail { value: "john@example.com".to_string(), email_type: Some("work".to_string()), label: None, is_primary: true },
-        ],
+        emails: vec![ContactEmail {
+            value: "john@example.com".to_string(),
+            email_type: Some("work".to_string()),
+            label: None,
+            is_primary: true,
+        }],
         addresses: vec![],
         organizations: vec![],
         urls: vec![],
@@ -78,17 +108,29 @@ fn test_contact_bulk_performance() {
 
     repo.save_device(&Device {
         id: device_id.clone(),
-        manufacturer: "X".to_string(), model: "Y".to_string(), serial: "Z".to_string(),
-        os_version: "13".to_string(), sdk_version: None,
-        storage_total_bytes: 0, storage_used_bytes: 0, storage_free_bytes: 0,
+        manufacturer: "X".to_string(),
+        model: "Y".to_string(),
+        serial: "Z".to_string(),
+        os_version: "13".to_string(),
+        sdk_version: None,
+        storage_total_bytes: 0,
+        storage_used_bytes: 0,
+        storage_free_bytes: 0,
         connection_type: ConnectionType::Usb,
-    }).unwrap();
+    })
+    .unwrap();
 
     repo.create_snapshot(&Snapshot {
-        id: snap_id.clone(), device_id: device_id.clone(), started_at: Utc::now(),
-        finished_at: None, status: SnapshotStatus::Pending, total_files: 0,
-        total_bytes: 0, deduped_bytes: 0,
-    }).unwrap();
+        id: snap_id.clone(),
+        device_id: device_id.clone(),
+        started_at: Utc::now(),
+        finished_at: None,
+        status: SnapshotStatus::Pending,
+        total_files: 0,
+        total_bytes: 0,
+        deduped_bytes: 0,
+    })
+    .unwrap();
 
     // Insert 100 contacts, each with several sub-items
     for i in 0..100 {
@@ -103,12 +145,19 @@ fn test_contact_bulk_performance() {
             content_hash: None,
             metadata_json: None,
             names: vec![],
-            phones: vec![
-                ContactPhone { raw_value: "123".to_string(), normalized_value: None, phone_type: None, label: None, is_primary: true },
-            ],
-            emails: vec![
-                ContactEmail { value: "a@b.com".to_string(), email_type: None, label: None, is_primary: true },
-            ],
+            phones: vec![ContactPhone {
+                raw_value: "123".to_string(),
+                normalized_value: None,
+                phone_type: None,
+                label: None,
+                is_primary: true,
+            }],
+            emails: vec![ContactEmail {
+                value: "a@b.com".to_string(),
+                email_type: None,
+                label: None,
+                is_primary: true,
+            }],
             addresses: vec![],
             organizations: vec![],
             urls: vec![],
@@ -140,29 +189,70 @@ fn test_contact_search() {
 
     // We need device/snapshot for FKs
     repo.save_device(&Device {
-        id: DeviceId::new("d1"), manufacturer: "A".to_string(), model: "B".to_string(), serial: "C".to_string(),
-        os_version: "D".to_string(), sdk_version: None,
-        storage_total_bytes: 0, storage_used_bytes: 0, storage_free_bytes: 0,
+        id: DeviceId::new("d1"),
+        manufacturer: "A".to_string(),
+        model: "B".to_string(),
+        serial: "C".to_string(),
+        os_version: "D".to_string(),
+        sdk_version: None,
+        storage_total_bytes: 0,
+        storage_used_bytes: 0,
+        storage_free_bytes: 0,
         connection_type: ConnectionType::Usb,
-    }).unwrap();
+    })
+    .unwrap();
 
     repo.create_snapshot(&Snapshot {
-        id: snap_id.clone(), device_id: DeviceId::new("d1"), started_at: Utc::now(),
-        finished_at: None, status: SnapshotStatus::Pending, total_files: 0,
-        total_bytes: 0, deduped_bytes: 0,
-    }).unwrap();
+        id: snap_id.clone(),
+        device_id: DeviceId::new("d1"),
+        started_at: Utc::now(),
+        finished_at: None,
+        status: SnapshotStatus::Pending,
+        total_files: 0,
+        total_bytes: 0,
+        deduped_bytes: 0,
+    })
+    .unwrap();
 
     let c1 = Contact {
-        id: "1".to_string(), snapshot_id: None, source_id: None, display_name: "Alice Smith".to_string(),
-        notes: None, source: "s".to_string(), source_account: None, content_hash: None, metadata_json: None,
-        names: vec![], phones: vec![], emails: vec![], addresses: vec![], organizations: vec![],
-        urls: vec![], events: vec![], photos: vec![], labels: vec![],
+        id: "1".to_string(),
+        snapshot_id: None,
+        source_id: None,
+        display_name: "Alice Smith".to_string(),
+        notes: None,
+        source: "s".to_string(),
+        source_account: None,
+        content_hash: None,
+        metadata_json: None,
+        names: vec![],
+        phones: vec![],
+        emails: vec![],
+        addresses: vec![],
+        organizations: vec![],
+        urls: vec![],
+        events: vec![],
+        photos: vec![],
+        labels: vec![],
     };
     let c2 = Contact {
-        id: "2".to_string(), snapshot_id: None, source_id: None, display_name: "Bob Jones".to_string(),
-        notes: None, source: "s".to_string(), source_account: None, content_hash: None, metadata_json: None,
-        names: vec![], phones: vec![], emails: vec![], addresses: vec![], organizations: vec![],
-        urls: vec![], events: vec![], photos: vec![], labels: vec![],
+        id: "2".to_string(),
+        snapshot_id: None,
+        source_id: None,
+        display_name: "Bob Jones".to_string(),
+        notes: None,
+        source: "s".to_string(),
+        source_account: None,
+        content_hash: None,
+        metadata_json: None,
+        names: vec![],
+        phones: vec![],
+        emails: vec![],
+        addresses: vec![],
+        organizations: vec![],
+        urls: vec![],
+        events: vec![],
+        photos: vec![],
+        labels: vec![],
     };
 
     repo.save_contact(&snap_id, &c1).unwrap();
@@ -181,52 +271,127 @@ fn test_contact_diffing() {
     let s2_id = SnapshotId("s2".to_string());
 
     repo.save_device(&Device {
-        id: device_id.clone(), manufacturer: "A".to_string(), model: "B".to_string(), serial: "C".to_string(),
-        os_version: "D".to_string(), sdk_version: None,
-        storage_total_bytes: 0, storage_used_bytes: 0, storage_free_bytes: 0,
+        id: device_id.clone(),
+        manufacturer: "A".to_string(),
+        model: "B".to_string(),
+        serial: "C".to_string(),
+        os_version: "D".to_string(),
+        sdk_version: None,
+        storage_total_bytes: 0,
+        storage_used_bytes: 0,
+        storage_free_bytes: 0,
         connection_type: ConnectionType::Usb,
-    }).unwrap();
+    })
+    .unwrap();
 
     repo.create_snapshot(&Snapshot {
-        id: s1_id.clone(), device_id: device_id.clone(), started_at: Utc::now(),
-        finished_at: None, status: SnapshotStatus::Completed, total_files: 0,
-        total_bytes: 0, deduped_bytes: 0,
-    }).unwrap();
+        id: s1_id.clone(),
+        device_id: device_id.clone(),
+        started_at: Utc::now(),
+        finished_at: None,
+        status: SnapshotStatus::Completed,
+        total_files: 0,
+        total_bytes: 0,
+        deduped_bytes: 0,
+    })
+    .unwrap();
 
     repo.create_snapshot(&Snapshot {
-        id: s2_id.clone(), device_id: device_id.clone(), started_at: Utc::now(),
-        finished_at: None, status: SnapshotStatus::Completed, total_files: 0,
-        total_bytes: 0, deduped_bytes: 0,
-    }).unwrap();
+        id: s2_id.clone(),
+        device_id: device_id.clone(),
+        started_at: Utc::now(),
+        finished_at: None,
+        status: SnapshotStatus::Completed,
+        total_files: 0,
+        total_bytes: 0,
+        deduped_bytes: 0,
+    })
+    .unwrap();
 
     // Contact 1: In both, but modified in s2
     let c1_v1 = Contact {
-        id: "c1".to_string(), snapshot_id: None, source_id: Some("id1".to_string()), display_name: "John v1".to_string(),
-        notes: None, source: "s".to_string(), source_account: None, content_hash: Some("h1".to_string()), metadata_json: None,
-        names: vec![], phones: vec![], emails: vec![], addresses: vec![], organizations: vec![],
-        urls: vec![], events: vec![], photos: vec![], labels: vec![],
+        id: "c1".to_string(),
+        snapshot_id: None,
+        source_id: Some("id1".to_string()),
+        display_name: "John v1".to_string(),
+        notes: None,
+        source: "s".to_string(),
+        source_account: None,
+        content_hash: Some("h1".to_string()),
+        metadata_json: None,
+        names: vec![],
+        phones: vec![],
+        emails: vec![],
+        addresses: vec![],
+        organizations: vec![],
+        urls: vec![],
+        events: vec![],
+        photos: vec![],
+        labels: vec![],
     };
     let c1_v2 = Contact {
-        id: "c1".to_string(), snapshot_id: None, source_id: Some("id1".to_string()), display_name: "John v2".to_string(),
-        notes: None, source: "s".to_string(), source_account: None, content_hash: Some("h1-mod".to_string()), metadata_json: None,
-        names: vec![], phones: vec![], emails: vec![], addresses: vec![], organizations: vec![],
-        urls: vec![], events: vec![], photos: vec![], labels: vec![],
+        id: "c1".to_string(),
+        snapshot_id: None,
+        source_id: Some("id1".to_string()),
+        display_name: "John v2".to_string(),
+        notes: None,
+        source: "s".to_string(),
+        source_account: None,
+        content_hash: Some("h1-mod".to_string()),
+        metadata_json: None,
+        names: vec![],
+        phones: vec![],
+        emails: vec![],
+        addresses: vec![],
+        organizations: vec![],
+        urls: vec![],
+        events: vec![],
+        photos: vec![],
+        labels: vec![],
     };
 
     // Contact 2: In s1, removed in s2
     let c2 = Contact {
-        id: "c2".to_string(), snapshot_id: None, source_id: Some("id2".to_string()), display_name: "Removed".to_string(),
-        notes: None, source: "s".to_string(), source_account: None, content_hash: Some("h2".to_string()), metadata_json: None,
-        names: vec![], phones: vec![], emails: vec![], addresses: vec![], organizations: vec![],
-        urls: vec![], events: vec![], photos: vec![], labels: vec![],
+        id: "c2".to_string(),
+        snapshot_id: None,
+        source_id: Some("id2".to_string()),
+        display_name: "Removed".to_string(),
+        notes: None,
+        source: "s".to_string(),
+        source_account: None,
+        content_hash: Some("h2".to_string()),
+        metadata_json: None,
+        names: vec![],
+        phones: vec![],
+        emails: vec![],
+        addresses: vec![],
+        organizations: vec![],
+        urls: vec![],
+        events: vec![],
+        photos: vec![],
+        labels: vec![],
     };
 
     // Contact 3: Not in s1, added in s2
     let c3 = Contact {
-        id: "c3".to_string(), snapshot_id: None, source_id: Some("id3".to_string()), display_name: "Added".to_string(),
-        notes: None, source: "s".to_string(), source_account: None, content_hash: Some("h3".to_string()), metadata_json: None,
-        names: vec![], phones: vec![], emails: vec![], addresses: vec![], organizations: vec![],
-        urls: vec![], events: vec![], photos: vec![], labels: vec![],
+        id: "c3".to_string(),
+        snapshot_id: None,
+        source_id: Some("id3".to_string()),
+        display_name: "Added".to_string(),
+        notes: None,
+        source: "s".to_string(),
+        source_account: None,
+        content_hash: Some("h3".to_string()),
+        metadata_json: None,
+        names: vec![],
+        phones: vec![],
+        emails: vec![],
+        addresses: vec![],
+        organizations: vec![],
+        urls: vec![],
+        events: vec![],
+        photos: vec![],
+        labels: vec![],
     };
 
     repo.save_contact(&s1_id, &c1_v1).unwrap();

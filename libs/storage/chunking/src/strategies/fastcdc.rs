@@ -1,8 +1,8 @@
-use std::io::Read;
+use super::{Chunk, StreamingChunker};
+use crate::config::ChunkConfig;
 use anyhow::Result;
 use fastcdc::v2020::StreamCDC;
-use crate::config::ChunkConfig;
-use super::{Chunk, StreamingChunker};
+use std::io::Read;
 
 pub struct FastCdcChunker<R: Read> {
     inner: StreamCDC<R>,

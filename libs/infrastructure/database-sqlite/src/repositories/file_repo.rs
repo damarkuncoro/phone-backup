@@ -1,10 +1,10 @@
-use rusqlite::params;
-use std::sync::Arc;
-use r2d2::Pool;
-use r2d2_sqlite::SqliteConnectionManager;
+use crate::mappers::BackupMapper;
 use domain::{DeviceId, FileEntry, FileId, SnapshotId};
 use ports::FileRepositoryPort;
-use crate::mappers::BackupMapper;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
+use rusqlite::params;
+use std::sync::Arc;
 
 pub struct FileRepository {
     pool: Arc<Pool<SqliteConnectionManager>>,
@@ -19,7 +19,10 @@ impl FileRepository {
 impl FileRepositoryPort for FileRepository {
     fn save_file(&self, file: &FileEntry) -> anyhow::Result<()> {
         let conn = self.pool.get()?;
-        let media_info_json = file.media_info.as_ref().map(|m| serde_json::to_string(m).unwrap());
+        let media_info_json = file
+            .media_info
+            .as_ref()
+            .map(|m| serde_json::to_string(m).unwrap());
         conn.execute(
             "INSERT OR REPLACE INTO files
             (id, device_id, path, name, size_bytes, modified_at, mime_type, permissions, hash_sha256, media_info)
@@ -45,11 +48,22 @@ impl FileRepositoryPort for FileRepository {
             )?;
 
             for file in files {
-                let media_info_json = file.media_info.as_ref().map(|m| serde_json::to_string(m).unwrap());
+                let media_info_json = file
+                    .media_info
+                    .as_ref()
+                    .map(|m| serde_json::to_string(m).unwrap());
                 stmt.execute(params![
-                    file.id.0, file.device_id.0, file.path, file.name, file.size_bytes,
-                    file.modified_at.to_rfc3339(), file.mime_type, file.permissions,
-                    file.hash_sha256, file.thumbnail_hash, media_info_json
+                    file.id.0,
+                    file.device_id.0,
+                    file.path,
+                    file.name,
+                    file.size_bytes,
+                    file.modified_at.to_rfc3339(),
+                    file.mime_type,
+                    file.permissions,
+                    file.hash_sha256,
+                    file.thumbnail_hash,
+                    media_info_json
                 ])?;
             }
         }
@@ -63,7 +77,9 @@ impl FileRepositoryPort for FileRepository {
         let mut stmt = conn.prepare("SELECT * FROM files WHERE device_id = ?1")?;
         let file_iter = stmt.query_map([&device_id.0], BackupMapper::to_file)?;
         let mut files = Vec::new();
-        for f in file_iter { files.push(f?); }
+        for f in file_iter {
+            files.push(f?);
+        }
         Ok(files)
     }
 
@@ -72,15 +88,21 @@ impl FileRepositoryPort for FileRepository {
         let mut stmt = conn.prepare(
             "SELECT f.* FROM files f
              JOIN snapshot_files sf ON f.id = sf.file_id
-             WHERE sf.snapshot_id = ?1"
+             WHERE sf.snapshot_id = ?1",
         )?;
         let file_iter = stmt.query_map([&snapshot_id.0], BackupMapper::to_file)?;
         let mut files = Vec::new();
-        for f in file_iter { files.push(f?); }
+        for f in file_iter {
+            files.push(f?);
+        }
         Ok(files)
     }
 
-    fn link_file_to_snapshot(&self, snapshot_id: &SnapshotId, file_id: &FileId) -> anyhow::Result<()> {
+    fn link_file_to_snapshot(
+        &self,
+        snapshot_id: &SnapshotId,
+        file_id: &FileId,
+    ) -> anyhow::Result<()> {
         let conn = self.pool.get()?;
         conn.execute(
             "INSERT OR IGNORE INTO snapshot_files (snapshot_id, file_id) VALUES (?1, ?2)",
@@ -89,13 +111,17 @@ impl FileRepositoryPort for FileRepository {
         Ok(())
     }
 
-    fn link_files_to_snapshot_batch(&self, snapshot_id: &SnapshotId, file_ids: &[FileId]) -> anyhow::Result<()> {
+    fn link_files_to_snapshot_batch(
+        &self,
+        snapshot_id: &SnapshotId,
+        file_ids: &[FileId],
+    ) -> anyhow::Result<()> {
         let mut conn = self.pool.get()?;
         let tx = conn.transaction()?;
 
         {
             let mut stmt = tx.prepare_cached(
-                "INSERT OR IGNORE INTO snapshot_files (snapshot_id, file_id) VALUES (?1, ?2)"
+                "INSERT OR IGNORE INTO snapshot_files (snapshot_id, file_id) VALUES (?1, ?2)",
             )?;
 
             for file_id in file_ids {
@@ -112,18 +138,23 @@ impl FileRepositoryPort for FileRepository {
         let mut stmt = conn.prepare(
             "SELECT f.* FROM files f
              JOIN files_fts fts ON f.rowid = fts.rowid
-             WHERE files_fts MATCH ?1 ORDER BY rank"
+             WHERE files_fts MATCH ?1 ORDER BY rank",
         )?;
         let fts_query = format!("\"{}\"*", query.replace("\"", "\"\""));
         let file_iter = stmt.query_map([fts_query], BackupMapper::to_file)?;
         let mut files = Vec::new();
-        for f in file_iter { files.push(f?); }
+        for f in file_iter {
+            files.push(f?);
+        }
 
         if files.is_empty() {
-            let mut stmt_like = conn.prepare("SELECT * FROM files WHERE name LIKE ?1 OR path LIKE ?1 LIMIT 100")?;
+            let mut stmt_like =
+                conn.prepare("SELECT * FROM files WHERE name LIKE ?1 OR path LIKE ?1 LIMIT 100")?;
             let pattern = format!("%{}%", query);
             let file_iter = stmt_like.query_map([pattern], BackupMapper::to_file)?;
-            for f in file_iter { files.push(f?); }
+            for f in file_iter {
+                files.push(f?);
+            }
         }
 
         Ok(files)
@@ -135,11 +166,13 @@ impl FileRepositoryPort for FileRepository {
             "SELECT * FROM files
              WHERE device_id = ?1
              AND (mime_type LIKE 'image/%' OR mime_type LIKE 'video/%')
-             ORDER BY modified_at DESC"
+             ORDER BY modified_at DESC",
         )?;
         let file_iter = stmt.query_map([&device_id.0], BackupMapper::to_file)?;
         let mut files = Vec::new();
-        for f in file_iter { files.push(f?); }
+        for f in file_iter {
+            files.push(f?);
+        }
         Ok(files)
     }
 
@@ -148,31 +181,37 @@ impl FileRepositoryPort for FileRepository {
         let mut stmt = conn.prepare(
             "SELECT * FROM files
              WHERE mime_type LIKE 'image/%' OR mime_type LIKE 'video/%'
-             ORDER BY modified_at DESC LIMIT ?1"
+             ORDER BY modified_at DESC LIMIT ?1",
         )?;
         let file_iter = stmt.query_map([limit], BackupMapper::to_file)?;
         let mut files = Vec::new();
-        for f in file_iter { files.push(f?); }
+        for f in file_iter {
+            files.push(f?);
+        }
         Ok(files)
     }
 
-    fn get_file_diff(&self, old_snapshot_id: &SnapshotId, new_snapshot_id: &SnapshotId) -> anyhow::Result<domain::FileDiff> {
+    fn get_file_diff(
+        &self,
+        old_snapshot_id: &SnapshotId,
+        new_snapshot_id: &SnapshotId,
+    ) -> anyhow::Result<domain::FileDiff> {
         let old_files = self.get_snapshot_files(old_snapshot_id)?;
         let new_files = self.get_snapshot_files(new_snapshot_id)?;
 
         let mut diff = domain::FileDiff::default();
 
-        let old_map: std::collections::HashMap<String, domain::FileEntry> = old_files.into_iter()
-            .map(|f| (f.path.clone(), f))
-            .collect();
+        let old_map: std::collections::HashMap<String, domain::FileEntry> =
+            old_files.into_iter().map(|f| (f.path.clone(), f)).collect();
 
-        let mut new_map: std::collections::HashMap<String, domain::FileEntry> = new_files.into_iter()
-            .map(|f| (f.path.clone(), f))
-            .collect();
+        let mut new_map: std::collections::HashMap<String, domain::FileEntry> =
+            new_files.into_iter().map(|f| (f.path.clone(), f)).collect();
 
         for (path, new_file) in new_map.drain() {
             if let Some(old_file) = old_map.get(&path) {
-                if old_file.hash_sha256 != new_file.hash_sha256 || old_file.size_bytes != new_file.size_bytes {
+                if old_file.hash_sha256 != new_file.hash_sha256
+                    || old_file.size_bytes != new_file.size_bytes
+                {
                     diff.modified.push(new_file);
                 }
             } else {
@@ -182,9 +221,8 @@ impl FileRepositoryPort for FileRepository {
 
         // Re-collect new_files to get paths for removal check
         let new_files_again = self.get_snapshot_files(new_snapshot_id)?;
-        let new_paths: std::collections::HashSet<String> = new_files_again.into_iter()
-            .map(|f| f.path)
-            .collect();
+        let new_paths: std::collections::HashSet<String> =
+            new_files_again.into_iter().map(|f| f.path).collect();
 
         for (path, old_file) in old_map {
             if !new_paths.contains(&path) {
@@ -224,7 +262,15 @@ impl FileRepositoryPort for FileRepository {
         }
     }
 
-    fn save_physical_object(&self, chunk_id: &str, object_hash: &str, storage_key: &str, stored_size: u64, compression: &str, enc_version: u32) -> anyhow::Result<String> {
+    fn save_physical_object(
+        &self,
+        chunk_id: &str,
+        object_hash: &str,
+        storage_key: &str,
+        stored_size: u64,
+        compression: &str,
+        enc_version: u32,
+    ) -> anyhow::Result<String> {
         let conn = self.pool.get()?;
         let id = uuid::Uuid::new_v4().to_string();
         let now = chrono::Utc::now().timestamp();
@@ -254,7 +300,8 @@ impl FileRepositoryPort for FileRepository {
 
     fn get_storage_key_for_chunk(&self, chunk_id: &str) -> anyhow::Result<Option<String>> {
         let conn = self.pool.get()?;
-        let mut stmt = conn.prepare("SELECT storage_key FROM chunk_objects WHERE chunk_id = ?1 LIMIT 1")?;
+        let mut stmt =
+            conn.prepare("SELECT storage_key FROM chunk_objects WHERE chunk_id = ?1 LIMIT 1")?;
         let mut rows = stmt.query([chunk_id])?;
         if let Some(row) = rows.next()? {
             Ok(Some(row.get(0)?))
@@ -263,7 +310,14 @@ impl FileRepositoryPort for FileRepository {
         }
     }
 
-    fn save_file_chunk(&self, file_id: &FileId, chunk_id: &str, offset: u64, length: u32, sequence: u32) -> anyhow::Result<()> {
+    fn save_file_chunk(
+        &self,
+        file_id: &FileId,
+        chunk_id: &str,
+        offset: u64,
+        length: u32,
+        sequence: u32,
+    ) -> anyhow::Result<()> {
         let conn = self.pool.get()?;
         conn.execute(
             "INSERT OR REPLACE INTO file_chunks (file_id, chunk_id, chunk_offset, chunk_length, sequence)
@@ -283,7 +337,7 @@ impl FileRepositoryPort for FileRepository {
                 FROM chunk_objects
                 GROUP BY chunk_id
              ) co ON fc.chunk_id = co.chunk_id
-             WHERE fc.file_id = ?1 ORDER BY fc.sequence ASC"
+             WHERE fc.file_id = ?1 ORDER BY fc.sequence ASC",
         )?;
 
         let chunk_iter = stmt.query_map([&file_id.0], |row| {

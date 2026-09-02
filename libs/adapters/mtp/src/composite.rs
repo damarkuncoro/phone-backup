@@ -2,7 +2,7 @@ use anyhow::Result;
 use domain::{CapabilityMatrix, Device, DeviceId, FileEntry};
 use ports::{DevicePort, ScannerPort};
 use std::sync::Arc;
-use tracing::{info, error};
+use tracing::{error, info};
 
 #[derive(Clone)]
 pub struct CompositeDeviceAdapter {
@@ -40,7 +40,7 @@ impl DevicePort for CompositeDeviceAdapter {
                     seen_serials.insert(dev.serial.clone());
                     all.push(dev);
                 }
-            },
+            }
             Err(e) => error!("Composite Discovery: ADB discovery failed: {}", e),
         }
 
@@ -55,7 +55,7 @@ impl DevicePort for CompositeDeviceAdapter {
                         info!("Composite Discovery: Skipping MTP for device {} (already available via ADB)", dev.serial);
                     }
                 }
-            },
+            }
             Err(e) => error!("Composite Discovery: MTP discovery failed: {}", e),
         }
         Ok(all)
@@ -73,7 +73,12 @@ impl DevicePort for CompositeDeviceAdapter {
         self.select_adapter(id).read_file(id, path)
     }
 
-    fn push_file(&self, id: &DeviceId, source: &mut dyn std::io::Read, target_path: &str) -> Result<()> {
+    fn push_file(
+        &self,
+        id: &DeviceId,
+        source: &mut dyn std::io::Read,
+        target_path: &str,
+    ) -> Result<()> {
         self.select_adapter(id).push_file(id, source, target_path)
     }
 
@@ -90,11 +95,13 @@ impl DevicePort for CompositeDeviceAdapter {
     }
 
     fn rename_remote(&self, id: &DeviceId, old_path: &str, new_path: &str) -> Result<()> {
-        self.select_adapter(id).rename_remote(id, old_path, new_path)
+        self.select_adapter(id)
+            .rename_remote(id, old_path, new_path)
     }
 
     fn copy_remote(&self, id: &DeviceId, source_path: &str, target_path: &str) -> Result<()> {
-        self.select_adapter(id).copy_remote(id, source_path, target_path)
+        self.select_adapter(id)
+            .copy_remote(id, source_path, target_path)
     }
 
     fn calculate_hash(&self, id: &DeviceId, path: &str) -> Result<String> {

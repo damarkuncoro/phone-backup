@@ -1,11 +1,11 @@
-pub mod strategies;
 pub mod config;
+pub mod strategies;
 
 use anyhow::Result;
 use argon2::Argon2;
 use hkdf::Hkdf;
-use sha2::Sha256;
 use secrecy::ExposeSecret;
+use sha2::Sha256;
 use std::io::{Read, Write};
 
 pub use config::EncryptionAlgorithm;
@@ -16,9 +16,9 @@ pub struct ExpertSecurity;
 impl ExpertSecurity {
     pub fn get_strategy(algo: EncryptionAlgorithm) -> Box<dyn EncryptionStrategy> {
         match algo {
-            EncryptionAlgorithm::None => Box::new(strategies::none::NoEncryptionStrategy::default()),
-            EncryptionAlgorithm::Aes256Gcm => Box::new(strategies::aes::AesGcmStrategy::default()),
-            EncryptionAlgorithm::XChaCha20Poly1305 => Box::new(strategies::chacha::ChaChaStrategy::default()),
+            EncryptionAlgorithm::None => Box::new(strategies::none::NoEncryptionStrategy),
+            EncryptionAlgorithm::Aes256Gcm => Box::new(strategies::aes::AesGcmStrategy),
+            EncryptionAlgorithm::XChaCha20Poly1305 => Box::new(strategies::chacha::ChaChaStrategy),
         }
     }
 
@@ -79,11 +79,15 @@ impl ExpertSecurity {
     pub fn generate_keypair() -> (String, String) {
         let secret = age::x25519::Identity::generate();
         let public = secret.to_public();
-        (secret.to_string().expose_secret().to_string(), public.to_string())
+        (
+            secret.to_string().expose_secret().to_string(),
+            public.to_string(),
+        )
     }
 
     pub fn encrypt_with_key(data: &[u8], public_key: &str) -> Result<Vec<u8>> {
-        let recipient: age::x25519::Recipient = public_key.parse()
+        let recipient: age::x25519::Recipient = public_key
+            .parse()
             .map_err(|_| anyhow::anyhow!("Invalid public key format"))?;
         let mut encrypted = vec![];
         let encryptor = age::Encryptor::with_recipients(vec![Box::new(recipient)])
@@ -95,7 +99,8 @@ impl ExpertSecurity {
     }
 
     pub fn decrypt_with_key(data: &[u8], secret_key: &str) -> Result<Vec<u8>> {
-        let identity: age::x25519::Identity = secret_key.parse()
+        let identity: age::x25519::Identity = secret_key
+            .parse()
             .map_err(|_| anyhow::anyhow!("Invalid secret key format"))?;
         let decryptor = match age::Decryptor::new(data)? {
             age::Decryptor::Recipients(d) => d,
@@ -125,8 +130,10 @@ mod tests {
     fn test_chacha_roundtrip() {
         let data = b"secret data";
         let key = vec![0u8; 32];
-        let enc = ExpertSecurity::encrypt_raw(data, &key, EncryptionAlgorithm::XChaCha20Poly1305).unwrap();
-        let dec = ExpertSecurity::decrypt_raw(&enc, &key, EncryptionAlgorithm::XChaCha20Poly1305).unwrap();
+        let enc = ExpertSecurity::encrypt_raw(data, &key, EncryptionAlgorithm::XChaCha20Poly1305)
+            .unwrap();
+        let dec = ExpertSecurity::decrypt_raw(&enc, &key, EncryptionAlgorithm::XChaCha20Poly1305)
+            .unwrap();
         assert_eq!(data.to_vec(), dec);
     }
 }

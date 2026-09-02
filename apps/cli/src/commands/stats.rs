@@ -41,7 +41,10 @@ where
     Ok(())
 }
 
-pub fn run_search<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>, query: &str) -> Result<()>
+pub fn run_search<D, S, R, T, A, DP, P>(
+    service: &BackupService<D, S, R, T, A, DP, P>,
+    query: &str,
+) -> Result<()>
 where
     D: ports::DevicePort,
     S: ports::ScannerPort,
@@ -62,7 +65,10 @@ where
     Ok(())
 }
 
-pub fn run_contact_search<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>, query: &str) -> Result<()>
+pub fn run_contact_search<D, S, R, T, A, DP, P>(
+    service: &BackupService<D, S, R, T, A, DP, P>,
+    query: &str,
+) -> Result<()>
 where
     D: ports::DevicePort,
     S: ports::ScannerPort,
@@ -78,13 +84,12 @@ where
     println!("{:<15} {:<25} {:<30}", "SNAPSHOT", "NAME", "PHONES");
     println!("{}", "-".repeat(70));
     for (s_id, c) in results {
-        let phone = c.phones.get(0).map(|p| p.raw_value.clone()).unwrap_or_default();
-        println!(
-            "{:<15} {:<25} {:<30}",
-            &s_id.0[..8],
-            c.display_name,
-            phone
-        );
+        let phone = c
+            .phones
+            .first()
+            .map(|p| p.raw_value.clone())
+            .unwrap_or_default();
+        println!("{:<15} {:<25} {:<30}", &s_id.0[..8], c.display_name, phone);
     }
     Ok(())
 }
@@ -106,7 +111,10 @@ where
     service.migrate_device(&DeviceId::new(source), &DeviceId::new(target))
 }
 
-pub fn run_sms_search<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>, query: &str) -> Result<()>
+pub fn run_sms_search<D, S, R, T, A, DP, P>(
+    service: &BackupService<D, S, R, T, A, DP, P>,
+    query: &str,
+) -> Result<()>
 where
     D: ports::DevicePort,
     S: ports::ScannerPort,

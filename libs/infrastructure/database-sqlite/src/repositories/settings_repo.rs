@@ -1,9 +1,9 @@
-use rusqlite::params;
-use std::sync::Arc;
-use r2d2::Pool;
-use r2d2_sqlite::SqliteConnectionManager;
 use domain::AppSettings;
 use ports::SettingsRepositoryPort;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
+use rusqlite::params;
+use std::sync::Arc;
 
 pub struct SettingsRepository {
     pool: Arc<Pool<SqliteConnectionManager>>,

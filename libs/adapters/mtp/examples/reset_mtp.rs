@@ -12,7 +12,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for dev in devices {
         if let Some(serial) = dev.serial_number {
-            println!("🔄 Resetting MTP USB transport for device {} ({:?})...", serial, dev.product);
+            println!(
+                "🔄 Resetting MTP USB transport for device {} ({:?})...",
+                serial, dev.product
+            );
             match MtpDevice::reset_by_serial(&serial).await {
                 Ok(_) => println!("✅ Reset command sent successfully to {}!", serial),
                 Err(e) => println!("⚠️ Reset notice for {}: {}", serial, e),

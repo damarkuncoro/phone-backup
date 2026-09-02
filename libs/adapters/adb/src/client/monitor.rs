@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
-use std::process::{Command, Stdio};
+use domain::{ConnectionType, Device, DeviceId};
 use std::io::{BufRead, BufReader};
-use domain::{DeviceId, Device, ConnectionType};
-use tracing::{info, error, warn};
+use std::process::{Command, Stdio};
+use tracing::{error, info, warn};
 
 pub enum DeviceEvent {
     Connected(Device),
@@ -20,7 +20,7 @@ impl AdbMonitor {
 
     pub fn track_devices<F>(&self, mut callback: F) -> Result<()>
     where
-        F: FnMut(DeviceEvent)
+        F: FnMut(DeviceEvent),
     {
         loop {
             info!("Starting ADB device monitor via track-devices...");
@@ -31,11 +31,15 @@ impl AdbMonitor {
                 .spawn()
                 .context("Failed to start adb track-devices")?;
 
-            let stdout = child.stdout.take().context("Failed to capture adb stdout")?;
+            let stdout = child
+                .stdout
+                .take()
+                .context("Failed to capture adb stdout")?;
             let reader = BufReader::new(stdout);
 
             // Track currently known devices to detect disconnects
-            let mut known_devices: std::collections::HashSet<String> = std::collections::HashSet::new();
+            let mut known_devices: std::collections::HashSet<String> =
+                std::collections::HashSet::new();
 
             for line in reader.lines() {
                 let line = match line {
@@ -46,10 +50,14 @@ impl AdbMonitor {
                     }
                 };
 
-                if line.is_empty() { continue; }
+                if line.is_empty() {
+                    continue;
+                }
 
                 let parts: Vec<&str> = line.split_whitespace().collect();
-                if parts.len() < 2 { continue; }
+                if parts.len() < 2 {
+                    continue;
+                }
 
                 let serial = parts[0].to_string();
                 let state = parts[1];

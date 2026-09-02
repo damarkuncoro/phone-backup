@@ -1,9 +1,11 @@
 mod common;
 
-use common::setup_test_repo;
-use domain::{Device, DeviceId, ConnectionType, Snapshot, SnapshotId, SnapshotStatus, FileEntry, FileId};
-use ports::{DeviceRepositoryPort, SnapshotRepositoryPort, FileRepositoryPort};
 use chrono::Utc;
+use common::setup_test_repo;
+use domain::{
+    ConnectionType, Device, DeviceId, FileEntry, FileId, Snapshot, SnapshotId, SnapshotStatus,
+};
+use ports::{DeviceRepositoryPort, FileRepositoryPort, SnapshotRepositoryPort};
 
 #[test]
 fn test_file_persistence_and_linking() {
@@ -14,26 +16,44 @@ fn test_file_persistence_and_linking() {
 
     repo.save_device(&Device {
         id: device_id.clone(),
-        manufacturer: "A".to_string(), model: "B".to_string(), serial: "C".to_string(),
-        os_version: "D".to_string(), sdk_version: None,
-        storage_total_bytes: 0, storage_used_bytes: 0, storage_free_bytes: 0,
+        manufacturer: "A".to_string(),
+        model: "B".to_string(),
+        serial: "C".to_string(),
+        os_version: "D".to_string(),
+        sdk_version: None,
+        storage_total_bytes: 0,
+        storage_used_bytes: 0,
+        storage_free_bytes: 0,
         connection_type: ConnectionType::Usb,
-    }).unwrap();
+    })
+    .unwrap();
 
     repo.create_snapshot(&Snapshot {
-        id: snap_id.clone(), device_id: device_id.clone(), started_at: Utc::now(),
-        finished_at: None, status: SnapshotStatus::Running,
-        total_files: 0, total_bytes: 0, deduped_bytes: 0,
-    }).unwrap();
+        id: snap_id.clone(),
+        device_id: device_id.clone(),
+        started_at: Utc::now(),
+        finished_at: None,
+        status: SnapshotStatus::Running,
+        total_files: 0,
+        total_bytes: 0,
+        deduped_bytes: 0,
+    })
+    .unwrap();
 
     repo.save_file(&FileEntry {
-        id: file_id.clone(), device_id: device_id.clone(),
-        path: "/sdcard/photo.jpg".to_string(), name: "photo.jpg".to_string(),
-        size_bytes: 1024, modified_at: Utc::now(), mime_type: "image/jpeg".to_string(),
-        permissions: "-rw-".to_string(), hash_sha256: Some("hash123".to_string()),
+        id: file_id.clone(),
+        device_id: device_id.clone(),
+        path: "/sdcard/photo.jpg".to_string(),
+        name: "photo.jpg".to_string(),
+        size_bytes: 1024,
+        modified_at: Utc::now(),
+        mime_type: "image/jpeg".to_string(),
+        permissions: "-rw-".to_string(),
+        hash_sha256: Some("hash123".to_string()),
         thumbnail_hash: None,
         media_info: None,
-    }).unwrap();
+    })
+    .unwrap();
 
     repo.link_file_to_snapshot(&snap_id, &file_id).unwrap();
 
@@ -49,11 +69,17 @@ fn test_file_search() {
 
     repo.save_device(&Device {
         id: device_id.clone(),
-        manufacturer: "A".to_string(), model: "B".to_string(), serial: "C".to_string(),
-        os_version: "D".to_string(), sdk_version: None,
-        storage_total_bytes: 0, storage_used_bytes: 0, storage_free_bytes: 0,
+        manufacturer: "A".to_string(),
+        model: "B".to_string(),
+        serial: "C".to_string(),
+        os_version: "D".to_string(),
+        sdk_version: None,
+        storage_total_bytes: 0,
+        storage_used_bytes: 0,
+        storage_free_bytes: 0,
         connection_type: ConnectionType::Usb,
-    }).unwrap();
+    })
+    .unwrap();
 
     let files = vec![
         ("f1", "/data/photo.jpg", "photo.jpg"),
@@ -63,13 +89,19 @@ fn test_file_search() {
 
     for (id, path, name) in files {
         repo.save_file(&FileEntry {
-            id: FileId(id.to_string()), device_id: device_id.clone(),
-            path: path.to_string(), name: name.to_string(),
-            size_bytes: 100, modified_at: Utc::now(), mime_type: "any".to_string(),
-            permissions: "---".to_string(), hash_sha256: None,
+            id: FileId(id.to_string()),
+            device_id: device_id.clone(),
+            path: path.to_string(),
+            name: name.to_string(),
+            size_bytes: 100,
+            modified_at: Utc::now(),
+            mime_type: "any".to_string(),
+            permissions: "---".to_string(),
+            hash_sha256: None,
             thumbnail_hash: None,
             media_info: None,
-        }).unwrap();
+        })
+        .unwrap();
     }
 
     let results = repo.search_files("photo").unwrap();
@@ -83,41 +115,65 @@ fn test_media_queries() {
 
     repo.save_device(&Device {
         id: device_id.clone(),
-        manufacturer: "A".to_string(), model: "B".to_string(), serial: "C".to_string(),
-        os_version: "D".to_string(), sdk_version: None,
-        storage_total_bytes: 0, storage_used_bytes: 0, storage_free_bytes: 0,
+        manufacturer: "A".to_string(),
+        model: "B".to_string(),
+        serial: "C".to_string(),
+        os_version: "D".to_string(),
+        sdk_version: None,
+        storage_total_bytes: 0,
+        storage_used_bytes: 0,
+        storage_free_bytes: 0,
         connection_type: ConnectionType::Usb,
-    }).unwrap();
+    })
+    .unwrap();
 
     // 1. Image
     repo.save_file(&FileEntry {
-        id: FileId("m1".to_string()), device_id: device_id.clone(),
-        path: "p1.jpg".to_string(), name: "n1.jpg".to_string(), size_bytes: 10,
-        modified_at: Utc::now(), mime_type: "image/jpeg".to_string(), permissions: "p".to_string(),
+        id: FileId("m1".to_string()),
+        device_id: device_id.clone(),
+        path: "p1.jpg".to_string(),
+        name: "n1.jpg".to_string(),
+        size_bytes: 10,
+        modified_at: Utc::now(),
+        mime_type: "image/jpeg".to_string(),
+        permissions: "p".to_string(),
         hash_sha256: None,
         thumbnail_hash: None,
         media_info: None,
-    }).unwrap();
+    })
+    .unwrap();
 
     // 2. Video
     repo.save_file(&FileEntry {
-        id: FileId("m2".to_string()), device_id: device_id.clone(),
-        path: "p2.mp4".to_string(), name: "n2.mp4".to_string(), size_bytes: 20,
-        modified_at: Utc::now(), mime_type: "video/mp4".to_string(), permissions: "p".to_string(),
+        id: FileId("m2".to_string()),
+        device_id: device_id.clone(),
+        path: "p2.mp4".to_string(),
+        name: "n2.mp4".to_string(),
+        size_bytes: 20,
+        modified_at: Utc::now(),
+        mime_type: "video/mp4".to_string(),
+        permissions: "p".to_string(),
         hash_sha256: None,
         thumbnail_hash: None,
         media_info: None,
-    }).unwrap();
+    })
+    .unwrap();
 
     // 3. Non-media
     repo.save_file(&FileEntry {
-        id: FileId("doc1".to_string()), device_id: device_id.clone(),
-        path: "p3.txt".to_string(), name: "n3.txt".to_string(), size_bytes: 5,
-        modified_at: Utc::now(), mime_type: "text/plain".to_string(), permissions: "p".to_string(),
+        id: FileId("doc1".to_string()),
+        device_id: device_id.clone(),
+        path: "p3.txt".to_string(),
+        name: "n3.txt".to_string(),
+        size_bytes: 5,
+        modified_at: Utc::now(),
+        mime_type: "text/plain".to_string(),
+        permissions: "p".to_string(),
         hash_sha256: None,
         thumbnail_hash: None,
         media_info: None,
-    }).unwrap();
+    })
+    .unwrap();
 
     let media = repo.list_media_files(&device_id).unwrap();
     assert_eq!(media.len(), 2);
@@ -134,28 +190,45 @@ fn test_file_chunk_management() {
 
     repo.save_device(&Device {
         id: device_id.clone(),
-        manufacturer: "A".to_string(), model: "B".to_string(), serial: "C".to_string(),
-        os_version: "D".to_string(), sdk_version: None,
-        storage_total_bytes: 0, storage_used_bytes: 0, storage_free_bytes: 0,
+        manufacturer: "A".to_string(),
+        model: "B".to_string(),
+        serial: "C".to_string(),
+        os_version: "D".to_string(),
+        sdk_version: None,
+        storage_total_bytes: 0,
+        storage_used_bytes: 0,
+        storage_free_bytes: 0,
         connection_type: ConnectionType::Usb,
-    }).unwrap();
+    })
+    .unwrap();
 
     repo.save_file(&FileEntry {
-        id: file_id.clone(), device_id, path: "p".to_string(), name: "n".to_string(),
-        size_bytes: 1000, modified_at: Utc::now(), mime_type: "t".to_string(),
-        permissions: "p".to_string(), hash_sha256: Some("full-hash".to_string()),
+        id: file_id.clone(),
+        device_id,
+        path: "p".to_string(),
+        name: "n".to_string(),
+        size_bytes: 1000,
+        modified_at: Utc::now(),
+        mime_type: "t".to_string(),
+        permissions: "p".to_string(),
+        hash_sha256: Some("full-hash".to_string()),
         thumbnail_hash: None,
         media_info: None,
-    }).unwrap();
+    })
+    .unwrap();
 
     let chunk_id1 = repo.save_logical_chunk("hash-1", 500).unwrap();
     let chunk_id2 = repo.save_logical_chunk("hash-2", 500).unwrap();
 
-    repo.save_physical_object(&chunk_id1, "obj-hash-1", "uuid-1", 500, "none", 0).unwrap();
-    repo.save_physical_object(&chunk_id2, "obj-hash-2", "uuid-2", 500, "none", 0).unwrap();
+    repo.save_physical_object(&chunk_id1, "obj-hash-1", "uuid-1", 500, "none", 0)
+        .unwrap();
+    repo.save_physical_object(&chunk_id2, "obj-hash-2", "uuid-2", 500, "none", 0)
+        .unwrap();
 
-    repo.save_file_chunk(&file_id, &chunk_id1, 0, 500, 0).unwrap();
-    repo.save_file_chunk(&file_id, &chunk_id2, 500, 500, 1).unwrap();
+    repo.save_file_chunk(&file_id, &chunk_id1, 0, 500, 0)
+        .unwrap();
+    repo.save_file_chunk(&file_id, &chunk_id2, 500, 500, 1)
+        .unwrap();
 
     let chunks = repo.get_file_chunks(&file_id).unwrap();
     assert_eq!(chunks.len(), 2);
@@ -173,41 +246,81 @@ fn test_file_diffing() {
     let s2_id = SnapshotId("s2".to_string());
 
     repo.save_device(&Device {
-        id: device_id.clone(), manufacturer: "A".to_string(), model: "B".to_string(), serial: "C".to_string(),
-        os_version: "D".to_string(), sdk_version: None,
-        storage_total_bytes: 0, storage_used_bytes: 0, storage_free_bytes: 0,
+        id: device_id.clone(),
+        manufacturer: "A".to_string(),
+        model: "B".to_string(),
+        serial: "C".to_string(),
+        os_version: "D".to_string(),
+        sdk_version: None,
+        storage_total_bytes: 0,
+        storage_used_bytes: 0,
+        storage_free_bytes: 0,
         connection_type: ConnectionType::Usb,
-    }).unwrap();
+    })
+    .unwrap();
 
     repo.create_snapshot(&Snapshot {
-        id: s1_id.clone(), device_id: device_id.clone(), started_at: Utc::now(),
-        finished_at: None, status: SnapshotStatus::Completed, total_files: 0,
-        total_bytes: 0, deduped_bytes: 0,
-    }).unwrap();
+        id: s1_id.clone(),
+        device_id: device_id.clone(),
+        started_at: Utc::now(),
+        finished_at: None,
+        status: SnapshotStatus::Completed,
+        total_files: 0,
+        total_bytes: 0,
+        deduped_bytes: 0,
+    })
+    .unwrap();
 
     repo.create_snapshot(&Snapshot {
-        id: s2_id.clone(), device_id: device_id.clone(), started_at: Utc::now(),
-        finished_at: None, status: SnapshotStatus::Completed, total_files: 0,
-        total_bytes: 0, deduped_bytes: 0,
-    }).unwrap();
+        id: s2_id.clone(),
+        device_id: device_id.clone(),
+        started_at: Utc::now(),
+        finished_at: None,
+        status: SnapshotStatus::Completed,
+        total_files: 0,
+        total_bytes: 0,
+        deduped_bytes: 0,
+    })
+    .unwrap();
 
     let f1_v1 = FileEntry {
-        id: FileId("f1-v1".to_string()), device_id: device_id.clone(),
-        path: "p1".to_string(), name: "n1".to_string(), size_bytes: 10,
-        modified_at: Utc::now(), mime_type: "t".to_string(), permissions: "p".to_string(),
-        hash_sha256: Some("h1".to_string()), thumbnail_hash: None, media_info: None,
+        id: FileId("f1-v1".to_string()),
+        device_id: device_id.clone(),
+        path: "p1".to_string(),
+        name: "n1".to_string(),
+        size_bytes: 10,
+        modified_at: Utc::now(),
+        mime_type: "t".to_string(),
+        permissions: "p".to_string(),
+        hash_sha256: Some("h1".to_string()),
+        thumbnail_hash: None,
+        media_info: None,
     };
     let f1_v2 = FileEntry {
-        id: FileId("f1-v2".to_string()), device_id: device_id.clone(),
-        path: "p1".to_string(), name: "n1".to_string(), size_bytes: 10,
-        modified_at: Utc::now(), mime_type: "t".to_string(), permissions: "p".to_string(),
-        hash_sha256: Some("h1-new".to_string()), thumbnail_hash: None, media_info: None,
+        id: FileId("f1-v2".to_string()),
+        device_id: device_id.clone(),
+        path: "p1".to_string(),
+        name: "n1".to_string(),
+        size_bytes: 10,
+        modified_at: Utc::now(),
+        mime_type: "t".to_string(),
+        permissions: "p".to_string(),
+        hash_sha256: Some("h1-new".to_string()),
+        thumbnail_hash: None,
+        media_info: None,
     };
     let f2 = FileEntry {
-        id: FileId("f2".to_string()), device_id: device_id.clone(),
-        path: "p2".to_string(), name: "n2".to_string(), size_bytes: 20,
-        modified_at: Utc::now(), mime_type: "t".to_string(), permissions: "p".to_string(),
-        hash_sha256: Some("h2".to_string()), thumbnail_hash: None, media_info: None,
+        id: FileId("f2".to_string()),
+        device_id: device_id.clone(),
+        path: "p2".to_string(),
+        name: "n2".to_string(),
+        size_bytes: 20,
+        modified_at: Utc::now(),
+        mime_type: "t".to_string(),
+        permissions: "p".to_string(),
+        hash_sha256: Some("h2".to_string()),
+        thumbnail_hash: None,
+        media_info: None,
     };
 
     repo.save_file(&f1_v1).unwrap();

@@ -1,4 +1,7 @@
-use domain::{AppInfo, Capability, CapabilityMatrix, CapabilityStatus, ConnectionType, Contact, Device, DeviceId, FileEntry, Sms};
+use domain::{
+    AppInfo, Capability, CapabilityMatrix, CapabilityStatus, ConnectionType, Contact, Device,
+    DeviceId, FileEntry, Sms,
+};
 use serde::{Deserialize, Serialize};
 
 /// Handshake payload sent by the Android Companion Agent upon connection.
@@ -16,7 +19,9 @@ pub struct AgentHandshake {
 
 impl AgentHandshake {
     pub fn to_device(&self) -> Device {
-        let free = self.storage_total_bytes.saturating_sub(self.storage_used_bytes);
+        let free = self
+            .storage_total_bytes
+            .saturating_sub(self.storage_used_bytes);
         Device {
             id: DeviceId::new(self.device_id.clone()),
             manufacturer: self.manufacturer.clone(),

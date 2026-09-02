@@ -1,7 +1,7 @@
+use crate::repositories::AdbDeviceRepository;
 use anyhow::Result;
 use domain::{CapabilityMatrix, Device, DeviceId};
 use ports::DevicePort;
-use crate::repositories::AdbDeviceRepository;
 
 #[derive(Clone)]
 pub struct AdbDeviceGateway {
@@ -31,7 +31,12 @@ impl DevicePort for AdbDeviceGateway {
         self.repo.read_file(id, path)
     }
 
-    fn push_file(&self, id: &DeviceId, source: &mut dyn std::io::Read, target_path: &str) -> Result<()> {
+    fn push_file(
+        &self,
+        id: &DeviceId,
+        source: &mut dyn std::io::Read,
+        target_path: &str,
+    ) -> Result<()> {
         self.repo.push_file(id, source, target_path)
     }
 

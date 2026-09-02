@@ -1,6 +1,6 @@
-use std::sync::{Arc, RwLock};
 use ports::StoragePort;
 use std::io::Read;
+use std::sync::{Arc, RwLock};
 
 /// Modular Storage Switcher (SOLID - LSP)
 pub struct SwitchableStorage {

@@ -55,8 +55,14 @@ impl DevicePort for MockDeviceAdapter {
         matrix.set(Capability::ReadMedia, CapabilityStatus::Available);
         matrix.set(Capability::ReadDownload, CapabilityStatus::Available);
         matrix.set(Capability::ReadDocuments, CapabilityStatus::Available);
-        matrix.set(Capability::ReadAppData, CapabilityStatus::RequiresUserAction);
-        matrix.set(Capability::ReadContacts, CapabilityStatus::RequiresUserAction);
+        matrix.set(
+            Capability::ReadAppData,
+            CapabilityStatus::RequiresUserAction,
+        );
+        matrix.set(
+            Capability::ReadContacts,
+            CapabilityStatus::RequiresUserAction,
+        );
         matrix.set(Capability::ReadSms, CapabilityStatus::Denied);
         matrix.set(Capability::ReadCallLog, CapabilityStatus::Denied);
         Ok(matrix)
@@ -67,7 +73,12 @@ impl DevicePort for MockDeviceAdapter {
         Ok(Box::new(std::io::Cursor::new(content)))
     }
 
-    fn push_file(&self, _id: &DeviceId, _source: &mut dyn std::io::Read, _target_path: &str) -> Result<()> {
+    fn push_file(
+        &self,
+        _id: &DeviceId,
+        _source: &mut dyn std::io::Read,
+        _target_path: &str,
+    ) -> Result<()> {
         Ok(())
     }
 

@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use tracing::debug;
 
-pub mod macos;
 pub mod linux;
+pub mod macos;
 pub mod native;
 
 pub struct MtpMount {
@@ -20,16 +20,14 @@ pub struct DiscoveryOrchestrator {
 
 impl DiscoveryOrchestrator {
     pub fn new() -> Self {
-        let mut strategies: Vec<Box<dyn MtpDiscoveryStrategy>> = Vec::new();
-
-        // High Priority: Native USB Access (doesn't require OS mounting)
-        strategies.push(Box::new(native::NativeMtpDiscovery::new()));
-
-        #[cfg(target_os = "macos")]
-        strategies.push(Box::new(macos::MacosDiscovery::new()));
-
-        #[cfg(target_os = "linux")]
-        strategies.push(Box::new(linux::LinuxDiscovery::new()));
+        #[allow(unused_mut)]
+        let mut strategies: Vec<Box<dyn MtpDiscoveryStrategy>> = vec![
+            Box::new(native::NativeMtpDiscovery::new()),
+            #[cfg(target_os = "macos")]
+            Box::new(macos::MacosDiscovery::new()),
+            #[cfg(target_os = "linux")]
+            Box::new(linux::LinuxDiscovery::new()),
+        ];
 
         Self { strategies }
     }
@@ -39,7 +37,10 @@ impl DiscoveryOrchestrator {
         for strategy in &self.strategies {
             all_mounts.extend(strategy.detect());
         }
-        debug!("MTP Discovery: Found {} total potential mounts", all_mounts.len());
+        debug!(
+            "MTP Discovery: Found {} total potential mounts",
+            all_mounts.len()
+        );
         all_mounts
     }
 }

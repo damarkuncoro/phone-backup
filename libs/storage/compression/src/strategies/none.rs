@@ -1,5 +1,5 @@
-use anyhow::Result;
 use super::CompressionStrategy;
+use anyhow::Result;
 
 #[derive(Default)]
 pub struct NoCompressionStrategy;

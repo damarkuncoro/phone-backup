@@ -1,5 +1,5 @@
-use phone_backup_adapter_mtp::MtpAdapter;
 use domain::{ConnectionType, DeviceId};
+use phone_backup_adapter_mtp::MtpAdapter;
 use ports::{DevicePort, ScannerPort};
 use std::fs::File;
 use std::io::Write;
@@ -70,19 +70,28 @@ fn test_mtp_two_way_operations() {
 
     // 1. Push file
     let mut source_data = std::io::Cursor::new(b"restored binary payload");
-    adapter.push_file(&dev_id, &mut source_data, "/Download/restored.txt").unwrap();
+    adapter
+        .push_file(&dev_id, &mut source_data, "/Download/restored.txt")
+        .unwrap();
 
     let pushed_file = dir.path().join("Download").join("restored.txt");
     assert!(pushed_file.exists());
-    assert_eq!(std::fs::read_to_string(&pushed_file).unwrap(), "restored binary payload");
+    assert_eq!(
+        std::fs::read_to_string(&pushed_file).unwrap(),
+        "restored binary payload"
+    );
 
     // 2. Rename file
-    adapter.rename_remote(&dev_id, "/Download/restored.txt", "/Download/renamed.txt").unwrap();
+    adapter
+        .rename_remote(&dev_id, "/Download/restored.txt", "/Download/renamed.txt")
+        .unwrap();
     let renamed_file = dir.path().join("Download").join("renamed.txt");
     assert!(!pushed_file.exists());
     assert!(renamed_file.exists());
 
     // 3. Delete file
-    adapter.delete_remote(&dev_id, "/Download/renamed.txt").unwrap();
+    adapter
+        .delete_remote(&dev_id, "/Download/renamed.txt")
+        .unwrap();
     assert!(!renamed_file.exists());
 }

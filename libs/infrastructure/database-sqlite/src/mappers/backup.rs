@@ -1,6 +1,6 @@
-use domain::{FileEntry, FileId, DeviceId, Snapshot, SnapshotId, SnapshotStatus};
-use rusqlite::Row;
 use crate::mappers::parse_date;
+use domain::{DeviceId, FileEntry, FileId, Snapshot, SnapshotId, SnapshotStatus};
+use rusqlite::Row;
 
 pub struct BackupMapper;
 
@@ -9,9 +9,7 @@ impl BackupMapper {
         let modified_at_str: String = row.get(5)?;
         let media_info_str: Option<String> = row.get(10)?;
 
-        let media_info = media_info_str.and_then(|s| {
-            serde_json::from_str(&s).ok()
-        });
+        let media_info = media_info_str.and_then(|s| serde_json::from_str(&s).ok());
 
         Ok(FileEntry {
             id: FileId(row.get(0)?),

@@ -1,6 +1,9 @@
-use domain::{Contact, DeviceId, ContactName, ContactPhone, ContactEmail, ContactAddress, ContactOrganization, ContactUrl, ContactEvent};
-use sha2::{Sha256, Digest};
 use crate::parsers::common::ParserUtils;
+use domain::{
+    Contact, ContactAddress, ContactEmail, ContactEvent, ContactName, ContactOrganization,
+    ContactPhone, ContactUrl, DeviceId,
+};
+use sha2::{Digest, Sha256};
 
 pub struct ContactParser;
 
@@ -9,8 +12,10 @@ impl ContactParser {
         let mut contacts_map = std::collections::HashMap::new();
 
         for line in output.lines() {
-            let contact_id = ParserUtils::extract_value(line, "contact_id").unwrap_or_else(|| "0".to_string());
-            let display_name = ParserUtils::extract_value(line, "display_name").unwrap_or_else(|| "Unknown".to_string());
+            let contact_id =
+                ParserUtils::extract_value(line, "contact_id").unwrap_or_else(|| "0".to_string());
+            let display_name = ParserUtils::extract_value(line, "display_name")
+                .unwrap_or_else(|| "Unknown".to_string());
             let mimetype = ParserUtils::extract_value(line, "mimetype").unwrap_or_default();
             let account_name = ParserUtils::extract_value(line, "account_name");
 
@@ -109,7 +114,12 @@ impl ContactParser {
         // Calculate content hashes for deduplication
         for contact in contacts_map.values_mut() {
             let json = serde_json::to_string(&contact).unwrap_or_default();
-            contact.content_hash = Some(Sha256::digest(json.as_bytes()).iter().map(|b| format!("{:02x}", b)).collect());
+            contact.content_hash = Some(
+                Sha256::digest(json.as_bytes())
+                    .iter()
+                    .map(|b| format!("{:02x}", b))
+                    .collect(),
+            );
         }
 
         contacts_map.into_values().collect()

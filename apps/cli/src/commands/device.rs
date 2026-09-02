@@ -2,7 +2,9 @@ use anyhow::Result;
 use application::BackupService;
 use domain::DeviceId;
 
-pub fn print_devices<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>) -> Result<()>
+pub fn print_devices<D, S, R, T, A, DP, P>(
+    service: &BackupService<D, S, R, T, A, DP, P>,
+) -> Result<()>
 where
     D: ports::DevicePort,
     S: ports::ScannerPort,
@@ -14,7 +16,7 @@ where
 {
     let devices = service.list_devices()?;
     println!("Connected Devices\n");
-    println!("{:<40} {:<15} {:<12} {}", "ID", "MODEL", "OS", "STATUS");
+    println!("{:<40} {:<15} {:<12} STATUS", "ID", "MODEL", "OS");
     println!("{}", "-".repeat(80));
     for d in devices {
         let os_short = if d.os_version.len() > 10 {
@@ -22,12 +24,15 @@ where
         } else {
             d.os_version.clone()
         };
-        println!("{:<40} {:<15} {:<12} {}", d.id, d.model, os_short, "Ready");
+        println!("{:<40} {:<15} {:<12} Ready", d.id, d.model, os_short);
     }
     Ok(())
 }
 
-pub fn print_device_info<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>, id: &str) -> Result<()>
+pub fn print_device_info<D, S, R, T, A, DP, P>(
+    service: &BackupService<D, S, R, T, A, DP, P>,
+    id: &str,
+) -> Result<()>
 where
     D: ports::DevicePort,
     S: ports::ScannerPort,
@@ -59,7 +64,10 @@ where
     Ok(())
 }
 
-pub fn scan_device<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>, id: &str) -> Result<()>
+pub fn scan_device<D, S, R, T, A, DP, P>(
+    service: &BackupService<D, S, R, T, A, DP, P>,
+    id: &str,
+) -> Result<()>
 where
     D: ports::DevicePort,
     S: ports::ScannerPort,
@@ -76,7 +84,11 @@ where
 
     let files = match result {
         Ok(f) => f,
-        Err(e) if e.to_string().contains("exclusively") || e.to_string().contains("timed out") || e.to_string().contains("SessionAlreadyOpen") => {
+        Err(e)
+            if e.to_string().contains("exclusively")
+                || e.to_string().contains("timed out")
+                || e.to_string().contains("SessionAlreadyOpen") =>
+        {
             println!("\n⚠️  Gagal mengakses HP: Perangkat sibuk atau sesi menggantung.");
             println!("Penyebab: {} ", e);
             print!("Apakah Anda ingin saya mencoba membersihkan agen macOS pengganggu? (y/n): ");
@@ -89,11 +101,15 @@ where
                 println!("🚀 Mencoba menutup aplikasi pengganggu...");
                 let killed = if id.starts_with("usb://serial/") {
                     let serial = id.trim_start_matches("usb://serial/");
-                    adapter_mtp::MtpConflictResolver::resolve_conflicts(serial).map_err(|e| anyhow::anyhow!(e))?
+                    adapter_mtp::MtpConflictResolver::resolve_conflicts(serial)
+                        .map_err(|e| anyhow::anyhow!(e))?
                 } else {
                     adapter_mtp::MtpConflictResolver::kill_conflicts()?
                 };
-                println!("✅ Berhasil menutup {} aplikasi. Mencoba memindai ulang...", killed);
+                println!(
+                    "✅ Berhasil menutup {} aplikasi. Mencoba memindai ulang...",
+                    killed
+                );
                 service.scan_device(&device_id)?
             } else {
                 return Err(e);
@@ -114,7 +130,10 @@ where
     Ok(())
 }
 
-pub fn list_apps<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>, id: &str) -> Result<()>
+pub fn list_apps<D, S, R, T, A, DP, P>(
+    service: &BackupService<D, S, R, T, A, DP, P>,
+    id: &str,
+) -> Result<()>
 where
     D: ports::DevicePort,
     S: ports::ScannerPort,
@@ -128,15 +147,21 @@ where
     println!("Listing apps for device {}...", id);
     let apps = service.list_apps(&device_id)?;
     println!("\nInstalled Applications:");
-    println!("{:<30} {:<15} {}", "APP NAME", "VERSION", "PACKAGE");
+    println!("{:<30} {:<15} PACKAGE", "APP NAME", "VERSION");
     println!("{}", "-".repeat(80));
     for app in apps {
-        println!("{:<30} {:<15} {}", app.app_name, app.version_name, app.package_name);
+        println!(
+            "{:<30} {:<15} {}",
+            app.app_name, app.version_name, app.package_name
+        );
     }
     Ok(())
 }
 
-pub fn list_photos<D, S, R, T, A, DP, P>(service: &BackupService<D, S, R, T, A, DP, P>, id: &str) -> Result<()>
+pub fn list_photos<D, S, R, T, A, DP, P>(
+    service: &BackupService<D, S, R, T, A, DP, P>,
+    id: &str,
+) -> Result<()>
 where
     D: ports::DevicePort,
     S: ports::ScannerPort,
@@ -149,7 +174,10 @@ where
     let device_id = DeviceId::new(id);
     let files = service.scan_device(&device_id)?;
     println!("Photo Gallery for device {}\n", id);
-    println!("{:<30} {:<15} {:<15} {}", "FILE", "CAMERA", "TAKEN AT", "LOCATION");
+    println!(
+        "{:<30} {:<15} {:<15} LOCATION",
+        "FILE", "CAMERA", "TAKEN AT"
+    );
     println!("{}", "-".repeat(90));
 
     for f in files {

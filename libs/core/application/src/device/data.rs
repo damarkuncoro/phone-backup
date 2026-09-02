@@ -1,9 +1,12 @@
+use crate::analysis::vcard::VCardEngine;
+use crate::backup::BackupService;
 use anyhow::Result;
 use domain::{DeviceId, SnapshotId, StructuredDataType};
-use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort, ProgressPort};
-use tracing::{info, instrument, warn, error};
-use crate::backup::BackupService;
-use crate::analysis::vcard::VCardEngine;
+use ports::{
+    AppProviderPort, DataProviderPort, DevicePort, ProgressPort, RepositoryPort, ScannerPort,
+    StoragePort,
+};
+use tracing::{error, info, instrument, warn};
 
 impl<D, S, R, T, A, DP, P> BackupService<D, S, R, T, A, DP, P>
 where
@@ -31,24 +34,40 @@ where
     }
 
     #[instrument(skip(self))]
-    pub fn get_structured_data(&self, snapshot_id: &SnapshotId, data_type: StructuredDataType) -> Result<serde_json::Value> {
-        info!("Fetching structured data '{}' for snapshot {}", data_type, snapshot_id.0);
+    pub fn get_structured_data(
+        &self,
+        snapshot_id: &SnapshotId,
+        data_type: StructuredDataType,
+    ) -> Result<serde_json::Value> {
+        info!(
+            "Fetching structured data '{}' for snapshot {}",
+            data_type, snapshot_id.0
+        );
 
         if data_type == StructuredDataType::Contacts {
             let contacts = self.repository.get_snapshot_contacts(snapshot_id)?;
             return Ok(serde_json::to_value(contacts)?);
         }
 
-        let chunk_id = self.repository.get_structured_data_ref(snapshot_id, data_type)?
+        let chunk_id = self
+            .repository
+            .get_structured_data_ref(snapshot_id, data_type)?
             .ok_or_else(|| {
-                warn!("Structured data '{}' reference not found in database", data_type);
+                warn!(
+                    "Structured data '{}' reference not found in database",
+                    data_type
+                );
                 anyhow::anyhow!("Data type {} not found for this snapshot", data_type)
             })?;
 
         info!("Reading data from storage for chunk: {}", chunk_id);
         // We need an EncryptionMode here... let's assume None for now if not available or pass it from caller
         // Actually, BackupService should probably store the EncryptionMode used for the snapshot
-        let object_manager = crate::storage::manager::ObjectManager::new(&self.storage, &self.repository, &domain::EncryptionMode::None);
+        let object_manager = crate::storage::manager::ObjectManager::new(
+            &self.storage,
+            &self.repository,
+            &domain::EncryptionMode::None,
+        );
         let data = object_manager.get_chunk(&chunk_id)?;
 
         info!("Parsing JSON data ({} bytes)", data.len());

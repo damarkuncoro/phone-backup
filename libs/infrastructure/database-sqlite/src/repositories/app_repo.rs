@@ -1,10 +1,10 @@
-use rusqlite::params;
-use std::sync::Arc;
-use r2d2::Pool;
-use r2d2_sqlite::SqliteConnectionManager;
+use crate::mappers::AndroidMapper;
 use domain::{AppId, AppInfo, SnapshotId};
 use ports::AppRepositoryPort;
-use crate::mappers::AndroidMapper;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
+use rusqlite::params;
+use std::sync::Arc;
 
 pub struct AppRepository {
     pool: Arc<Pool<SqliteConnectionManager>>,
@@ -49,7 +49,9 @@ impl AppRepositoryPort for AppRepository {
         )?;
         let app_iter = stmt.query_map([&snapshot_id.0], AndroidMapper::to_app)?;
         let mut apps = Vec::new();
-        for a in app_iter { apps.push(a?); }
+        for a in app_iter {
+            apps.push(a?);
+        }
         Ok(apps)
     }
 }

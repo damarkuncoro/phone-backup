@@ -1,6 +1,6 @@
 use anyhow::Result;
 use chrono::Utc;
-use domain::{CallLog, Contact, DeviceId, Sms, ContactPhone, ContactEmail, ContactName};
+use domain::{CallLog, Contact, ContactEmail, ContactName, ContactPhone, DeviceId, Sms};
 use ports::DataProviderPort;
 
 pub struct MockDataProvider;

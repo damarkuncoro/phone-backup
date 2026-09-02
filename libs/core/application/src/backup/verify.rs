@@ -1,8 +1,11 @@
 use anyhow::Result;
-use ports::{AppProviderPort, DataProviderPort, DevicePort, RepositoryPort, ScannerPort, StoragePort, ProgressPort};
+use ports::{
+    AppProviderPort, DataProviderPort, DevicePort, ProgressPort, RepositoryPort, ScannerPort,
+    StoragePort,
+};
 
 use crate::storage::store::ObjectStoreKey;
-use tracing::{info, warn, instrument};
+use tracing::{info, instrument, warn};
 
 use super::BackupService;
 
@@ -48,7 +51,10 @@ where
     P: ProgressPort,
 {
     #[instrument(skip(self, encryption))]
-    pub fn verify_repository(&self, encryption: domain::EncryptionMode) -> Result<VerificationReport> {
+    pub fn verify_repository(
+        &self,
+        encryption: domain::EncryptionMode,
+    ) -> Result<VerificationReport> {
         let devices = self.repository.list_devices()?;
         let mut report = VerificationReport::default();
 
@@ -83,7 +89,11 @@ where
                     }
                 };
 
-                let object_id = ObjectStoreKey::compute_object_id(&hash, Some(&file.mime_type), encryption.is_encrypted());
+                let object_id = ObjectStoreKey::compute_object_id(
+                    &hash,
+                    Some(&file.mime_type),
+                    encryption.is_encrypted(),
+                );
                 let object_path = ObjectStoreKey::compute_object_path(&hash, &object_id);
 
                 if !self.storage.exists(&object_path)? {
@@ -143,7 +153,7 @@ where
                 }
             } else {
                 // Extract filename/UUID from path
-                if let Some(filename) = path.split('/').last() {
+                if let Some(filename) = path.split('/').next_back() {
                     // Remove extension if any
                     let base_name = filename.split('.').next().unwrap_or("");
                     if referenced_items.contains(base_name) {
@@ -159,7 +169,10 @@ where
             }
         }
 
-        info!("Garbage Collection finished. Deleted {} physical objects.", deleted_count);
+        info!(
+            "Garbage Collection finished. Deleted {} physical objects.",
+            deleted_count
+        );
         Ok(deleted_count)
     }
 }

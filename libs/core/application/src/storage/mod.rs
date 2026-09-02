@@ -1,18 +1,14 @@
 pub mod hashing;
-pub mod store;
 pub mod manager;
 pub mod policy;
+pub mod store;
 
-pub use hashing::calculate_hash;
 pub use chunking::{
-    StreamingChunker, Chunk, ChunkConfig, ChunkingMethod, ExpertChunker as Chunker
+    Chunk, ChunkConfig, ChunkingMethod, ExpertChunker as Chunker, StreamingChunker,
 };
-pub use compression::{
-    ExpertCompressor as CompressionEngine, CompressionAlgorithm
-};
-pub use security::{
-    ExpertSecurity as EncryptionEngine, EncryptionAlgorithm
-};
-pub use store::ObjectStoreKey;
+pub use compression::{CompressionAlgorithm, ExpertCompressor as CompressionEngine};
+pub use hashing::calculate_hash;
 pub use manager::ObjectManager;
 pub use policy::{ChunkingPolicy, DefaultChunkingPolicy};
+pub use security::{EncryptionAlgorithm, ExpertSecurity as EncryptionEngine};
+pub use store::ObjectStoreKey;

@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Result};
+use domain::{DeviceId, FileEntry, FileId};
 use mtp_rs::{MtpDevice, ObjectHandle, Storage};
-use domain::{FileEntry, FileId, DeviceId};
-use std::io::{Read, Cursor};
-use tracing::info;
+use std::io::{Cursor, Read};
 use std::sync::{Arc, Mutex};
+use tracing::info;
 
 #[derive(Clone)]
 pub struct NativeMtpOperations {
@@ -31,11 +31,12 @@ impl NativeMtpOperations {
     }
 
     async fn get_device(&self) -> Result<MtpDevice> {
-        let mut cache = self.device_cache.lock().unwrap();
-
         // If we already have an open session, reuse it
-        if let Some(ref dev) = *cache {
-            return Ok(dev.clone());
+        {
+            let cache = self.device_cache.lock().unwrap();
+            if let Some(ref dev) = *cache {
+                return Ok(dev.clone());
+            }
         }
 
         // Proactively resolve any macOS daemon conflicts before opening session
@@ -52,10 +53,23 @@ impl NativeMtpOperations {
                     Ok(d) => Ok(d),
                     Err(_) => {
                         if let Ok(devices) = MtpDevice::list_devices() {
-                            if let Some(target) = devices.iter().find(|d| d.serial_number.as_deref() == Some(s)) {
-                                MtpDevice::open_by_location(target.location_id).await.map_err(|e| anyhow::anyhow!(e))
-                            } else if let Some(target) = devices.iter().find(|d| !d.manufacturer.as_deref().unwrap_or("").to_lowercase().contains("apple")) {
-                                MtpDevice::open_by_location(target.location_id).await.map_err(|e| anyhow::anyhow!(e))
+                            if let Some(target) = devices
+                                .iter()
+                                .find(|d| d.serial_number.as_deref() == Some(s))
+                            {
+                                MtpDevice::open_by_location(target.location_id)
+                                    .await
+                                    .map_err(|e| anyhow::anyhow!(e))
+                            } else if let Some(target) = devices.iter().find(|d| {
+                                !d.manufacturer
+                                    .as_deref()
+                                    .unwrap_or("")
+                                    .to_lowercase()
+                                    .contains("apple")
+                            }) {
+                                MtpDevice::open_by_location(target.location_id)
+                                    .await
+                                    .map_err(|e| anyhow::anyhow!(e))
                             } else {
                                 Err(anyhow::anyhow!("No MTP device found matching serial {}", s))
                             }
@@ -65,7 +79,9 @@ impl NativeMtpOperations {
                     }
                 }
             } else if let Some(loc) = self.location_id {
-                MtpDevice::open_by_location(loc).await.map_err(|e| anyhow::anyhow!(e))
+                MtpDevice::open_by_location(loc)
+                    .await
+                    .map_err(|e| anyhow::anyhow!(e))
             } else {
                 anyhow::bail!("No identification provided for MTP device")
             };
@@ -73,16 +89,22 @@ impl NativeMtpOperations {
             match result {
                 Ok(dev) => {
                     info!("MTP: Successfully opened persistent session");
+                    let mut cache = self.device_cache.lock().unwrap();
                     *cache = Some(dev.clone());
                     return Ok(dev);
-                },
+                }
                 Err(e) => {
                     let err_msg = e.to_string();
                     last_error = anyhow!(err_msg.clone());
 
-                    info!("MTP: Attempt {} failed ({}). Waiting to retry...", attempt, err_msg);
-                    let _ = std::process::Command::new("killall").args(["-9", "PTPCamera", "ptpcamera", "ptpcamerad"]).output();
-                    
+                    info!(
+                        "MTP: Attempt {} failed ({}). Waiting to retry...",
+                        attempt, err_msg
+                    );
+                    let _ = std::process::Command::new("killall")
+                        .args(["-9", "PTPCamera", "ptpcamera", "ptpcamerad"])
+                        .output();
+
                     if err_msg.contains("Transaction ID mismatch") {
                         if let Some(ref s) = self.serial {
                             let _ = MtpDevice::reset_by_serial(s).await;
@@ -93,12 +115,18 @@ impl NativeMtpOperations {
             }
         }
 
-        anyhow::bail!("Gagal membuka koneksi ke HP: {}. TIPS: Cabut dan colok kembali kabel USB Anda.", last_error)
+        anyhow::bail!(
+            "Gagal membuka koneksi ke HP: {}. TIPS: Cabut dan colok kembali kabel USB Anda.",
+            last_error
+        )
     }
 
     /// Helper to resolve which storage and what handle a path refers to.
     /// Supports virtual root for multi-storage devices.
-    async fn resolve_storage_and_handle(&self, path: &str) -> Result<(Storage, Option<ObjectHandle>, String)> {
+    async fn resolve_storage_and_handle(
+        &self,
+        path: &str,
+    ) -> Result<(Storage, Option<ObjectHandle>, String)> {
         let device = self.get_device().await?;
         let storages = device.storages().await?;
 
@@ -116,7 +144,8 @@ impl NativeMtpOperations {
         let storage_name = parts[0];
 
         // Find the storage by description
-        let storage = storages.into_iter()
+        let storage = storages
+            .into_iter()
             .find(|s| s.info().description == storage_name)
             .ok_or_else(|| anyhow!("Storage '{}' not found.", storage_name))?;
 
@@ -127,7 +156,11 @@ impl NativeMtpOperations {
             if let Some(item) = items.into_iter().find(|i| i.filename == *part) {
                 current_handle = Some(item.handle);
             } else {
-                anyhow::bail!("MTP: Path part '{}' not found in storage '{}'", part, storage_name);
+                anyhow::bail!(
+                    "MTP: Path part '{}' not found in storage '{}'",
+                    part,
+                    storage_name
+                );
             }
         }
 
@@ -185,8 +218,16 @@ impl NativeMtpOperations {
                     name: item.filename,
                     size_bytes: info.size,
                     modified_at: chrono::Utc::now(),
-                    mime_type: if is_dir { "inode/directory".into() } else { "application/octet-stream".into() },
-                    permissions: if is_dir { "drwxr-xr-x".into() } else { "-rw-r--r--".into() },
+                    mime_type: if is_dir {
+                        "inode/directory".into()
+                    } else {
+                        "application/octet-stream".into()
+                    },
+                    permissions: if is_dir {
+                        "drwxr-xr-x".into()
+                    } else {
+                        "-rw-r--r--".into()
+                    },
                     hash_sha256: None,
                     thumbnail_hash: None,
                     media_info: None,
@@ -196,7 +237,11 @@ impl NativeMtpOperations {
         })
     }
 
-    pub fn scan_recursive(&self, device_id: &DeviceId, target_paths: Vec<String>) -> Result<Vec<FileEntry>> {
+    pub fn scan_recursive(
+        &self,
+        device_id: &DeviceId,
+        target_paths: Vec<String>,
+    ) -> Result<Vec<FileEntry>> {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()?;
@@ -216,11 +261,27 @@ impl NativeMtpOperations {
                 if start_path == "/" {
                     for storage in &storages {
                         let desc = storage.info().description.clone();
-                        self.scan_internal(device_id, storage, None, &format!("/{}", desc), &mut all_files).await?;
+                        self.scan_internal(
+                            device_id,
+                            storage,
+                            None,
+                            &format!("/{}", desc),
+                            &mut all_files,
+                        )
+                        .await?;
                     }
                 } else {
-                    if let Ok((storage, handle, _)) = self.resolve_storage_and_handle(&start_path).await {
-                        self.scan_internal(device_id, &storage, handle, &start_path, &mut all_files).await?;
+                    if let Ok((storage, handle, _)) =
+                        self.resolve_storage_and_handle(&start_path).await
+                    {
+                        self.scan_internal(
+                            device_id,
+                            &storage,
+                            handle,
+                            &start_path,
+                            &mut all_files,
+                        )
+                        .await?;
                     }
                 }
             }
@@ -234,13 +295,16 @@ impl NativeMtpOperations {
         storage: &Storage,
         parent: Option<ObjectHandle>,
         current_path: &str,
-        results: &mut Vec<FileEntry>
+        results: &mut Vec<FileEntry>,
     ) -> Result<()> {
         let mut stack = vec![(parent, current_path.to_string())];
 
         while let Some((p_handle, p_path)) = stack.pop() {
             // Skip Android system private folders that block MTP access in Android 11+
-            if p_path.ends_with("/Android/data") || p_path.ends_with("/Android/obb") || p_path.ends_with("/.trashBin_File") {
+            if p_path.ends_with("/Android/data")
+                || p_path.ends_with("/Android/obb")
+                || p_path.ends_with("/.trashBin_File")
+            {
                 tracing::debug!("Skipping restricted Android system folder: {}", p_path);
                 continue;
             }
@@ -257,7 +321,12 @@ impl NativeMtpOperations {
                 let info = match storage.get_object_info(item.handle).await {
                     Ok(inf) => inf,
                     Err(e) => {
-                        tracing::warn!("Skipping inaccessible item '{}/{}': {}", p_path, item.filename, e);
+                        tracing::warn!(
+                            "Skipping inaccessible item '{}/{}': {}",
+                            p_path,
+                            item.filename,
+                            e
+                        );
                         continue;
                     }
                 };
@@ -335,7 +404,8 @@ impl NativeMtpOperations {
 
             // Determine target storage and parent path
             let storage_desc = parts[0];
-            let storage = storages.into_iter()
+            let storage = storages
+                .into_iter()
                 .find(|s| s.info().description == storage_desc)
                 .unwrap_or_else(|| {
                     // Fallback to first storage if path didn't include explicit storage name
@@ -366,8 +436,13 @@ impl NativeMtpOperations {
                 }
             }
 
-            tracing::info!("Pushing file '{}' ({} bytes) to MTP storage '{}' (Parent: {:?})",
-                filename, data.len(), storage.info().description, parent_handle);
+            tracing::info!(
+                "Pushing file '{}' ({} bytes) to MTP storage '{}' (Parent: {:?})",
+                filename,
+                data.len(),
+                storage.info().description,
+                parent_handle
+            );
 
             Ok(())
         })
@@ -437,7 +512,9 @@ impl NativeMtpOperations {
             }
 
             let head = storage.read_range(h, 0, 1024 * 1024).await?;
-            let tail = storage.read_range(h, size - (1024 * 1024), 1024 * 1024).await?;
+            let tail = storage
+                .read_range(h, size - (1024 * 1024), 1024 * 1024)
+                .await?;
 
             let mut hasher = blake3::Hasher::new();
             hasher.update(&head);
@@ -462,7 +539,9 @@ struct MtpStreamingReader {
 
 impl MtpStreamingReader {
     fn new(storage: Storage, handle: ObjectHandle, rt: tokio::runtime::Runtime) -> Self {
-        let info = rt.block_on(async { storage.get_object_info(handle).await }).unwrap();
+        let info = rt
+            .block_on(async { storage.get_object_info(handle).await })
+            .unwrap();
         Self {
             storage,
             handle,
@@ -481,10 +560,12 @@ impl MtpStreamingReader {
 
         let chunk_size = 1024 * 1024; // 1MB chunks
         let remaining = self.total_size - self.offset;
-        let to_read = std::cmp::min(chunk_size, remaining as u64);
+        let to_read = std::cmp::min(chunk_size, remaining);
 
         let data = self.rt.block_on(async {
-            self.storage.read_range(self.handle, self.offset, to_read as u32).await
+            self.storage
+                .read_range(self.handle, self.offset, to_read as u32)
+                .await
                 .map_err(|e| anyhow!("MTP Read Error at {}: {:?}", self.offset, e))
         })?;
 
@@ -511,7 +592,7 @@ impl Read for MtpStreamingReader {
                     return Ok(0);
                 }
                 Err(e) => {
-                    return Err(std::io::Error::new(std::io::ErrorKind::Other, e));
+                    return Err(std::io::Error::other(e));
                 }
             }
         }

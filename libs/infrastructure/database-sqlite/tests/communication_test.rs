@@ -1,9 +1,13 @@
 mod common;
 
-use common::setup_test_repo;
-use domain::{Device, DeviceId, ConnectionType, Snapshot, SnapshotId, SnapshotStatus, Sms, CallLog};
-use ports::{DeviceRepositoryPort, SnapshotRepositoryPort, SmsRepositoryPort, CallLogRepositoryPort};
 use chrono::Utc;
+use common::setup_test_repo;
+use domain::{
+    CallLog, ConnectionType, Device, DeviceId, Sms, Snapshot, SnapshotId, SnapshotStatus,
+};
+use ports::{
+    CallLogRepositoryPort, DeviceRepositoryPort, SmsRepositoryPort, SnapshotRepositoryPort,
+};
 
 #[test]
 fn test_sms_persistence() {
@@ -12,15 +16,30 @@ fn test_sms_persistence() {
     let snap_id = SnapshotId("snap-comm".to_string());
 
     repo.save_device(&Device {
-        id: device_id.clone(), manufacturer: "A".to_string(), model: "B".to_string(), serial: "C".to_string(),
-        os_version: "12".to_string(), sdk_version: None, storage_total_bytes: 0, storage_used_bytes: 0,
-        storage_free_bytes: 0, connection_type: ConnectionType::Usb,
-    }).unwrap();
+        id: device_id.clone(),
+        manufacturer: "A".to_string(),
+        model: "B".to_string(),
+        serial: "C".to_string(),
+        os_version: "12".to_string(),
+        sdk_version: None,
+        storage_total_bytes: 0,
+        storage_used_bytes: 0,
+        storage_free_bytes: 0,
+        connection_type: ConnectionType::Usb,
+    })
+    .unwrap();
 
     repo.create_snapshot(&Snapshot {
-        id: snap_id.clone(), device_id: device_id.clone(), started_at: Utc::now(),
-        finished_at: None, status: SnapshotStatus::Pending, total_files: 0, total_bytes: 0, deduped_bytes: 0,
-    }).unwrap();
+        id: snap_id.clone(),
+        device_id: device_id.clone(),
+        started_at: Utc::now(),
+        finished_at: None,
+        status: SnapshotStatus::Pending,
+        total_files: 0,
+        total_bytes: 0,
+        deduped_bytes: 0,
+    })
+    .unwrap();
 
     let sms = Sms {
         address: "+62812345678".to_string(),
@@ -48,15 +67,30 @@ fn test_call_log_persistence() {
     let snap_id = SnapshotId("snap-call".to_string());
 
     repo.save_device(&Device {
-        id: device_id.clone(), manufacturer: "A".to_string(), model: "B".to_string(), serial: "C".to_string(),
-        os_version: "12".to_string(), sdk_version: None, storage_total_bytes: 0, storage_used_bytes: 0,
-        storage_free_bytes: 0, connection_type: ConnectionType::Usb,
-    }).unwrap();
+        id: device_id.clone(),
+        manufacturer: "A".to_string(),
+        model: "B".to_string(),
+        serial: "C".to_string(),
+        os_version: "12".to_string(),
+        sdk_version: None,
+        storage_total_bytes: 0,
+        storage_used_bytes: 0,
+        storage_free_bytes: 0,
+        connection_type: ConnectionType::Usb,
+    })
+    .unwrap();
 
     repo.create_snapshot(&Snapshot {
-        id: snap_id.clone(), device_id: device_id.clone(), started_at: Utc::now(),
-        finished_at: None, status: SnapshotStatus::Pending, total_files: 0, total_bytes: 0, deduped_bytes: 0,
-    }).unwrap();
+        id: snap_id.clone(),
+        device_id: device_id.clone(),
+        started_at: Utc::now(),
+        finished_at: None,
+        status: SnapshotStatus::Pending,
+        total_files: 0,
+        total_bytes: 0,
+        deduped_bytes: 0,
+    })
+    .unwrap();
 
     let log = CallLog {
         number: "+62812345678".to_string(),

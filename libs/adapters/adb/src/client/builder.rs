@@ -1,11 +1,17 @@
+use crate::client::AdbClient;
 use anyhow::Result;
 use std::time::Duration;
-use crate::client::AdbClient;
 
 /// Builder for AdbClient configuration
 pub struct AdbClientBuilder {
     pub(crate) adb_path: Option<String>,
     pub(crate) timeout: Duration,
+}
+
+impl Default for AdbClientBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AdbClientBuilder {
@@ -27,7 +33,7 @@ impl AdbClientBuilder {
     }
 
     pub fn build(self) -> Result<AdbClient> {
-        let adb_path = self.adb_path.unwrap_or_else(|| AdbClient::find_adb());
+        let adb_path = self.adb_path.unwrap_or_else(AdbClient::find_adb);
         Ok(AdbClient {
             adb_path,
             timeout: self.timeout,
