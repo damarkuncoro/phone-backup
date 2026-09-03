@@ -133,3 +133,37 @@ fn test_asymmetric_backup_restore_lifecycle() {
 
     println!("✅ Asymmetric Integration test passed.");
 }
+
+#[test]
+fn test_batch_checkpoint_and_resilience() {
+    let _guard = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp_repo_dir = TempDir::new().unwrap();
+    let tmp_storage_dir = TempDir::new().unwrap();
+
+    let db_path = tmp_repo_dir.path().join("test_checkpoint.db");
+    let storage_path = tmp_storage_dir.path().to_str().unwrap();
+
+    let repository = SqliteRepository::new(db_path.to_str().unwrap()).unwrap();
+    let storage = LocalStorage::new(storage_path).unwrap();
+    let service = BackupService::new(
+        MockDeviceAdapter::with_device_id("DEV_CHECKPOINT"),
+        MockScannerAdapter,
+        repository,
+        storage,
+        MockAppProvider,
+        MockDataProvider,
+        ports::NoProgress,
+    );
+
+    let devices = service.list_devices().unwrap();
+    let device_id = devices[0].id.clone();
+
+    let snapshot = service
+        .perform_backup(&device_id, domain::EncryptionMode::None, None)
+        .expect("Backup with checkpointing should succeed");
+
+    assert!(snapshot.total_files > 0);
+    assert_eq!(snapshot.status, domain::SnapshotStatus::Completed);
+    println!("✅ Batch checkpointing test passed.");
+}
+

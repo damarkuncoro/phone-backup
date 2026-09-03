@@ -51,15 +51,17 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
     }
 
     fn create_physical_object(&self, chunk_id: &str, data: &[u8]) -> Result<(String, bool)> {
-        let mut processed_data = data.to_vec();
-        let mut comp_alg = "none".to_string();
-
-        // 3. Compress (Optional)
-        if data.len() > 1024 {
-            processed_data =
-                CompressionEngine::compress(&processed_data, CompressionAlgorithm::Zstd)?;
-            comp_alg = "zstd".to_string();
-        }
+        // 3. Compress directly from slice if large enough and beneficial
+        let (mut processed_data, comp_alg) = if data.len() > 1024 {
+            let compressed = CompressionEngine::compress(data, CompressionAlgorithm::Zstd)?;
+            if compressed.len() < data.len() {
+                (compressed, "zstd".to_string())
+            } else {
+                (data.to_vec(), "none".to_string())
+            }
+        } else {
+            (data.to_vec(), "none".to_string())
+        };
 
         // 4. Encrypt (Optional but recommended in V4.0)
         let _enc_version = if self.encryption.is_encrypted() { 1 } else { 0 };
