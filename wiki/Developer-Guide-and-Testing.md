@@ -59,4 +59,11 @@ cargo clippy --workspace --all-targets -- -D warnings
 ```
 
 ---
+
+## 5. Matriks Pengujian & Analisis Gap
+
+Laporan lengkap hasil pengujian unit, integrasi, dan analisis skenario batas (*edge cases*) yang belum teruji dapat dilihat di:
+- 📊 **[Laporan Hasil Uji Coba & Test Matrix](../docs/reports/test-cases-report.md)**
+
+---
 *Kembali ke: [Home](Home.md).*

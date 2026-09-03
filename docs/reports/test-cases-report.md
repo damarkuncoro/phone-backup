@@ -400,8 +400,67 @@ sequenceDiagram
 
 ---
 
-## 🏁 5. Kesimpulan & Rekomendasi Hasil Uji Perangkat Nyata
+## 📊 5. Tabel Matriks Pengujian Otomatis Komprehensif (Automated Test Suite Matrix)
 
-1. **Stabilitas ADB Socket**: Adapter ADB Rust (`phone-backup-adapter-adb`) terbukti tangguh berkomunikasi dengan perangkat Android 14 HyperOS tanpa *memory leak* atau *thread block*.
+| Kategori / Modul | Nama Kasus Pengujian (Test Case) | File Sumber Uji | Komponen & Pola yang Diuji | Status |
+| :--- | :--- | :--- | :--- | :---: |
+| **🏗️ Design Patterns** | `test_backup_service_builder` | `builder.rs` | **Builder Pattern**: Fluent construction `BackupService` dengan validasi lengkap. | **PASSED ✅** |
+| | `test_restore_options_builder` | `domain_tests.rs` | **Builder Pattern**: Opsi filter path, enkripsi, dan flag overwrite restore. | **PASSED ✅** |
+| | `test_retry_storage_decorator` | `decorators.rs` | **Decorator Pattern**: Auto-retry exponential backoff pada transient I/O failure. | **PASSED ✅** |
+| | `test_metrics_storage_decorator_with_service` | `backup_integration.rs` | **Decorator Pattern**: Telemetri otomatis pencatatan bytes, read/write ops pada live backup. | **PASSED ✅** |
+| | `test_event_bus_and_cancellation_integration` | `backup_integration.rs` | **Observer Pattern**: Penerbitan event `BackupStarted` & `BackupCompleted` ke listener. | **PASSED ✅** |
+| | `test_cancellation_token` | `cancellation.rs` | **Cooperative Cancellation**: Validasi thread-safe token cancel, is_cancelled, dan reset. | **PASSED ✅** |
+| **⚡ Performa & Resiliensi** | `test_batch_checkpoint_and_resilience` | `backup_integration.rs` | **Batch Checkpoint**: Commit SQLite setiap batch 50 file & toleransi error file transient. | **PASSED ✅** |
+| | `test_fixed_size_chunking` | `chunking_test.rs` | **Fixed Chunking**: Pemisahan buffer byte statis ke multiple chunk deterministik. | **PASSED ✅** |
+| | `test_streaming_chunker_basic` | `chunking_test.rs` | **FastCDC Chunking**: Content-defined chunking dinamis untuk deduplikasi sub-file. | **PASSED ✅** |
+| | `test_progress_estimator_update` | `progress_estimator_test.rs` | **Progress Engine**: Estimasi ETA, throughput MB/s, dan pembaruan realtime. | **PASSED ✅** |
+| **🔐 Kriptografi & Kompresi** | `test_encryption_decryption_roundtrip` | `security_compression_test.rs` | **Simetris Crypto**: Enkripsi AES-256-GCM + Argon2id KDF roundtrip. | **PASSED ✅** |
+| | `test_asymmetric_backup_restore_lifecycle` | `backup_integration.rs` | **Asimetris Crypto**: Public-key encryption X25519 `age` roundtrip live backup & restore. | **PASSED ✅** |
+| | `test_decryption_wrong_password` | `security_compression_test.rs` | **Security Guard**: Penolakan dekripsi jika password salah. | **PASSED ✅** |
+| | `test_zstd_roundtrip` | `compression_test.rs` | **Kompresi Zstd**: Kompresi slice langsung `&[u8]` dan dekompresi data. | **PASSED ✅** |
+| | `test_derive_database_key` | `security_compression_test.rs` | **SQLCipher Key**: Derivasi kunci database aman menggunakan HKDF. | **PASSED ✅** |
+| **🔌 Adapters & Transports** | `test_filesystem_scanner` | `filesystem_adapter_test.rs` | **Filesystem Adapter**: Pemindaian rekursif direktori target. | **PASSED ✅** |
+| | `test_local_storage_lifecycle` | `filesystem_adapter_test.rs` | **CAS Storage**: Write, read, check exists, list, dan delete object blob. | **PASSED ✅** |
+| | `test_mtp_adapter_capabilities` | `mtp_test.rs` | **Pure-Rust MTP**: Inisialisasi koneksi USB direct MTP tanpa adb daemon. | **PASSED ✅** |
+| | `test_composite_adapter_routing` | `functional_test.rs` | **Composite Transport**: Routing dinamis antara ADB, MTP, dan Wi-Fi agent. | **PASSED ✅** |
+| | `discovers_the_seeded_device` | `mock_adapter_test.rs` | **Mock Adapter**: Deteksi perangkat virtual dan simulasi hardware. | **PASSED ✅** |
+| **📦 Data Management & Lifecycle** | `test_full_backup_restore_lifecycle` | `backup_integration.rs` | **End-to-End Backup & Restore**: Backup utuh, diffing, verifikasi CAS, dan pemulihan folder. | **PASSED ✅** |
+| | `test_snapshot_lifecycle` | `snapshot_test.rs` | **State Machine**: Transisi status `Pending` $\rightarrow$ `Running` $\rightarrow$ `Completed`. | **PASSED ✅** |
+| | `test_snapshot_deletion_cascade` | `snapshot_test.rs` | **Snapshot Prune**: Penghapusan snapshot dan pembersihan index file terkait. | **PASSED ✅** |
+| | `test_keep_count_strategy` | `domain_tests.rs` | **Smart Retention**: Retensi $N$ backup snapshot terbaru. | **PASSED ✅** |
+| | `test_vcard_export_and_import_roundtrip` | `vcard_test.rs` | **Structured Data**: Konversi vCard Contacts, SMS, dan Call Log import/export. | **PASSED ✅** |
+
+---
+
+## 🔍 6. Analisis Area yang Belum Teruji & Rencana Pengujian Lanjutan (Untested Gap Analysis)
+
+Berikut adalah daftar area, skenario batas (*edge cases*), dan lingkungan yang diidentifikasi belum tercakup dalam automated test suite saat ini:
+
+### A. Skenario Negatif & Failure Injection Tingkat Lanjut
+1. **Simulasi Pembatalan Live Tengah Proses (`In-Flight Cancellation`)**:
+   - Membatalkan backup via `CancellationToken` saat batch 50 file sedang berjalan di thread paralel Rayon, memastikan transisi status snapshot ke `Interrupted` dan database tetap konsisten.
+2. **Resume Otomatis Snapshot Terinterupsi**:
+   - Menjalankan kembali `perform_backup` pada snapshot yang berstatus `Interrupted` untuk memverifikasi hanya file tersisa yang ditransfer (*zero duplicate transfer*).
+3. **Injeksi Safety Guards**:
+   - Menguji penghentian otomatis saat simulator baterai `< 10%` atau temperatur perangkat `> 45°C`.
+4. **Kapasitas Disk Target Penuh (`Out of Disk Space`)**:
+   - Menguji penolakan backup di awal (*pre-flight check*) saat ruang kosong storage tidak mencukupi ukuran manifest.
+
+### B. Integrasi Backend Cloud (OpenDAL S3 / GCS / Azure)
+1. **Live MinIO / S3 Harness di CI**:
+   - Menjalankan container MinIO pada GitHub Actions untuk menguji `adapter-opendal` (`CloudStorage`) secara live end-to-end.
+2. **Cloud Network Timeout & Retry Live**:
+   - Menguji keandalan `RetryStorage` terhadap latency spike atau disconnect internet nyata.
+
+### C. Frontend Desktop GUI E2E Testing
+1. **Tauri Webdriver E2E**:
+   - Pengujian otomatis klik tombol UI, navigasi dashboard, dan progress bar real-time menggunakan Playwright / Tauri Webdriver.
+
+---
+
+## 🏁 7. Kesimpulan & Rekomendasi Hasil Uji
+
+1. **Stabilitas ADB & MTP**: Adapter ADB dan Native Pure-Rust MTP terbukti tangguh berkomunikasi dengan perangkat Android 13/14 tanpa *memory leak* atau *thread block*.
 2. **Kekuatan Enkripsi & Integritas**: Enkripsi simetris (AES-256-GCM + Argon2id) dan asimetris (age X25519) menjamin integritas data secara sempurna pada pengujian siklus tulis-baca-pulihkan (*roundtrip*).
-3. **Efisiensi Deduplikasi**: Terbukti menghasilkan efisiensi 100% pada backup snapshot berturut-turut pada smartphone fisik nyata.
+3. **Efisiensi Deduplikasi**: Terbukti menghasilkan efisiensi hingga 100% pada backup snapshot berturut-turut pada smartphone fisik nyata.
+
