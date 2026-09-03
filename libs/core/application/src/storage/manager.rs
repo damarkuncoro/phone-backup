@@ -16,23 +16,14 @@ pub struct ObjectManager<'a, T: StoragePort, R: RepositoryPort> {
 
 impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
     pub fn new(storage: &'a T, repository: &'a R, encryption: &'a EncryptionMode) -> Self {
-        Self {
-            storage,
-            repository,
-            encryption,
-        }
+        Self { storage, repository, encryption }
     }
 
-    /// V4.0 Object Processing with context: Hashing -> Dedup -> Smart Compress -> Encrypt -> Store
     pub fn put_chunk(&self, data: &[u8]) -> Result<(String, bool)> {
         self.put_chunk_with_context(data, &FileMetadataContext::default())
     }
 
-    pub fn put_chunk_with_context(
-        &self,
-        data: &[u8],
-        context: &FileMetadataContext,
-    ) -> Result<(String, bool)> {
+    pub fn put_chunk_with_context(&self, data: &[u8], ctx: &FileMetadataContext) -> Result<(String, bool)> {
         let content_hash = calculate_hash(data);
         let plaintext_size = data.len() as u64;
 
@@ -40,11 +31,11 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
             if self.repository.get_storage_key_for_chunk(&chunk_id)?.is_some() {
                 return Ok((chunk_id, false));
             }
-            return self.create_physical_object_with_context(&chunk_id, data, context);
+            return self.create_physical_object_with_context(&chunk_id, data, ctx);
         }
 
         let chunk_id = self.repository.save_logical_chunk(&content_hash, plaintext_size)?;
-        self.create_physical_object_with_context(&chunk_id, data, context)
+        self.create_physical_object_with_context(&chunk_id, data, ctx)
     }
 
     fn create_physical_object_with_context(
@@ -53,25 +44,21 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
         data: &[u8],
         context: &FileMetadataContext,
     ) -> Result<(String, bool)> {
-        let comp_engine = SmartCompressionEngine::builder()
-            .with_android_dictionaries()
-            .build();
-        let (mut processed_data, stats) = comp_engine.compress(data, context)?;
+        let comp_engine = SmartCompressionEngine::builder().with_android_dictionaries().build();
+        let (mut processed, stats) = comp_engine.compress(data, context)?;
         let comp_alg = match stats.algorithm {
             CompressionAlgorithm::Zstd => "zstd".to_string(),
             CompressionAlgorithm::None => "none".to_string(),
         };
 
-        processed_data = match self.encryption {
-            EncryptionMode::Password(pwd) => EncryptionEngine::encrypt(&processed_data, pwd)?,
-            EncryptionMode::PublicKey(pk) => {
-                EncryptionEngine::encrypt_with_key(&processed_data, pk)?
-            }
-            EncryptionMode::None => processed_data,
+        processed = match self.encryption {
+            EncryptionMode::Password(pwd) => EncryptionEngine::encrypt(&processed, pwd)?,
+            EncryptionMode::PublicKey(pk) => EncryptionEngine::encrypt_with_key(&processed, pk)?,
+            EncryptionMode::None => processed,
         };
 
-        let object_hash = calculate_hash(&processed_data);
-        let stored_size = processed_data.len() as u64;
+        let object_hash = calculate_hash(&processed);
+        let stored_size = processed.len() as u64;
 
         if self.repository.get_physical_object_by_hash(&object_hash)?.is_some() {
             return Ok((chunk_id.to_string(), false));
@@ -79,8 +66,7 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
 
         let storage_key = ObjectStoreKey::generate_storage_key();
         let storage_path = ObjectStoreKey::compute_object_path_v4(&storage_key);
-
-        self.storage.write(&storage_path, &mut std::io::Cursor::new(processed_data))?;
+        self.storage.write(&storage_path, &mut std::io::Cursor::new(processed))?;
 
         self.repository.save_physical_object(
             chunk_id,
@@ -98,7 +84,7 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
         let storage_key = self
             .repository
             .get_storage_key_for_chunk(chunk_id)?
-            .ok_or_else(|| anyhow::anyhow!("Chunk object not found for ID: {}", chunk_id))?;
+            .ok_or_else(|| anyhow::anyhow!("Chunk object not found: {}", chunk_id))?;
 
         let storage_path = ObjectStoreKey::compute_object_path_v4(&storage_key);
         let mut reader = self.storage.read(&storage_path)?;
@@ -110,13 +96,11 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
             data = match self.encryption {
                 EncryptionMode::Password(pwd) => EncryptionEngine::decrypt(&data, pwd)?,
                 EncryptionMode::PublicKey(sk) => EncryptionEngine::decrypt_with_key(&data, sk)?,
-                EncryptionMode::None => anyhow::bail!("Data is encrypted but no key provided"),
+                EncryptionMode::None => anyhow::bail!("Encrypted data without key"),
             };
         }
 
-        let comp_engine = SmartCompressionEngine::builder()
-            .with_android_dictionaries()
-            .build();
+        let comp_engine = SmartCompressionEngine::builder().with_android_dictionaries().build();
         if let Ok(decompressed) = comp_engine.decompress(&data, CompressionAlgorithm::Zstd) {
             data = decompressed;
         }
@@ -124,8 +108,8 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
         Ok(data)
     }
 
-    pub fn put_object(&self, data: &[u8], mime_type: Option<&str>) -> Result<(String, u64, bool)> {
-        let ctx = match mime_type {
+    pub fn put_object(&self, data: &[u8], mime: Option<&str>) -> Result<(String, u64, bool)> {
+        let ctx = match mime {
             Some(m) => FileMetadataContext::new().with_mime(m),
             None => FileMetadataContext::default(),
         };
@@ -133,18 +117,23 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
         Ok((chunk_id, if is_new { data.len() as u64 } else { 0 }, false))
     }
 
-    pub fn chunk_and_put(
+    pub fn chunk_and_put(&self, data: &[u8], m: ChunkingMethod, c: ChunkConfig) -> Result<(Vec<Chunk>, u64)> {
+        self.chunk_and_put_with_context(data, m, c, &FileMetadataContext::default())
+    }
+
+    pub fn chunk_and_put_with_context(
         &self,
         data: &[u8],
         method: ChunkingMethod,
         config: ChunkConfig,
+        ctx: &FileMetadataContext,
     ) -> Result<(Vec<Chunk>, u64)> {
         let chunks = Chunker::chunk_data(data, method, config)?;
         let mut results = Vec::new();
         let mut reused_bytes = 0;
 
         for (mut chunk_info, chunk_data) in chunks {
-            let (chunk_id, is_new) = self.put_chunk(&chunk_data)?;
+            let (chunk_id, is_new) = self.put_chunk_with_context(&chunk_data, ctx)?;
             if !is_new {
                 reused_bytes += chunk_info.length as u64;
             }
@@ -161,12 +150,22 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
         method: ChunkingMethod,
         config: ChunkConfig,
     ) -> Result<(Vec<Chunk>, u64)> {
+        self.chunk_and_put_stream_with_context(reader, method, config, &FileMetadataContext::default())
+    }
+
+    pub fn chunk_and_put_stream_with_context<R2: std::io::Read + 'static>(
+        &self,
+        reader: R2,
+        method: ChunkingMethod,
+        config: ChunkConfig,
+        ctx: &FileMetadataContext,
+    ) -> Result<(Vec<Chunk>, u64)> {
         let mut results = Vec::new();
         let mut reused_bytes = 0;
         let mut stream = Chunker::create_stream(reader, method, config);
 
         while let Some((mut chunk_info, chunk_data)) = stream.next_chunk()? {
-            let (chunk_id, is_new) = self.put_chunk(&chunk_data)?;
+            let (chunk_id, is_new) = self.put_chunk_with_context(&chunk_data, ctx)?;
             if !is_new {
                 reused_bytes += chunk_info.length as u64;
             }

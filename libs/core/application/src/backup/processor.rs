@@ -1,6 +1,6 @@
 use crate::analysis::media::MediaAnalyzer;
 use crate::storage::manager::ObjectManager;
-use crate::storage::Chunk;
+use crate::storage::{Chunk, FileMetadataContext};
 use anyhow::Result;
 use domain::{DeviceId, FileEntry};
 use ports::{
@@ -54,7 +54,13 @@ where
             let (method, config) = self.chunking_policy.determine_strategy(&file);
             let mut content_reader = self.service.device_adapter.read_file(id, &file.path)?;
 
-            // 1. If it's an image, we still need to load it for thumbnail
+            let ext = file.name.rsplit('.').next().unwrap_or("");
+            let context = FileMetadataContext::new()
+                .with_mime(&file.mime_type)
+                .with_extension(ext)
+                .with_size(file.size_bytes as usize);
+
+            // 1. If it's an image, load it for thumbnail extraction
             if file.mime_type.starts_with("image/") && file.size_bytes > 0 {
                 let mut content_buf = Vec::with_capacity(file.size_bytes as usize);
                 content_reader.read_to_end(&mut content_buf)?;
@@ -78,18 +84,24 @@ where
                     }
                 }
 
-                // Process the image data (FullFile or FastCDC)
-                let (c, reused) =
-                    self.object_manager
-                        .chunk_and_put(&content_buf, method, config)?;
+                // Process image chunks with metadata context
+                let (c, reused) = self.object_manager.chunk_and_put_with_context(
+                    &content_buf,
+                    method,
+                    config,
+                    &context,
+                )?;
                 chunks = c;
                 file.hash_sha256 = Some(crate::storage::hashing::calculate_hash(&content_buf));
                 self.deduped_bytes.fetch_add(reused, Ordering::Relaxed);
             } else {
-                // 2. For non-images (Video, DB, etc.), use true streaming to save memory
-                let (c, reused) =
-                    self.object_manager
-                        .chunk_and_put_stream(content_reader, method, config)?;
+                // 2. For non-images (Video, DB, Docs), stream with metadata context
+                let (c, reused) = self.object_manager.chunk_and_put_stream_with_context(
+                    content_reader,
+                    method,
+                    config,
+                    &context,
+                )?;
                 chunks = c;
                 self.deduped_bytes.fetch_add(reused, Ordering::Relaxed);
 
