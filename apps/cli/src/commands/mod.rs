@@ -63,13 +63,14 @@ where
             include,
             exclude,
             compression,
+            medium,
         } => {
             let enc = if let Some(pwd) = password {
                 EncryptionMode::Password(pwd)
             } else {
                 encryption
             };
-            backup::run_backup(&service, &id, enc, include, exclude, &compression)?
+            backup::run_backup(&service, &id, enc, include, exclude, &compression, &medium)?
         }
         Commands::Snapshots { id, snapshot } => {
             if let Some(s_id) = snapshot.as_deref() {

@@ -46,6 +46,9 @@ pub enum Commands {
         /// Compression mode: auto, fast, max, none
         #[arg(short = 'c', long, default_value = "auto")]
         compression: String,
+        /// Dynamic CDC medium profile: auto, local, wifi, cloud, thermal
+        #[arg(short = 'm', long, default_value = "auto")]
+        medium: String,
     },
     /// List snapshots for a device
     Snapshots {
