@@ -4,6 +4,7 @@
 mod commands;
 mod setup;
 mod state;
+mod tray;
 
 use socketioxide::SocketIo;
 use tower_http::cors::CorsLayer;
@@ -53,6 +54,10 @@ fn main() {
                 error!("❌ Infrastructure Initialization Failed: {}", e);
                 e
             })?;
+
+            // 3. Initialize System Tray Icon
+            info!("🔔 Initializing System Tray Icon...");
+            let _ = tray::TrayManager::setup_tray(app.handle());
 
             info!("✅ Setup completed successfully");
             Ok(())
