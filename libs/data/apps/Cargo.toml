@@ -1,0 +1,14 @@
+[package]
+name = "phone-backup-apps"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Specialized Android application inspection, pure Rust AXML parsing, split APK bundling, and security risk auditing engine"
+
+[dependencies]
+domain = { workspace = true }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true

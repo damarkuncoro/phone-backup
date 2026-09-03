@@ -19,6 +19,7 @@ members = [
     "libs/data/contacts",
     "libs/media/image",
     "libs/data/messages",
+    "libs/data/apps",
 ]
 
 [workspace.package]
@@ -86,3 +87,4 @@ security = { path = "libs/storage/security", package = "phone-backup-security", 
 contacts = { path = "libs/data/contacts", package = "phone-backup-contacts", version = "0.4.1" }
 image-engine = { path = "libs/media/image", package = "phone-backup-image", version = "0.4.1" }
 messages = { path = "libs/data/messages", package = "phone-backup-messages", version = "0.4.1" }
+apps = { path = "libs/data/apps", package = "phone-backup-apps", version = "0.4.1" }
