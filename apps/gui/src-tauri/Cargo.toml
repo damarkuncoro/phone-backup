@@ -12,6 +12,8 @@ tauri = { version = "2.0", features = [] }
 tauri-plugin-shell = "2.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+chrono.workspace = true
+image = "0.24"
 anyhow.workspace = true
 application = { workspace = true }
 domain = { workspace = true }
@@ -22,6 +24,12 @@ adapter-database-sqlite = { workspace = true }
 adapter-filesystem = { workspace = true }
 adapter-mock = { workspace = true }
 adapter-opendal = { workspace = true }
+contacts = { workspace = true }
+image-engine = { workspace = true }
+messages = { workspace = true }
+apps = { workspace = true }
+whatsapp = { workspace = true }
+audio-engine = { workspace = true }
 axum.workspace = true
 socketioxide.workspace = true
 tower.workspace = true

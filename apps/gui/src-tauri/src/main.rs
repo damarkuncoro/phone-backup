@@ -102,7 +102,15 @@ fn main() {
             commands::system::resolve_mtp_conflicts,
             commands::system::open_restore_folder,
             commands::system::open_downloads_folder,
-            commands::contact::search_contacts
+            commands::contact::search_contacts,
+            commands::communication::export_contacts_csv,
+            commands::communication::export_sms_xml,
+            commands::communication::export_sms_html,
+            commands::communication::get_call_stats,
+            commands::communication::generate_whatsapp_archive_preview,
+            commands::media::analyze_audio_file,
+            commands::media::check_image_sharpness,
+            commands::app_audit::audit_apk_file,
         ])
         .run(tauri::generate_context!());
 

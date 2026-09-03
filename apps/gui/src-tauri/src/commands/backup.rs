@@ -132,77 +132,36 @@ pub async fn get_contact_diff(
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn export_contacts_vcard(
-    state: State<'_, AppState>,
-    snapshot_id: String,
-) -> Result<String, String> {
-    let id = SnapshotId(snapshot_id);
-    state
-        .engine
-        .export_contacts_vcard(&id)
-        .map_err(|e| e.to_string())
+pub async fn export_contacts_vcard(state: State<'_, AppState>, snapshot_id: String) -> Result<String, String> {
+    state.engine.export_contacts_vcard(&SnapshotId(snapshot_id)).map_err(|e| e.to_string())
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn get_snapshot_sms(
-    state: State<'_, AppState>,
-    snapshot_id: String,
-) -> Result<Vec<domain::Sms>, String> {
-    let id = SnapshotId(snapshot_id);
-    state
-        .engine
-        .get_snapshot_sms(&id)
-        .map_err(|e| e.to_string())
+pub async fn get_snapshot_sms(state: State<'_, AppState>, snapshot_id: String) -> Result<Vec<domain::Sms>, String> {
+    state.engine.get_snapshot_sms(&SnapshotId(snapshot_id)).map_err(|e| e.to_string())
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn search_sms(
-    state: State<'_, AppState>,
-    query: String,
-) -> Result<Vec<(SnapshotId, domain::Sms)>, String> {
+pub async fn search_sms(state: State<'_, AppState>, query: String) -> Result<Vec<(SnapshotId, domain::Sms)>, String> {
     state.engine.search_sms(&query).map_err(|e| e.to_string())
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn export_sms_json(
-    state: State<'_, AppState>,
-    snapshot_id: String,
-) -> Result<String, String> {
-    let id = SnapshotId(snapshot_id);
-    state.engine.export_sms_json(&id).map_err(|e| e.to_string())
+pub async fn export_sms_json(state: State<'_, AppState>, snapshot_id: String) -> Result<String, String> {
+    state.engine.export_sms_json(&SnapshotId(snapshot_id)).map_err(|e| e.to_string())
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn get_snapshot_call_logs(
-    state: State<'_, AppState>,
-    snapshot_id: String,
-) -> Result<Vec<domain::CallLog>, String> {
-    let id = SnapshotId(snapshot_id);
-    state
-        .engine
-        .get_snapshot_call_logs(&id)
-        .map_err(|e| e.to_string())
+pub async fn get_snapshot_call_logs(state: State<'_, AppState>, snapshot_id: String) -> Result<Vec<domain::CallLog>, String> {
+    state.engine.get_snapshot_call_logs(&SnapshotId(snapshot_id)).map_err(|e| e.to_string())
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn search_call_logs(
-    state: State<'_, AppState>,
-    query: String,
-) -> Result<Vec<(SnapshotId, domain::CallLog)>, String> {
-    state
-        .engine
-        .search_call_logs(&query)
-        .map_err(|e| e.to_string())
+pub async fn search_call_logs(state: State<'_, AppState>, query: String) -> Result<Vec<(SnapshotId, domain::CallLog)>, String> {
+    state.engine.search_call_logs(&query).map_err(|e| e.to_string())
 }
 
 #[tauri::command(rename_all = "snake_case")]
-pub async fn export_call_logs_json(
-    state: State<'_, AppState>,
-    snapshot_id: String,
-) -> Result<String, String> {
-    let id = SnapshotId(snapshot_id);
-    state
-        .engine
-        .export_call_logs_json(&id)
-        .map_err(|e| e.to_string())
+pub async fn export_call_logs_json(state: State<'_, AppState>, snapshot_id: String) -> Result<String, String> {
+    state.engine.export_call_logs_json(&SnapshotId(snapshot_id)).map_err(|e| e.to_string())
 }
