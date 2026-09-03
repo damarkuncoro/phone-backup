@@ -182,24 +182,9 @@ where
 
     for f in files {
         if f.mime_type.starts_with("image/") {
-            let camera = f
-                .media_info
-                .as_ref()
-                .and_then(|m| m.camera_model.clone())
-                .unwrap_or("-".into());
-            let taken = f
-                .media_info
-                .as_ref()
-                .and_then(|m| m.taken_at)
-                .map(|t| t.format("%Y-%m-%d").to_string())
-                .unwrap_or("-".into());
-            let loc = f
-                .media_info
-                .as_ref()
-                .and_then(|m| m.latitude.zip(m.longitude))
-                .map(|(lat, lon)| format!("{:.4}, {:.4}", lat, lon))
-                .unwrap_or("-".into());
-
+            let camera = f.media_info.as_ref().and_then(|m| m.camera_model.clone()).unwrap_or_else(|| "-".into());
+            let taken = f.media_info.as_ref().and_then(|m| m.taken_at).map(|t| t.format("%Y-%m-%d").to_string()).unwrap_or_else(|| "-".into());
+            let loc = f.media_info.as_ref().and_then(|m| m.latitude.zip(m.longitude)).map(|(lat, lon)| format!("{:.4}, {:.4}", lat, lon)).unwrap_or_else(|| "-".into());
             println!("{:<30} {:<15} {:<15} {}", f.name, camera, taken, loc);
         }
     }

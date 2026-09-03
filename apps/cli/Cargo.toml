@@ -21,9 +21,16 @@ adapter-mtp.workspace = true
 adapter-filesystem.workspace = true
 adapter-opendal.workspace = true
 adapter-database-sqlite.workspace = true
+contacts.workspace = true
+image-engine.workspace = true
+messages.workspace = true
+apps.workspace = true
+whatsapp.workspace = true
+audio-engine.workspace = true
 
 clap.workspace = true
 anyhow.workspace = true
+serde_json.workspace = true
 chrono.workspace = true
 number_prefix.workspace = true
 indicatif.workspace = true

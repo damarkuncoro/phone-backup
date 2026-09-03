@@ -164,6 +164,14 @@ pub enum Commands {
         #[command(subcommand)]
         command: ScheduleCommands,
     },
+    /// Export structured data (contacts, SMS, call logs)
+    Export(crate::commands::export::ExportArgs),
+    /// Audit application permissions and security risk
+    Audit(crate::commands::audit::AuditArgs),
+    /// WhatsApp backup tools and HTML offline archive
+    Whatsapp(crate::commands::whatsapp::WhatsAppArgs),
+    /// Audio inspection, tags, and waveform peaks
+    Audio(crate::commands::audio::AudioArgs),
 }
 
 #[derive(Subcommand)]
