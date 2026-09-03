@@ -17,6 +17,7 @@ members = [
     "libs/adapters/opendal",
     "libs/infrastructure/database-sqlite",
     "libs/data/contacts",
+    "libs/media/image",
 ]
 
 [workspace.package]
@@ -82,3 +83,4 @@ chunking = { path = "libs/storage/chunking", package = "phone-backup-chunking", 
 compression = { path = "libs/storage/compression", package = "phone-backup-compression", version = "0.4.1" }
 security = { path = "libs/storage/security", package = "phone-backup-security", version = "0.4.1" }
 contacts = { path = "libs/data/contacts", package = "phone-backup-contacts", version = "0.4.1" }
+image-engine = { path = "libs/media/image", package = "phone-backup-image", version = "0.4.1" }
