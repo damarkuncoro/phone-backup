@@ -1,0 +1,15 @@
+[package]
+name = "phone-backup-audio"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Specialized audio engine, WhatsApp PTT and call recording intelligence, pure Rust metadata tag extraction, and waveform generator"
+
+[dependencies]
+domain = { workspace = true }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tracing.workspace = true
