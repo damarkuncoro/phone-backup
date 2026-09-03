@@ -121,80 +121,32 @@ pub async fn get_mtp_conflicts() -> Result<Vec<String>, String> {
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn open_restore_folder(app_handle: tauri::AppHandle) -> Result<(), String> {
-    let path = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?
-        .join("workspace")
-        .join("restored_data");
-
-    if !path.exists() {
-        std::fs::create_dir_all(&path).map_err(|e| e.to_string())?;
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        std::process::Command::new("open")
-            .arg(&path)
-            .spawn()
-            .map_err(|e| e.to_string())?;
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        std::process::Command::new("explorer")
-            .arg(&path)
-            .spawn()
-            .map_err(|e| e.to_string())?;
-    }
-
-    #[cfg(target_os = "linux")]
-    {
-        std::process::Command::new("xdg-open")
-            .arg(&path)
-            .spawn()
-            .map_err(|e| e.to_string())?;
-    }
-
-    Ok(())
+    open_subfolder(&app_handle, "restored_data")
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn open_downloads_folder(app_handle: tauri::AppHandle) -> Result<(), String> {
+    open_subfolder(&app_handle, "downloads")
+}
+
+fn open_subfolder(app_handle: &tauri::AppHandle, folder_name: &str) -> Result<(), String> {
     let path = app_handle
         .path()
         .app_data_dir()
         .map_err(|e| e.to_string())?
         .join("workspace")
-        .join("downloads");
+        .join(folder_name);
 
     if !path.exists() {
         std::fs::create_dir_all(&path).map_err(|e| e.to_string())?;
     }
 
     #[cfg(target_os = "macos")]
-    {
-        std::process::Command::new("open")
-            .arg(&path)
-            .spawn()
-            .map_err(|e| e.to_string())?;
-    }
-
+    std::process::Command::new("open").arg(&path).spawn().map_err(|e| e.to_string())?;
     #[cfg(target_os = "windows")]
-    {
-        std::process::Command::new("explorer")
-            .arg(&path)
-            .spawn()
-            .map_err(|e| e.to_string())?;
-    }
-
+    std::process::Command::new("explorer").arg(&path).spawn().map_err(|e| e.to_string())?;
     #[cfg(target_os = "linux")]
-    {
-        std::process::Command::new("xdg-open")
-            .arg(&path)
-            .spawn()
-            .map_err(|e| e.to_string())?;
-    }
+    std::process::Command::new("xdg-open").arg(&path).spawn().map_err(|e| e.to_string())?;
 
     Ok(())
 }

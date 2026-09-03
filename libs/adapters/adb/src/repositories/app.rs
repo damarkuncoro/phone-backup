@@ -55,4 +55,48 @@ impl AdbAppRepository {
 
         res.map(|_| ())
     }
+
+    pub fn install_split_bundle(
+        &self,
+        device_id: &DeviceId,
+        splits: &[(&str, &[u8])],
+    ) -> Result<()> {
+        if splits.is_empty() {
+            anyhow::bail!("No APK splits provided for installation");
+        }
+
+        let create_out = self.client.shell(&device_id.0, "pm install-create -r")?;
+        let session_id = create_out
+            .split('[')
+            .nth(1)
+            .and_then(|s| s.split(']').next())
+            .map(|s| s.trim())
+            .ok_or_else(|| anyhow::anyhow!("Failed to parse session ID from: {}", create_out))?;
+
+        for (split_name, split_bytes) in splits {
+            let clean_name = split_name.trim_end_matches(".apk");
+            let remote_tmp = format!("/data/local/tmp/{}_{}.apk", session_id, clean_name);
+            if let Err(e) = self.client.push_file(&device_id.0, split_bytes, &remote_tmp) {
+                let _ = self.client.shell(&device_id.0, &format!("pm install-abandon {}", session_id));
+                anyhow::bail!("Failed to push split APK {}: {}", split_name, e);
+            }
+
+            let write_cmd = format!("pm install-write {} {} {}", session_id, clean_name, remote_tmp);
+            let write_res = self.client.shell(&device_id.0, &write_cmd);
+            let _ = self.client.shell(&device_id.0, &format!("rm {}", remote_tmp));
+
+            if let Err(e) = write_res {
+                let _ = self.client.shell(&device_id.0, &format!("pm install-abandon {}", session_id));
+                anyhow::bail!("Failed to write split APK {} to session: {}", split_name, e);
+            }
+        }
+
+        let commit_res = self.client.shell(&device_id.0, &format!("pm install-commit {}", session_id))?;
+        if commit_res.contains("Success") {
+            Ok(())
+        } else {
+            let _ = self.client.shell(&device_id.0, &format!("pm install-abandon {}", session_id));
+            anyhow::bail!("Session commit failed: {}", commit_res.trim())
+        }
+    }
 }

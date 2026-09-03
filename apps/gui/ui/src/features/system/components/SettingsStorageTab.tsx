@@ -1,5 +1,7 @@
-import { Database, HardDrive, Cloud, Cpu, FolderOpen, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { Database, HardDrive, Cloud, Cpu, FolderOpen, ExternalLink, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { cn } from "@/shared/lib/utils";
+import { safeInvoke } from '@/shared/lib/ipc';
 import { SettingsCompressionSection } from './SettingsCompressionSection';
 
 interface SettingsStorageTabProps {
@@ -33,6 +35,29 @@ export function SettingsStorageTab({
   setS3SecretKey,
   onOpenFolder,
 }: SettingsStorageTabProps) {
+  const [testingCloud, setTestingCloud] = useState(false);
+  const [cloudResult, setCloudResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const handleTestConnection = async () => {
+    setTestingCloud(true);
+    setCloudResult(null);
+    try {
+      const res = await safeInvoke<{ success: boolean; message: string }>('test_cloud_connection', {
+        provider: 's3',
+        bucket: s3Bucket,
+        endpoint: s3Endpoint || null,
+        region: s3Region || null,
+        access_key: s3AccessKey || null,
+        secret_key: s3SecretKey || null,
+      });
+      setCloudResult(res);
+    } catch (e: any) {
+      setCloudResult({ success: false, message: e?.toString() || 'Connection failed' });
+    } finally {
+      setTestingCloud(false);
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       <div className="bg-white p-6 md:p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
@@ -74,9 +99,21 @@ export function SettingsStorageTab({
 
         {currentBackendType === 'S3' && (
           <div className="p-6 bg-slate-50 border border-slate-200/80 rounded-3xl space-y-4 animate-in slide-in-from-top-2">
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
-              <Cloud className="w-4 h-4 text-indigo-600" /> Kredensial &amp; Endpoint S3 / MinIO
-            </h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
+                <Cloud className="w-4 h-4 text-indigo-600" /> Kredensial &amp; Endpoint S3 / MinIO
+              </h4>
+              <button
+                type="button"
+                onClick={handleTestConnection}
+                disabled={testingCloud || !s3Bucket.trim()}
+                className="flex items-center gap-1.5 px-3 py-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-all shadow-sm"
+              >
+                <RefreshCw className={cn("w-3 h-3", testingCloud && "animate-spin")} />
+                {testingCloud ? "Menguji..." : "Test Connection"}
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <input type="text" placeholder="Bucket Name" value={s3Bucket} onChange={(e) => setS3Bucket(e.target.value)} className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none" />
               <input type="text" placeholder="Region (us-east-1)" value={s3Region} onChange={(e) => setS3Region(e.target.value)} className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none" />
@@ -84,6 +121,13 @@ export function SettingsStorageTab({
               <input type="password" placeholder="Access Key ID" value={s3AccessKey} onChange={(e) => setS3AccessKey(e.target.value)} className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none" />
               <input type="password" placeholder="Secret Access Key" value={s3SecretKey} onChange={(e) => setS3SecretKey(e.target.value)} className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none" />
             </div>
+
+            {cloudResult && (
+              <div className={cn("flex items-center gap-2.5 p-3 rounded-xl text-xs font-bold", cloudResult.success ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-rose-50 text-rose-700 border border-rose-200")}>
+                {cloudResult.success ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : <AlertTriangle className="w-4 h-4 flex-shrink-0" />}
+                <span>{cloudResult.message}</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -102,7 +146,7 @@ export function SettingsStorageTab({
             <button type="button" onClick={() => onOpenFolder('downloads')} className="flex items-center justify-between p-4 bg-slate-50 hover:bg-indigo-50 border border-slate-200/70 hover:border-indigo-200 rounded-2xl transition-all group text-left">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-600 group-hover:text-indigo-600 shadow-sm"><FolderOpen className="w-5 h-5" /></div>
-                <div><p className="text-xs font-black text-slate-800">Buka Folder Unduhan</p><p className="text-[10px] text-slate-400">Lokasi berkas unduhan tunggal / batch</p></div>
+                <div><p className="text-xs font-black text-slate-800">Buka Folder Downloads</p><p className="text-[10px] text-slate-400">Berkas hasil unduhan manual dari HP</p></div>
               </div>
               <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-indigo-600" />
             </button>
@@ -113,17 +157,14 @@ export function SettingsStorageTab({
   );
 }
 
-function StorageCard({ selected, onClick, icon: Icon, title, desc, badge }: { selected: boolean; onClick: () => void; icon: any; title: string; desc: string; badge: string; }) {
+function StorageCard({ selected, onClick, icon: Icon, title, desc, badge }: any) {
   return (
-    <div onClick={onClick} className={cn("p-5 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between space-y-3", selected ? "bg-indigo-50/50 border-indigo-300 ring-2 ring-indigo-500/10 shadow-md shadow-indigo-100/50" : "bg-slate-50 border-slate-200/70 hover:border-slate-300")}>
-      <div className="flex items-center justify-between">
-        <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center", selected ? "bg-indigo-600 text-white shadow-md shadow-indigo-200" : "bg-white text-slate-600 border border-slate-200")}><Icon className="w-5 h-5" /></div>
-        <span className={cn("text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider", selected ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-600")}>{badge}</span>
+    <div onClick={onClick} className={cn("relative p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between space-y-3", selected ? "bg-indigo-50/50 border-indigo-600 shadow-sm" : "bg-white border-slate-100 hover:border-slate-200")}>
+      <div className="flex items-start justify-between">
+        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", selected ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20" : "bg-slate-100 text-slate-500")}><Icon className="w-5 h-5" /></div>
+        <span className={cn("text-[10px] font-black uppercase px-2 py-0.5 rounded-full", selected ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-500")}>{badge}</span>
       </div>
-      <div>
-        <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">{title}</h4>
-        <p className="text-[11px] text-slate-500 font-medium mt-1 leading-relaxed">{desc}</p>
-      </div>
+      <div><h4 className="text-xs font-black text-slate-900">{title}</h4><p className="text-[11px] text-slate-400 font-medium leading-relaxed mt-1">{desc}</p></div>
     </div>
   );
 }

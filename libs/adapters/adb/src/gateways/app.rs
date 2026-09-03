@@ -26,4 +26,12 @@ impl AppProviderPort for AdbAppGateway {
     fn install_app(&self, device_id: &DeviceId, apk_data: &mut dyn std::io::Read) -> Result<()> {
         self.repo.install_app(device_id, apk_data)
     }
+
+    fn install_split_bundle(
+        &self,
+        device_id: &DeviceId,
+        splits: &[(&str, &[u8])],
+    ) -> Result<()> {
+        self.repo.install_split_bundle(device_id, splits)
+    }
 }

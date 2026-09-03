@@ -1,5 +1,6 @@
 pub mod app_audit;
 pub mod backup;
+pub mod cloud;
 pub mod communication;
 pub mod contact;
 pub mod device;

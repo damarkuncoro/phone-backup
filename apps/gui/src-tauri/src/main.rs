@@ -111,6 +111,7 @@ fn main() {
             commands::media::analyze_audio_file,
             commands::media::check_image_sharpness,
             commands::app_audit::audit_apk_file,
+            commands::cloud::test_cloud_connection,
         ])
         .run(tauri::generate_context!());
 

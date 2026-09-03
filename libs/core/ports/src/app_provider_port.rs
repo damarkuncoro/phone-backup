@@ -10,4 +10,13 @@ pub trait AppProviderPort: Send + Sync {
 
     /// Install an APK to the device.
     fn install_app(&self, device_id: &DeviceId, apk_data: &mut dyn std::io::Read) -> Result<()>;
+
+    /// Install a multi-split APK bundle to the device via session-based install.
+    fn install_split_bundle(
+        &self,
+        _device_id: &DeviceId,
+        _splits: &[(&str, &[u8])],
+    ) -> Result<()> {
+        anyhow::bail!("Split APK installation not supported by this provider")
+    }
 }

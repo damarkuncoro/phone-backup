@@ -24,6 +24,7 @@ adapter-database-sqlite = { workspace = true }
 adapter-filesystem = { workspace = true }
 adapter-mock = { workspace = true }
 adapter-opendal = { workspace = true }
+opendal = { workspace = true }
 contacts = { workspace = true }
 image-engine = { workspace = true }
 messages = { workspace = true }
