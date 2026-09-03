@@ -4,6 +4,7 @@
 
 mod app_provider_port;
 mod data_provider_port;
+pub mod decorators;
 mod device_port;
 mod progress_port;
 mod repository_port;
@@ -12,6 +13,7 @@ mod storage_port;
 
 pub use app_provider_port::AppProviderPort;
 pub use data_provider_port::DataProviderPort;
+pub use decorators::{MetricsStorage, RetryStorage, StorageMetrics};
 pub use device_port::DevicePort;
 pub use progress_port::{NoProgress, ProgressPort};
 pub use repository_port::{

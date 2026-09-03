@@ -9,3 +9,5 @@ repository.workspace = true
 [dependencies]
 domain = { workspace = true }
 anyhow.workspace = true
+tracing.workspace = true
+

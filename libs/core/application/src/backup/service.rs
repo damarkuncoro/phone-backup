@@ -92,16 +92,34 @@ impl<
             .create_snapshot(&snapshot)
             .or_else(|_| self.repository.update_snapshot(&snapshot))?;
 
+        if let Some(ref bus) = self.event_bus {
+            bus.publish(&domain::DomainEvent::BackupStarted {
+                snapshot_id: snapshot.id.clone(),
+                device_id: id.clone(),
+                timestamp: chrono::Utc::now(),
+            });
+        }
+
         let guard = SnapshotGuard::new(&self.repository, &mut snapshot);
 
-        self.upload_files(
+        if let Err(e) = self.upload_files(
             id,
             &plan.upload,
             &previous_files,
             &already_backed_up,
             guard.snapshot,
             &encryption,
-        )?;
+        ) {
+            if let Some(ref bus) = self.event_bus {
+                bus.publish(&domain::DomainEvent::BackupFailed {
+                    snapshot_id: guard.snapshot.id.clone(),
+                    device_id: id.clone(),
+                    reason: e.to_string(),
+                    timestamp: chrono::Utc::now(),
+                });
+            }
+            return Err(e);
+        }
 
         // 5. BACKUP STRUCTURED DATA (Apps, SMS, etc.)
         self.backup_metadata_and_structured_data(id, guard.snapshot, &encryption)?;
@@ -118,6 +136,16 @@ impl<
 
         self.repository.update_snapshot(guard.snapshot)?;
         guard.mark_completed();
+
+        if let Some(ref bus) = self.event_bus {
+            bus.publish(&domain::DomainEvent::BackupCompleted {
+                snapshot_id: snapshot.id.clone(),
+                device_id: id.clone(),
+                total_files: snapshot.total_files,
+                total_bytes: snapshot.total_bytes,
+                timestamp: chrono::Utc::now(),
+            });
+        }
 
         // --- SMART RETENTION ---
         let _ = self.apply_retention_strategy(id, &domain::KeepCountStrategy { keep_limit: 10 });

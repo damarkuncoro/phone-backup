@@ -7,6 +7,7 @@
 mod app;
 mod backup_plan;
 mod capability;
+mod cancellation;
 mod crypto;
 mod data;
 mod device;
@@ -30,6 +31,7 @@ mod restore;
 pub use app::{AppId, AppInfo};
 pub use backup_plan::{BackupPlan, DeletedFile, FileReuse};
 pub use capability::{Capability, CapabilityMatrix, CapabilityStatus};
+pub use cancellation::CancellationToken;
 pub use crypto::EncryptionMode;
 pub use data::*;
 pub use device::{ConnectionType, Device, DeviceId};

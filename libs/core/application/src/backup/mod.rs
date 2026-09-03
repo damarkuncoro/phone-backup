@@ -35,6 +35,8 @@ pub struct BackupService<
     pub(crate) app_provider: A,
     pub(crate) data_provider: DP,
     pub(crate) progress: P,
+    pub event_bus: Option<domain::DomainEventBus>,
+    pub cancellation_token: Option<domain::CancellationToken>,
 }
 
 impl<D, S, R, T, A, DP, P> BackupService<D, S, R, T, A, DP, P>
@@ -68,6 +70,8 @@ where
             app_provider,
             data_provider,
             progress,
+            event_bus: None,
+            cancellation_token: None,
         }
     }
 }

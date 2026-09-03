@@ -167,3 +167,103 @@ fn test_batch_checkpoint_and_resilience() {
     println!("✅ Batch checkpointing test passed.");
 }
 
+struct TestEventCollector {
+    events: Mutex<Vec<domain::DomainEvent>>,
+}
+
+impl domain::DomainEventHandler for TestEventCollector {
+    fn handle(&self, event: &domain::DomainEvent) {
+        self.events.lock().unwrap().push(event.clone());
+    }
+}
+
+#[test]
+fn test_event_bus_and_cancellation_integration() {
+    let _guard = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp_repo_dir = TempDir::new().unwrap();
+    let tmp_storage_dir = TempDir::new().unwrap();
+
+    let db_path = tmp_repo_dir.path().join("test_events.db");
+    let storage_path = tmp_storage_dir.path().to_str().unwrap();
+
+    let repository = SqliteRepository::new(db_path.to_str().unwrap()).unwrap();
+    let storage = LocalStorage::new(storage_path).unwrap();
+
+    // Setup Event Bus and Collector
+    let event_bus = domain::DomainEventBus::new();
+    let collector = std::sync::Arc::new(TestEventCollector {
+        events: Mutex::new(Vec::new()),
+    });
+    event_bus.subscribe(collector.clone());
+
+    let token = domain::CancellationToken::new();
+
+    let service = BackupService::builder()
+        .with_device_adapter(MockDeviceAdapter::with_device_id("DEV_EVENTS"))
+        .with_scanner_adapter(MockScannerAdapter)
+        .with_repository(repository)
+        .with_storage(storage)
+        .with_app_provider(MockAppProvider)
+        .with_data_provider(MockDataProvider)
+        .with_progress(ports::NoProgress)
+        .with_event_bus(event_bus)
+        .with_cancellation_token(token)
+        .build()
+        .unwrap();
+
+    let devices = service.list_devices().unwrap();
+    let device_id = devices[0].id.clone();
+
+    let snapshot = service
+        .perform_backup(&device_id, domain::EncryptionMode::None, None)
+        .unwrap();
+
+    assert_eq!(snapshot.status, domain::SnapshotStatus::Completed);
+
+    let recorded = collector.events.lock().unwrap();
+    assert!(recorded.len() >= 2);
+    assert!(matches!(&recorded[0], domain::DomainEvent::BackupStarted { .. }));
+    assert!(matches!(&recorded.last().unwrap(), domain::DomainEvent::BackupCompleted { .. }));
+    println!("✅ Event Bus and CancellationToken integration verified.");
+}
+
+#[test]
+fn test_metrics_storage_decorator_with_service() {
+    use ports::MetricsStorage;
+
+    let _guard = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let tmp_repo_dir = TempDir::new().unwrap();
+    let tmp_storage_dir = TempDir::new().unwrap();
+
+    let db_path = tmp_repo_dir.path().join("test_metrics.db");
+    let storage_path = tmp_storage_dir.path().to_str().unwrap();
+
+    let repository = SqliteRepository::new(db_path.to_str().unwrap()).unwrap();
+    let raw_storage = LocalStorage::new(storage_path).unwrap();
+    let storage = MetricsStorage::new(raw_storage);
+
+    let service = BackupService::builder()
+        .with_device_adapter(MockDeviceAdapter::with_device_id("DEV_METRICS"))
+        .with_scanner_adapter(MockScannerAdapter)
+        .with_repository(repository)
+        .with_storage(storage)
+        .with_app_provider(MockAppProvider)
+        .with_data_provider(MockDataProvider)
+        .with_progress(ports::NoProgress)
+        .build()
+        .unwrap();
+
+    let devices = service.list_devices().unwrap();
+    let device_id = devices[0].id.clone();
+
+    service
+        .perform_backup(&device_id, domain::EncryptionMode::None, None)
+        .unwrap();
+
+    let metrics = service.storage.metrics();
+    assert!(metrics.bytes_written > 0);
+    assert!(metrics.write_ops > 0);
+    println!("✅ MetricsStorage decorator integration verified: {} bytes written across {} ops", metrics.bytes_written, metrics.write_ops);
+}
+
+

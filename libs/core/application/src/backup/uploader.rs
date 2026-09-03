@@ -52,6 +52,18 @@ impl<
         let snapshot_id = snapshot.id.clone();
 
         for batch in files.chunks(CHECKPOINT_BATCH_SIZE) {
+            if let Some(ref token) = self.cancellation_token {
+                if token.is_cancelled() {
+                    let _ = self.mark_interrupted(
+                        snapshot,
+                        total_files_atomic.load(Ordering::Relaxed),
+                        total_bytes_atomic.load(Ordering::Relaxed),
+                        deduped_bytes_atomic.load(Ordering::Relaxed),
+                    );
+                    anyhow::bail!("Backup was cancelled by user");
+                }
+            }
+
             let processed_batch = Mutex::new(Vec::with_capacity(batch.len()));
             let batch_chunks = Mutex::new(Vec::new());
 

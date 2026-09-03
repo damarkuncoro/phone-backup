@@ -14,6 +14,8 @@ pub struct BackupServiceBuilder<D, S, R, T, A, DP, P> {
     app_provider: Option<A>,
     data_provider: Option<DP>,
     progress: Option<P>,
+    event_bus: Option<domain::DomainEventBus>,
+    cancellation_token: Option<domain::CancellationToken>,
 }
 
 impl<D, S, R, T, A, DP, P> Default for BackupServiceBuilder<D, S, R, T, A, DP, P> {
@@ -26,6 +28,8 @@ impl<D, S, R, T, A, DP, P> Default for BackupServiceBuilder<D, S, R, T, A, DP, P
             app_provider: None,
             data_provider: None,
             progress: None,
+            event_bus: None,
+            cancellation_token: None,
         }
     }
 }
@@ -67,6 +71,16 @@ impl<D, S, R, T, A, DP, P> BackupServiceBuilder<D, S, R, T, A, DP, P> {
 
     pub fn with_progress(mut self, progress: P) -> Self {
         self.progress = Some(progress);
+        self
+    }
+
+    pub fn with_event_bus(mut self, event_bus: domain::DomainEventBus) -> Self {
+        self.event_bus = Some(event_bus);
+        self
+    }
+
+    pub fn with_cancellation_token(mut self, token: domain::CancellationToken) -> Self {
+        self.cancellation_token = Some(token);
         self
     }
 }
@@ -112,7 +126,7 @@ where
             None => bail!("Missing required progress port in BackupServiceBuilder"),
         };
 
-        Ok(BackupService::new(
+        let mut service = BackupService::new(
             device_adapter,
             scanner_adapter,
             repository,
@@ -120,7 +134,11 @@ where
             app_provider,
             data_provider,
             progress,
-        ))
+        );
+        service.event_bus = self.event_bus;
+        service.cancellation_token = self.cancellation_token;
+
+        Ok(service)
     }
 }
 
