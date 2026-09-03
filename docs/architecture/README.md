@@ -42,6 +42,7 @@ For detailed technical internals, please refer to the following documents:
 | Document | Topic |
 | :--- | :--- |
 | 📘 **[V4.0 Technical Manual](V4_Technical_Manual.md)** | Logical vs Physical separation, UUIDv7 obfuscation, and Expert Chunking. |
+| ⚡ **[Data Optimization Engine](data-optimization-engine.md)** | 19 Compression Pillars, Zstd Auto-Dictionary, FastCDC CAS, and Next Horizons. |
 | 📒 **[Chunking Strategy Master](../references/chunk/Chunking_Strategy_Master.md)** | Deep dive into CDC algorithms and deduplication ratios. |
 | 📱 **[Companion Agent Roadmap](companion-agent-roadmap.md)** | Wi-Fi local backup protocol and mDNS discovery. |
 
