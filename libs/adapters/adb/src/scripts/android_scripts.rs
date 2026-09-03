@@ -18,6 +18,10 @@ impl AndroidScripts {
         format!("content query --uri {} --projection {}", uri, projection)
     }
 
+    pub fn content_query_ordered(uri: &str, projection: &str, sort_order: &str) -> String {
+        format!("content query --uri {} --projection {} --sort \"{}\"", uri, projection, sort_order)
+    }
+
     pub fn find_files(roots: &[String]) -> String {
         let roots_str = roots.join(" ");
         format!("find {} -type f ! -path '*/.trash/*' ! -path '*/cache/*' ! -path '*/.cache/*' -exec stat -c '%n|%s|%Y' {{}} + 2>/dev/null", roots_str)

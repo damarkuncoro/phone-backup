@@ -22,8 +22,27 @@ impl AdbDataRepository {
         projection: &str,
     ) -> Result<String> {
         let script = AndroidScripts::content_query(uri, projection);
-        let output = self.client.shell(&device_id.0, &script);
+        self.execute_query(device_id, uri, &script)
+    }
 
+    fn safe_content_query_ordered(
+        &self,
+        device_id: &DeviceId,
+        uri: &str,
+        projection: &str,
+        sort: &str,
+    ) -> Result<String> {
+        let script = AndroidScripts::content_query_ordered(uri, projection, sort);
+        self.execute_query(device_id, uri, &script)
+    }
+
+    fn execute_query(
+        &self,
+        device_id: &DeviceId,
+        uri: &str,
+        script: &str,
+    ) -> Result<String> {
+        let output = self.client.shell(&device_id.0, script);
         match output {
             Ok(out) => {
                 if out.contains("Permission denied") || out.contains("Error") {
@@ -48,16 +67,21 @@ impl AdbDataRepository {
     }
 
     pub fn list_sms(&self, device_id: &DeviceId) -> Result<Vec<Sms>> {
-        let output =
-            self.safe_content_query(device_id, "content://sms", "address:body:date:type")?;
+        let output = self.safe_content_query_ordered(
+            device_id,
+            "content://sms",
+            "address:body:date:type",
+            "date DESC",
+        )?;
         Ok(CommunicationParser::parse_sms(&output))
     }
 
     pub fn list_call_logs(&self, device_id: &DeviceId) -> Result<Vec<CallLog>> {
-        let output = self.safe_content_query(
+        let output = self.safe_content_query_ordered(
             device_id,
             "content://call_log/calls",
             "number:date:duration:type:name:geocoded_location",
+            "date DESC",
         )?;
         Ok(CommunicationParser::parse_call_logs(&output))
     }
