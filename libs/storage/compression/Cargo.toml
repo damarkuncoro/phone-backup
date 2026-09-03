@@ -8,8 +8,10 @@ license.workspace = true
 [dependencies]
 zstd.workspace = true
 anyhow.workspace = true
+rayon = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 
 [features]
-default = []
+default = ["parallel"]
+parallel = ["rayon"]
 derive = ["serde"]
