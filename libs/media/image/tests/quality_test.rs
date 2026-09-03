@@ -50,3 +50,25 @@ fn test_pipeline_builder_full_processing() {
     assert!(result.thumbnails.len() >= 2);
     assert!(result.dhash > 0);
 }
+
+#[test]
+fn test_real_device_photo_pipeline_if_present() {
+    if let Ok(bytes) = std::fs::read("/tmp/test_real_device_photo.jpg") {
+        let pipeline = ImagePipelineBuilder::new()
+            .with_thumbnail_quality(85)
+            .with_blur_threshold(35.0);
+
+        let result = pipeline.process(&bytes).expect("Failed to process real device photo");
+        assert!(result.info.dimensions.width > 0);
+        assert!(result.info.dimensions.height > 0);
+        assert!(!result.thumbnails.is_empty());
+        println!("Real device photo processed: {}x{}, dHash: {:016x}, aHash: {:016x}, sharpness: {:.2}",
+            result.info.dimensions.width,
+            result.info.dimensions.height,
+            result.dhash,
+            result.ahash,
+            result.sharpness
+        );
+    }
+}
+
