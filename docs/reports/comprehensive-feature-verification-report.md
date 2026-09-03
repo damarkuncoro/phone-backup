@@ -12,7 +12,7 @@ Dokumen ini merekam hasil audit dan pengujian end-to-end terhadap seluruh fitur 
 | **Unit & Integration Tests** | Seluruh test suite di direktori `tests/` | ✅ 100% LULUS |
 | **Frontend Desktop UI** | TypeScript build (`npm run build`) | ✅ 0 Warning / 0 Error |
 | **Pengujian Hardware Nyata** | Smartphone fisik **Vivo V2317 (Android 15)** | ✅ Terverifikasi Nyata |
-| **Standar Ukuran Berkas** | Maksimal 200 baris per file (Clean Architecture) | ✅ 100% Patuh ($\le 195$ baris) |
+| **Standar Ukuran Berkas** | Maksimal 200 baris per file (Clean Architecture) | ✅ 100% Patuh ($\le 173$ baris) |
 
 ---
 
@@ -50,20 +50,12 @@ Dokumen ini merekam hasil audit dan pengujian end-to-end terhadap seluruh fitur 
 
 ---
 
-## 3. Hasil Pengujian Nyata (*Real Device* - Vivo V2317 Android 15)
+## 3. Fitur yang Baru Saja Diimplementasikan & Divalidasi
 
-```text
-Device Identification:
-├── ID: 10DDAJ0G7D0002L (Vivo V2317, Android 15)
-├── Status Penyimpanan: 19.3% terpakai (46.8 GB / 242 GB)
-├── Live Backup Job: Berhasil mencadangkan berkas dokumen riil (/sdcard/Documents/)
-├── Manifest Hash: manifests/a02c4e0a-13e3-442c-94d7-0fb40e464a97.json
-├── Deep App Metadata: Berhasil mengekstrak nama aplikasi & versi riil (WhatsApp 2.26.33.76, Maps, Chrome, YouTube)
-└── Restore Test: 100% berkas berhasil direkonstruksi tanpa cacat (bit-for-bit identical).
-```
+1. **Session-based Split APKs Installer**:
+   - Menambahkan `install_split_bundle` pada `AppProviderPort` dan `AdbAppRepository`.
+   - Menggunakan alur sesi multi-split (`pm install-create`, `pm install-write`, `pm install-commit`/`pm install-abandon`) untuk menginstall aplikasi modern yang terdiri dari beberapa split APK secara atomik.
 
----
-
-## 4. Perbaikan & Penguatan Produksi (*Production Hardening*)
-- **Graceful SIGPIPE**: Reset sinyal UNIX `SIGPIPE` pada binary CLI sehingga pemipaan output (`| head`, `| grep`) tidak pernah mengalami crash atau *Rust panic*.
-- **Ordered Content Queries**: Query SMS & Call Log menggunakan pengurutan `date DESC` terindeks untuk pemrosesan instan.
+2. **Live Cloud Connection Verification di GUI**:
+   - Tombol *"Test Connection"* pada Settings Storage Tab kini memicu uji ping/stat live ke AWS S3/MinIO via OpenDAL Operator.
+   - Memberikan indikator status visual (hijau untuk sukses, merah dengan pesan error jika bucket/kredensial salah).
