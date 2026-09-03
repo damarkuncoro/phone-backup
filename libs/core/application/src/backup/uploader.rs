@@ -52,6 +52,8 @@ impl<
         let snapshot_id = snapshot.id.clone();
 
         for batch in files.chunks(CHECKPOINT_BATCH_SIZE) {
+            self.check_battery_and_thermal(id)?;
+
             if let Some(ref token) = self.cancellation_token {
                 if token.is_cancelled() {
                     let _ = self.mark_interrupted(

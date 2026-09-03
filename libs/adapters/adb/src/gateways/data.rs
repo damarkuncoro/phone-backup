@@ -26,4 +26,8 @@ impl DataProviderPort for AdbDataGateway {
     fn list_call_logs(&self, device_id: &DeviceId) -> Result<Vec<CallLog>> {
         self.repo.list_call_logs(device_id)
     }
+
+    fn restore_contacts(&self, device_id: &DeviceId, contacts: &[Contact]) -> Result<usize> {
+        self.repo.restore_contacts(device_id, contacts)
+    }
 }

@@ -30,6 +30,8 @@ impl AndroidScripts {
     pub fn query_mediastore(media_type: &str) -> String {
         let uri = match media_type {
             "video" => "content://media/external/video/media",
+            "audio" => "content://media/external/audio/media",
+            "file" => "content://media/external/file",
             _ => "content://media/external/images/media",
         };
         // data: path, _size: size, date_modified: time, mime_type, width, height, datetaken: creation time, latitude, longitude

@@ -155,7 +155,7 @@ impl<
         Ok(snapshot)
     }
 
-    fn check_battery_and_thermal(&self, id: &DeviceId) -> Result<()> {
+    pub(crate) fn check_battery_and_thermal(&self, id: &DeviceId) -> Result<()> {
         if let Ok((level, temp)) = self.device_adapter.battery_status(id) {
             if level < 10 {
                 anyhow::bail!("Battery too low ({}%). Please charge your device.", level);

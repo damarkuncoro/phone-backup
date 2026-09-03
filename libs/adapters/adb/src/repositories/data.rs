@@ -85,4 +85,48 @@ impl AdbDataRepository {
         )?;
         Ok(CommunicationParser::parse_call_logs(&output))
     }
+
+    pub fn restore_contacts(&self, device_id: &DeviceId, contacts: &[Contact]) -> Result<usize> {
+        let mut restored = 0;
+        for contact in contacts {
+            let create_cmd = "content insert --uri content://com.android.contacts/raw_contacts --bind account_type:s:null --bind account_name:s:null";
+            if let Ok(raw_out) = self.client.shell(&device_id.0, create_cmd) {
+                // Extract raw_contact_id from URI or Row
+                if let Some(id_str) = raw_out.split('/').last().or_else(|| raw_out.split('=').last()) {
+                    let clean_id = id_str.trim();
+                    if let Ok(raw_id) = clean_id.parse::<i64>() {
+                        // Insert Display Name
+                        if !contact.display_name.is_empty() {
+                            let name_cmd = format!(
+                                "content insert --uri content://com.android.contacts/data --bind raw_contact_id:i:{} --bind mimetype:s:vnd.android.cursor.item/name --bind data1:s:\"{}\"",
+                                raw_id, contact.display_name
+                            );
+                            let _ = self.client.shell(&device_id.0, &name_cmd);
+                        }
+
+                        // Insert Phone numbers
+                        for phone in &contact.phones {
+                            let phone_cmd = format!(
+                                "content insert --uri content://com.android.contacts/data --bind raw_contact_id:i:{} --bind mimetype:s:vnd.android.cursor.item/phone_v2 --bind data1:s:\"{}\"",
+                                raw_id, phone.raw_value
+                            );
+                            let _ = self.client.shell(&device_id.0, &phone_cmd);
+                        }
+
+                        // Insert Emails
+                        for email in &contact.emails {
+                            let email_cmd = format!(
+                                "content insert --uri content://com.android.contacts/data --bind raw_contact_id:i:{} --bind mimetype:s:vnd.android.cursor.item/email_v2 --bind data1:s:\"{}\"",
+                                raw_id, email.value
+                            );
+                            let _ = self.client.shell(&device_id.0, &email_cmd);
+                        }
+
+                        restored += 1;
+                    }
+                }
+            }
+        }
+        Ok(restored)
+    }
 }
