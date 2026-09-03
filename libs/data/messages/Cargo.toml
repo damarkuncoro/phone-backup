@@ -1,0 +1,15 @@
+[package]
+name = "phone-backup-messages"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Specialized SMS, MMS, RCS, conversation threading, OTP extraction, XML/HTML export, and call log intelligence engine"
+
+[dependencies]
+domain = { workspace = true }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tracing.workspace = true

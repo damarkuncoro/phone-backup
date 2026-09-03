@@ -34,11 +34,7 @@ where
     }
 
     #[instrument(skip(self))]
-    pub fn get_structured_data(
-        &self,
-        snapshot_id: &SnapshotId,
-        data_type: StructuredDataType,
-    ) -> Result<serde_json::Value> {
+    pub fn get_structured_data(&self, snapshot_id: &SnapshotId, data_type: StructuredDataType) -> Result<serde_json::Value> {
         info!("Fetching structured data '{}' for snapshot {}", data_type, snapshot_id.0);
 
         match data_type {
@@ -109,6 +105,50 @@ where
     }
 
     #[instrument(skip(self))]
+    pub fn export_sms_xml(&self, snapshot_id: &SnapshotId) -> Result<String> {
+        let domain_sms = self.repository.get_snapshot_sms(snapshot_id)?;
+        let msgs: Vec<messages::SmsMessage> = domain_sms
+            .into_iter()
+            .enumerate()
+            .map(|(idx, s)| {
+                let msg_type = match s.type_code {
+                    2 => messages::MessageType::Sent,
+                    3 => messages::MessageType::Draft,
+                    4 => messages::MessageType::Outbox,
+                    _ => messages::MessageType::Inbox,
+                };
+                messages::SmsMessageBuilder::new(idx.to_string(), s.address, s.body)
+                    .with_date(s.date)
+                    .with_type(msg_type)
+                    .build()
+            })
+            .collect();
+        messages::MessageFormatterFactory::export(&msgs, messages::MessageExportFormat::Xml)
+    }
+
+    #[instrument(skip(self))]
+    pub fn export_sms_html(&self, snapshot_id: &SnapshotId) -> Result<String> {
+        let domain_sms = self.repository.get_snapshot_sms(snapshot_id)?;
+        let msgs: Vec<messages::SmsMessage> = domain_sms
+            .into_iter()
+            .enumerate()
+            .map(|(idx, s)| {
+                let msg_type = match s.type_code {
+                    2 => messages::MessageType::Sent,
+                    3 => messages::MessageType::Draft,
+                    4 => messages::MessageType::Outbox,
+                    _ => messages::MessageType::Inbox,
+                };
+                messages::SmsMessageBuilder::new(idx.to_string(), s.address, s.body)
+                    .with_date(s.date)
+                    .with_type(msg_type)
+                    .build()
+            })
+            .collect();
+        messages::MessageFormatterFactory::export(&msgs, messages::MessageExportFormat::Html)
+    }
+
+    #[instrument(skip(self))]
     pub fn get_snapshot_call_logs(&self, snapshot_id: &SnapshotId) -> Result<Vec<domain::CallLog>> {
         self.repository.get_snapshot_call_logs(snapshot_id)
     }
@@ -117,5 +157,33 @@ where
     pub fn export_call_logs_json(&self, snapshot_id: &SnapshotId) -> Result<String> {
         let logs = self.repository.get_snapshot_call_logs(snapshot_id)?;
         Ok(serde_json::to_string_pretty(&logs)?)
+    }
+
+    #[instrument(skip(self))]
+    pub fn get_call_stats(&self, snapshot_id: &SnapshotId) -> Result<messages::CallStatsSummary> {
+        let logs = self.repository.get_snapshot_call_logs(snapshot_id)?;
+        let entries: Vec<messages::CallEntry> = logs
+            .into_iter()
+            .enumerate()
+            .map(|(idx, l)| {
+                let call_type = match l.type_code {
+                    1 => messages::CallType::Incoming,
+                    2 => messages::CallType::Outgoing,
+                    3 => messages::CallType::Missed,
+                    5 => messages::CallType::Rejected,
+                    6 => messages::CallType::Blocked,
+                    _ => messages::CallType::Unknown,
+                };
+                let mut b = messages::CallEntryBuilder::new(idx.to_string(), l.number)
+                    .with_date(l.date)
+                    .with_duration(l.duration_seconds as u64)
+                    .with_type(call_type);
+                if let Some(name) = l.name {
+                    b = b.with_contact_name(name);
+                }
+                b.build()
+            })
+            .collect();
+        Ok(messages::CallLogAnalytics::compute_summary(&entries))
     }
 }

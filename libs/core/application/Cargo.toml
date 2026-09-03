@@ -14,6 +14,7 @@ compression = { workspace = true }
 security = { workspace = true }
 contacts = { workspace = true }
 image-engine = { workspace = true }
+messages = { workspace = true }
 anyhow.workspace = true
 blake3 = "1.5"
 chrono.workspace = true

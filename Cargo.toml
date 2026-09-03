@@ -18,6 +18,7 @@ members = [
     "libs/infrastructure/database-sqlite",
     "libs/data/contacts",
     "libs/media/image",
+    "libs/data/messages",
 ]
 
 [workspace.package]
@@ -84,3 +85,4 @@ compression = { path = "libs/storage/compression", package = "phone-backup-compr
 security = { path = "libs/storage/security", package = "phone-backup-security", version = "0.4.1" }
 contacts = { path = "libs/data/contacts", package = "phone-backup-contacts", version = "0.4.1" }
 image-engine = { path = "libs/media/image", package = "phone-backup-image", version = "0.4.1" }
+messages = { path = "libs/data/messages", package = "phone-backup-messages", version = "0.4.1" }
