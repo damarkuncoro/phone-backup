@@ -6,3 +6,4 @@ pub mod contact;
 pub mod device;
 pub mod media;
 pub mod system;
+pub mod wireless;

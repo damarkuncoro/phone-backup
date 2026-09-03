@@ -117,6 +117,7 @@ fn main() {
             commands::media::check_image_sharpness,
             commands::app_audit::audit_apk_file,
             commands::cloud::test_cloud_connection,
+            commands::wireless::get_wireless_pairing_info,
         ])
         .run(tauri::generate_context!());
 

@@ -1,4 +1,4 @@
-import { LayoutDashboard, Tablet, History, RefreshCcw, Folder, Search, Settings, MessageSquare, ShieldAlert, Activity } from "lucide-react";
+import { LayoutDashboard, Tablet, History, RefreshCcw, Folder, Search, Settings, MessageSquare, ShieldAlert, Activity, Wifi } from "lucide-react";
 import { cn } from "../../shared/lib/utils";
 
 const navItems = [
@@ -10,6 +10,7 @@ const navItems = [
   { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
   { id: 'audit', label: 'App Audit', icon: ShieldAlert },
   { id: 'media', label: 'Media Lab', icon: Activity },
+  { id: 'wireless', label: 'Wireless Agent', icon: Wifi },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
