@@ -6,7 +6,7 @@ use ports::{
     AppProviderPort, DataProviderPort, DevicePort, ProgressPort, RepositoryPort, ScannerPort,
     StoragePort,
 };
-use tracing::{error, info, instrument, warn};
+use tracing::{info, instrument};
 
 impl<D, S, R, T, A, DP, P> BackupService<D, S, R, T, A, DP, P>
 where
@@ -39,49 +39,62 @@ where
         snapshot_id: &SnapshotId,
         data_type: StructuredDataType,
     ) -> Result<serde_json::Value> {
-        info!(
-            "Fetching structured data '{}' for snapshot {}",
-            data_type, snapshot_id.0
-        );
+        info!("Fetching structured data '{}' for snapshot {}", data_type, snapshot_id.0);
 
-        if data_type == StructuredDataType::Contacts {
-            let contacts = self.repository.get_snapshot_contacts(snapshot_id)?;
-            return Ok(serde_json::to_value(contacts)?);
+        match data_type {
+            StructuredDataType::Contacts => {
+                let contacts = self.repository.get_snapshot_contacts(snapshot_id)?;
+                Ok(serde_json::to_value(contacts)?)
+            }
+            StructuredDataType::Sms => {
+                let sms = self.repository.get_snapshot_sms(snapshot_id)?;
+                Ok(serde_json::to_value(sms)?)
+            }
+            StructuredDataType::CallLogs => {
+                let logs = self.repository.get_snapshot_call_logs(snapshot_id)?;
+                Ok(serde_json::to_value(logs)?)
+            }
+            _ => Ok(serde_json::Value::Null),
         }
-
-        let chunk_id = self
-            .repository
-            .get_structured_data_ref(snapshot_id, data_type)?
-            .ok_or_else(|| {
-                warn!(
-                    "Structured data '{}' reference not found in database",
-                    data_type
-                );
-                anyhow::anyhow!("Data type {} not found for this snapshot", data_type)
-            })?;
-
-        info!("Reading data from storage for chunk: {}", chunk_id);
-        // We need an EncryptionMode here... let's assume None for now if not available or pass it from caller
-        // Actually, BackupService should probably store the EncryptionMode used for the snapshot
-        let object_manager = crate::storage::manager::ObjectManager::new(
-            &self.storage,
-            &self.repository,
-            &domain::EncryptionMode::None,
-        );
-        let data = object_manager.get_chunk(&chunk_id)?;
-
-        info!("Parsing JSON data ({} bytes)", data.len());
-        let json: serde_json::Value = serde_json::from_slice(&data).map_err(|e| {
-            error!("JSON parse error: {}. Data might be encrypted.", e);
-            e
-        })?;
-        Ok(json)
     }
 
     #[instrument(skip(self))]
     pub fn export_contacts_vcard(&self, snapshot_id: &SnapshotId) -> Result<String> {
         let contacts = self.repository.get_snapshot_contacts(snapshot_id)?;
         Ok(VCardEngine::export_to_vcard(&contacts))
+    }
+
+    #[instrument(skip(self))]
+    pub fn export_contacts_csv(&self, snapshot_id: &SnapshotId) -> Result<String> {
+        let domain_contacts = self.repository.get_snapshot_contacts(snapshot_id)?;
+        let mut book_builder = contacts::ContactBook::builder();
+        for dc in domain_contacts {
+            let mut cb = contacts::ContactBuilder::new(&dc.display_name);
+            if let Some(sn) = dc.names.first() {
+                cb = cb.with_structured_name(
+                    contacts::StructuredName::new()
+                        .with_given(sn.given_name.clone().unwrap_or_default())
+                        .with_family(sn.family_name.clone().unwrap_or_default())
+                        .with_prefix(sn.prefix.clone().unwrap_or_default())
+                        .with_suffix(sn.suffix.clone().unwrap_or_default()),
+                );
+            }
+            for p in dc.phones {
+                cb = cb.add_phone(p.raw_value, contacts::PhoneType::Mobile);
+            }
+            for e in dc.emails {
+                cb = cb.add_email(e.value, contacts::EmailType::Personal);
+            }
+            if let Some(org) = dc.organizations.first() {
+                cb = cb.with_organization(org.company_name.clone().unwrap_or_default(), org.title.as_deref());
+            }
+            if let Some(note) = dc.notes {
+                cb = cb.with_notes(note);
+            }
+            book_builder = book_builder.add_contact(cb.build());
+        }
+        let book = book_builder.build();
+        book.export(contacts::ExportFormat::Csv)
     }
 
     #[instrument(skip(self))]
