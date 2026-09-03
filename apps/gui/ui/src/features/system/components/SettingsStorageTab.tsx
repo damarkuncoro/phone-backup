@@ -1,5 +1,6 @@
 import { Database, HardDrive, Cloud, Cpu, FolderOpen, ExternalLink } from 'lucide-react';
 import { cn } from "@/shared/lib/utils";
+import { SettingsCompressionSection } from './SettingsCompressionSection';
 
 interface SettingsStorageTabProps {
   currentBackendType: string;
@@ -30,7 +31,7 @@ export function SettingsStorageTab({
   setS3AccessKey,
   s3SecretKey,
   setS3SecretKey,
-  onOpenFolder
+  onOpenFolder,
 }: SettingsStorageTabProps) {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -44,141 +45,64 @@ export function SettingsStorageTab({
           </p>
         </div>
 
-        {/* Backend Type Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StorageCard
             selected={currentBackendType === 'Local'}
             onClick={() => onSelectBackend({ Local: null })}
             icon={HardDrive}
             title="Local Disk"
-            desc="Penyimpanan lokal di hard disk komputer (workspace/backups). Sangat cepat dan aman."
+            desc="Penyimpanan lokal di hard disk komputer (workspace/backups)."
             badge="Default"
           />
-
           <StorageCard
             selected={currentBackendType === 'S3'}
-            onClick={() => onSelectBackend({
-              S3: {
-                bucket: s3Bucket,
-                region: s3Region,
-                endpoint: s3Endpoint,
-                access_key: s3AccessKey,
-                secret_key: s3SecretKey
-              }
-            })}
+            onClick={() => onSelectBackend({ S3: { bucket: s3Bucket, region: s3Region, endpoint: s3Endpoint, access_key: s3AccessKey, secret_key: s3SecretKey } })}
             icon={Cloud}
             title="Cloud Storage (S3)"
-            desc="Cadangkan langsung ke Amazon S3, MinIO lokal, atau Cloudflare R2 via OpenDAL."
+            desc="Cadangkan langsung ke Amazon S3, MinIO lokal, atau Cloudflare R2."
             badge="Cloud"
           />
-
           <StorageCard
             selected={currentBackendType === 'Mock'}
             onClick={() => onSelectBackend({ Mock: null })}
             icon={Cpu}
             title="Mock Storage"
-            desc="Penyimpanan memori sementara tanpa menulis ke disk. Khusus untuk pengujian performa."
+            desc="Penyimpanan memori sementara tanpa menulis ke disk (Testing)."
             badge="Testing"
           />
         </div>
 
-        {/* S3 Configuration Form if S3 is active */}
         {currentBackendType === 'S3' && (
           <div className="p-6 bg-slate-50 border border-slate-200/80 rounded-3xl space-y-4 animate-in slide-in-from-top-2">
             <h4 className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
-              <Cloud className="w-4 h-4 text-indigo-600" /> Kredensial & Endpoint S3 / MinIO
+              <Cloud className="w-4 h-4 text-indigo-600" /> Kredensial &amp; Endpoint S3 / MinIO
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bucket Name</label>
-                <input
-                  type="text"
-                  placeholder="my-phone-backups"
-                  value={s3Bucket}
-                  onChange={(e) => setS3Bucket(e.target.value)}
-                  className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Region</label>
-                <input
-                  type="text"
-                  placeholder="us-east-1"
-                  value={s3Region}
-                  onChange={(e) => setS3Region(e.target.value)}
-                  className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none"
-                />
-              </div>
-              <div className="sm:col-span-2 space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Custom Endpoint (Opsional untuk MinIO / R2)</label>
-                <input
-                  type="text"
-                  placeholder="https://s3.amazonaws.com atau http://localhost:9000"
-                  value={s3Endpoint}
-                  onChange={(e) => setS3Endpoint(e.target.value)}
-                  className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Access Key ID</label>
-                <input
-                  type="password"
-                  placeholder="AKIAIOSFODNN7EXAMPLE"
-                  value={s3AccessKey}
-                  onChange={(e) => setS3AccessKey(e.target.value)}
-                  className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Secret Access Key</label>
-                <input
-                  type="password"
-                  placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-                  value={s3SecretKey}
-                  onChange={(e) => setS3SecretKey(e.target.value)}
-                  className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none"
-                />
-              </div>
+              <input type="text" placeholder="Bucket Name" value={s3Bucket} onChange={(e) => setS3Bucket(e.target.value)} className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none" />
+              <input type="text" placeholder="Region (us-east-1)" value={s3Region} onChange={(e) => setS3Region(e.target.value)} className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none" />
+              <input type="text" placeholder="Custom Endpoint (https://s3...)" value={s3Endpoint} onChange={(e) => setS3Endpoint(e.target.value)} className="sm:col-span-2 w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none" />
+              <input type="password" placeholder="Access Key ID" value={s3AccessKey} onChange={(e) => setS3AccessKey(e.target.value)} className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none" />
+              <input type="password" placeholder="Secret Access Key" value={s3SecretKey} onChange={(e) => setS3SecretKey(e.target.value)} className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none" />
             </div>
           </div>
         )}
 
-        {/* Quick Folder Launchers */}
+        <SettingsCompressionSection />
+
         <div className="border-t border-slate-100 pt-6 space-y-3">
-          <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">
-            Akses Cepat Direktori Sistem
-          </h4>
+          <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">Akses Cepat Direktori Sistem</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => onOpenFolder('restore')}
-              className="flex items-center justify-between p-4 bg-slate-50 hover:bg-indigo-50 border border-slate-200/70 hover:border-indigo-200 rounded-2xl transition-all group text-left"
-            >
+            <button type="button" onClick={() => onOpenFolder('restore')} className="flex items-center justify-between p-4 bg-slate-50 hover:bg-indigo-50 border border-slate-200/70 hover:border-indigo-200 rounded-2xl transition-all group text-left">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-600 group-hover:text-indigo-600 shadow-sm">
-                  <FolderOpen className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-black text-slate-800">Buka Folder Restore</p>
-                  <p className="text-[10px] text-slate-400">Lokasi file hasil pemulihan snapshot</p>
-                </div>
+                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-600 group-hover:text-indigo-600 shadow-sm"><FolderOpen className="w-5 h-5" /></div>
+                <div><p className="text-xs font-black text-slate-800">Buka Folder Restore</p><p className="text-[10px] text-slate-400">Lokasi file hasil pemulihan snapshot</p></div>
               </div>
               <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-indigo-600" />
             </button>
-
-            <button
-              type="button"
-              onClick={() => onOpenFolder('downloads')}
-              className="flex items-center justify-between p-4 bg-slate-50 hover:bg-indigo-50 border border-slate-200/70 hover:border-indigo-200 rounded-2xl transition-all group text-left"
-            >
+            <button type="button" onClick={() => onOpenFolder('downloads')} className="flex items-center justify-between p-4 bg-slate-50 hover:bg-indigo-50 border border-slate-200/70 hover:border-indigo-200 rounded-2xl transition-all group text-left">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-600 group-hover:text-indigo-600 shadow-sm">
-                  <FolderOpen className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-black text-slate-800">Buka Folder Unduhan</p>
-                  <p className="text-[10px] text-slate-400">Lokasi berkas unduhan tunggal / batch</p>
-                </div>
+                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-600 group-hover:text-indigo-600 shadow-sm"><FolderOpen className="w-5 h-5" /></div>
+                <div><p className="text-xs font-black text-slate-800">Buka Folder Unduhan</p><p className="text-[10px] text-slate-400">Lokasi berkas unduhan tunggal / batch</p></div>
               </div>
               <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-indigo-600" />
             </button>
@@ -189,41 +113,13 @@ export function SettingsStorageTab({
   );
 }
 
-function StorageCard({
-  selected, onClick, icon: Icon, title, desc, badge
-}: {
-  selected: boolean;
-  onClick: () => void;
-  icon: any;
-  title: string;
-  desc: string;
-  badge: string;
-}) {
+function StorageCard({ selected, onClick, icon: Icon, title, desc, badge }: { selected: boolean; onClick: () => void; icon: any; title: string; desc: string; badge: string; }) {
   return (
-    <div
-      onClick={onClick}
-      className={cn(
-        "p-5 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between space-y-3",
-        selected
-          ? "bg-indigo-50/50 border-indigo-300 ring-2 ring-indigo-500/10 shadow-md shadow-indigo-100/50"
-          : "bg-slate-50 border-slate-200/70 hover:border-slate-300"
-      )}
-    >
+    <div onClick={onClick} className={cn("p-5 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between space-y-3", selected ? "bg-indigo-50/50 border-indigo-300 ring-2 ring-indigo-500/10 shadow-md shadow-indigo-100/50" : "bg-slate-50 border-slate-200/70 hover:border-slate-300")}>
       <div className="flex items-center justify-between">
-        <div className={cn(
-          "w-10 h-10 rounded-2xl flex items-center justify-center",
-          selected ? "bg-indigo-600 text-white shadow-md shadow-indigo-200" : "bg-white text-slate-600 border border-slate-200"
-        )}>
-          <Icon className="w-5 h-5" />
-        </div>
-        <span className={cn(
-          "text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider",
-          selected ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-600"
-        )}>
-          {badge}
-        </span>
+        <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center", selected ? "bg-indigo-600 text-white shadow-md shadow-indigo-200" : "bg-white text-slate-600 border border-slate-200")}><Icon className="w-5 h-5" /></div>
+        <span className={cn("text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider", selected ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-600")}>{badge}</span>
       </div>
-
       <div>
         <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">{title}</h4>
         <p className="text-[11px] text-slate-500 font-medium mt-1 leading-relaxed">{desc}</p>
