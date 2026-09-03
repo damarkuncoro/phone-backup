@@ -53,6 +53,21 @@ impl CloudStorage {
         let op = Operator::new(builder)?.finish().blocking();
         Ok(Self { op })
     }
+
+    /// Create a new WebDAV / Nextcloud cloud storage adapter.
+    pub fn new_webdav(
+        endpoint: &str,
+        username: &str,
+        password: &str,
+    ) -> Result<Self> {
+        let builder = services::Webdav::default()
+            .endpoint(endpoint)
+            .username(username)
+            .password(password);
+
+        let op = Operator::new(builder)?.finish().blocking();
+        Ok(Self { op })
+    }
 }
 
 impl StoragePort for CloudStorage {

@@ -59,7 +59,7 @@ which = "6.0"
 indicatif = "0.17"
 number_prefix = "0.4"
 rayon = "1.10"
-opendal = { version = "0.48", features = ["services-s3", "services-gcs", "services-azblob", "layers-blocking"] }
+opendal = { version = "0.48", features = ["services-s3", "services-gcs", "services-azblob", "services-webdav", "layers-blocking"] }
 tempfile = "3"
 age = { version = "0.10", features = ["armor"] }
 secrecy = "0.8"
