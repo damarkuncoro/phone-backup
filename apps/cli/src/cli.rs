@@ -94,6 +94,9 @@ pub enum Commands {
         /// Patterns to exclude (e.g. *.tmp)
         #[arg(short, long)]
         exclude: Option<Vec<String>>,
+        /// Compression mode: auto, fast, max, none
+        #[arg(short = 'c', long, default_value = "auto")]
+        compression: String,
     },
     /// List snapshots for a device
     Snapshots {

@@ -8,6 +8,7 @@ pub fn run_backup<D, S, R, T, A, DP, P>(
     encryption: domain::EncryptionMode,
     include: Option<Vec<String>>,
     exclude: Option<Vec<String>>,
+    compression: &str,
 ) -> Result<()>
 where
     D: ports::DevicePort,
@@ -19,7 +20,7 @@ where
     P: ports::ProgressPort,
 {
     let device_id = DeviceId::new(id);
-    println!("Starting backup for device {}...", id);
+    println!("Starting backup for device {} [Compression: {}]...", id, compression);
 
     let mut builder = domain::BackupPolicy::builder();
     if let Some(inc) = include {

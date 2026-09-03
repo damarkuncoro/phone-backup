@@ -124,13 +124,14 @@ where
             password,
             include,
             exclude,
+            compression,
         } => {
             let enc = if let Some(pwd) = password {
                 EncryptionMode::Password(pwd)
             } else {
                 encryption
             };
-            backup::run_backup(&service, &id, enc, include, exclude)?
+            backup::run_backup(&service, &id, enc, include, exclude, &compression)?
         }
         Commands::Snapshots { id, snapshot } => {
             if let Some(s_id) = snapshot {
