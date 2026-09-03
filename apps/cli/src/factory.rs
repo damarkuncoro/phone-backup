@@ -35,6 +35,14 @@ impl StorageFactory {
                 let storage = CloudStorage::new_azblob(container, endpoint, account, key)?;
                 Ok(Box::new(storage))
             }
+            "webdav" | "nextcloud" => {
+                use adapter_opendal::CloudStorage;
+                let endpoint = cli.webdav_endpoint.as_deref().unwrap_or("");
+                let user = cli.webdav_user.as_deref().unwrap_or("");
+                let pass = cli.webdav_password.as_deref().unwrap_or("");
+                let storage = CloudStorage::new_webdav(endpoint, user, pass)?;
+                Ok(Box::new(storage))
+            }
             _ => {
                 let storage = LocalStorage::new("workspace/backups")?;
                 Ok(Box::new(storage))

@@ -72,8 +72,8 @@ where
             backup::run_backup(&service, &id, enc, include, exclude, &compression)?
         }
         Commands::Snapshots { id, snapshot } => {
-            if let Some(s_id) = snapshot {
-                backup::show_snapshot_detail(&service, &s_id)?;
+            if let Some(s_id) = snapshot.as_deref() {
+                backup::show_snapshot_detail(&service, s_id)?;
             } else {
                 backup::list_snapshots(&service, &id)?;
             }

@@ -10,6 +10,7 @@ mod cli;
 mod commands;
 mod factory;
 mod progress;
+mod subcommands;
 
 use adapter_adb::{AdbAdapter, AdbClient};
 use adapter_database_sqlite::SqliteRepository;
