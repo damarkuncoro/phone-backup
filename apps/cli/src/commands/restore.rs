@@ -46,8 +46,8 @@ where
         println!("Restoring snapshot {} to {}...", snapshot.id.0, target_dir);
     }
 
-    let mut options_builder = domain::RestoreOptions::builder(&target_dir)
-        .with_encryption(encryption);
+    let mut options_builder =
+        domain::RestoreOptions::builder(&target_dir).with_encryption(encryption);
     if let Some(f) = filter {
         options_builder = options_builder.with_filter(f);
     }

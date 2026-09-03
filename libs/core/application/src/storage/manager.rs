@@ -1,8 +1,8 @@
 use super::hashing::calculate_hash;
 use super::store::ObjectStoreKey;
 use super::{
-    Chunk, ChunkConfig, Chunker, ChunkingMethod, CompressionAlgorithm, CompressionEngine,
-    EncryptionEngine,
+    Chunk, ChunkConfig, Chunker, ChunkingMethod, CompressionAlgorithm, EncryptionEngine,
+    FileMetadataContext, SmartCompressionEngine,
 };
 use anyhow::Result;
 use domain::EncryptionMode;
@@ -23,48 +23,45 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
         }
     }
 
-    /// V4.0 Object Processing: Hashing -> Dedup -> Compress -> Encrypt -> Store
-    /// Returns (logical_chunk_id, was_new_physical_object)
+    /// V4.0 Object Processing with context: Hashing -> Dedup -> Smart Compress -> Encrypt -> Store
     pub fn put_chunk(&self, data: &[u8]) -> Result<(String, bool)> {
+        self.put_chunk_with_context(data, &FileMetadataContext::default())
+    }
+
+    pub fn put_chunk_with_context(
+        &self,
+        data: &[u8],
+        context: &FileMetadataContext,
+    ) -> Result<(String, bool)> {
         let content_hash = calculate_hash(data);
         let plaintext_size = data.len() as u64;
 
-        // 1. Logical Dedup: Check if this content hash already exists
         if let Some(chunk_id) = self.repository.get_logical_chunk_by_hash(&content_hash)? {
-            // Check if we have at least one physical object for it
-            if self
-                .repository
-                .get_storage_key_for_chunk(&chunk_id)?
-                .is_some()
-            {
+            if self.repository.get_storage_key_for_chunk(&chunk_id)?.is_some() {
                 return Ok((chunk_id, false));
             }
-            // If no physical object exists (unlikely but possible), continue to create one
-            return self.create_physical_object(&chunk_id, data);
+            return self.create_physical_object_with_context(&chunk_id, data, context);
         }
 
-        // 2. New Content: Create Logical Chunk
-        let chunk_id = self
-            .repository
-            .save_logical_chunk(&content_hash, plaintext_size)?;
-        self.create_physical_object(&chunk_id, data)
+        let chunk_id = self.repository.save_logical_chunk(&content_hash, plaintext_size)?;
+        self.create_physical_object_with_context(&chunk_id, data, context)
     }
 
-    fn create_physical_object(&self, chunk_id: &str, data: &[u8]) -> Result<(String, bool)> {
-        // 3. Compress directly from slice if large enough and beneficial
-        let (mut processed_data, comp_alg) = if data.len() > 1024 {
-            let compressed = CompressionEngine::compress(data, CompressionAlgorithm::Zstd)?;
-            if compressed.len() < data.len() {
-                (compressed, "zstd".to_string())
-            } else {
-                (data.to_vec(), "none".to_string())
-            }
-        } else {
-            (data.to_vec(), "none".to_string())
+    fn create_physical_object_with_context(
+        &self,
+        chunk_id: &str,
+        data: &[u8],
+        context: &FileMetadataContext,
+    ) -> Result<(String, bool)> {
+        let comp_engine = SmartCompressionEngine::builder()
+            .with_android_dictionaries()
+            .build();
+        let (mut processed_data, stats) = comp_engine.compress(data, context)?;
+        let comp_alg = match stats.algorithm {
+            CompressionAlgorithm::Zstd => "zstd".to_string(),
+            CompressionAlgorithm::None => "none".to_string(),
         };
 
-        // 4. Encrypt (Optional but recommended in V4.0)
-        let _enc_version = if self.encryption.is_encrypted() { 1 } else { 0 };
         processed_data = match self.encryption {
             EncryptionMode::Password(pwd) => EncryptionEngine::encrypt(&processed_data, pwd)?,
             EncryptionMode::PublicKey(pk) => {
@@ -73,27 +70,18 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
             EncryptionMode::None => processed_data,
         };
 
-        // 5. Calculate Physical ID (Ciphertext Hash)
         let object_hash = calculate_hash(&processed_data);
         let stored_size = processed_data.len() as u64;
 
-        // 6. Final Dedup Check (Physical level)
-        if self
-            .repository
-            .get_physical_object_by_hash(&object_hash)?
-            .is_some()
-        {
+        if self.repository.get_physical_object_by_hash(&object_hash)?.is_some() {
             return Ok((chunk_id.to_string(), false));
         }
 
-        // 7. Store Physically (UUIDv7)
         let storage_key = ObjectStoreKey::generate_storage_key();
         let storage_path = ObjectStoreKey::compute_object_path_v4(&storage_key);
 
-        self.storage
-            .write(&storage_path, &mut std::io::Cursor::new(processed_data))?;
+        self.storage.write(&storage_path, &mut std::io::Cursor::new(processed_data))?;
 
-        // 8. Register Physical Object
         self.repository.save_physical_object(
             chunk_id,
             &object_hash,
@@ -107,7 +95,6 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
     }
 
     pub fn get_chunk(&self, chunk_id: &str) -> Result<Vec<u8>> {
-        // Find storage key
         let storage_key = self
             .repository
             .get_storage_key_for_chunk(chunk_id)?
@@ -127,22 +114,25 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
             };
         }
 
-        // Decompress if it looks like zstd or based on metadata
-        // In expert mode, we use the strategy. For now fallback to zstd if it fails none
-        if let Ok(decompressed) = CompressionEngine::decompress(&data, CompressionAlgorithm::Zstd) {
+        let comp_engine = SmartCompressionEngine::builder()
+            .with_android_dictionaries()
+            .build();
+        if let Ok(decompressed) = comp_engine.decompress(&data, CompressionAlgorithm::Zstd) {
             data = decompressed;
         }
 
         Ok(data)
     }
 
-    /// Legacy support or simple object put (used for thumbnails, etc.)
-    pub fn put_object(&self, data: &[u8], _mime_type: Option<&str>) -> Result<(String, u64, bool)> {
-        let (chunk_id, is_new) = self.put_chunk(data)?;
+    pub fn put_object(&self, data: &[u8], mime_type: Option<&str>) -> Result<(String, u64, bool)> {
+        let ctx = match mime_type {
+            Some(m) => FileMetadataContext::new().with_mime(m),
+            None => FileMetadataContext::default(),
+        };
+        let (chunk_id, is_new) = self.put_chunk_with_context(data, &ctx)?;
         Ok((chunk_id, if is_new { data.len() as u64 } else { 0 }, false))
     }
 
-    /// Returns (chunks, bytes_reused)
     pub fn chunk_and_put(
         &self,
         data: &[u8],
@@ -165,7 +155,6 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
         Ok((results, reused_bytes))
     }
 
-    /// Returns (chunks, bytes_reused)
     pub fn chunk_and_put_stream<R2: std::io::Read + 'static>(
         &self,
         reader: R2,

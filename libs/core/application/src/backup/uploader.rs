@@ -119,7 +119,8 @@ impl<
                             || err_str.contains("not found")
                         {
                             tracing::warn!("Skipping inaccessible file {}: {}", file.path, e);
-                            self.progress.log(&format!("Skipping inaccessible file: {}", file.name));
+                            self.progress
+                                .log(&format!("Skipping inaccessible file: {}", file.name));
                             self.progress.inc(1, "Skipped inaccessible file");
                             Ok(())
                         } else {
@@ -129,7 +130,11 @@ impl<
                                 total_bytes_atomic.load(Ordering::Relaxed),
                                 deduped_bytes_atomic.load(Ordering::Relaxed),
                             );
-                            Err(anyhow::anyhow!("File processing error on {}: {}", file.path, e))
+                            Err(anyhow::anyhow!(
+                                "File processing error on {}: {}",
+                                file.path,
+                                e
+                            ))
                         }
                     }
                 }

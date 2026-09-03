@@ -46,7 +46,8 @@ where
 
         let files = self.repository.get_snapshot_files(snapshot_id)?;
         let target_base = Path::new(&options.target_dir);
-        let object_manager = ObjectManager::new(&self.storage, &self.repository, &options.encryption);
+        let object_manager =
+            ObjectManager::new(&self.storage, &self.repository, &options.encryption);
 
         self.progress
             .start(files.len() as u64, "Starting restoration...");
@@ -66,7 +67,8 @@ where
             let restore_path = target_base.join(relative_path);
 
             if !options.overwrite_existing && restore_path.exists() {
-                self.progress.inc(1, &format!("Skipped existing {}", file.name));
+                self.progress
+                    .inc(1, &format!("Skipped existing {}", file.name));
                 return Ok(());
             }
 

@@ -6,7 +6,10 @@ pub mod store;
 pub use chunking::{
     Chunk, ChunkConfig, ChunkingMethod, ExpertChunker as Chunker, StreamingChunker,
 };
-pub use compression::{CompressionAlgorithm, ExpertCompressor as CompressionEngine};
+pub use compression::{
+    CompressionAlgorithm, ExpertCompressor as CompressionEngine, FileMetadataContext,
+    SmartCompressionEngine,
+};
 pub use hashing::calculate_hash;
 pub use manager::ObjectManager;
 pub use policy::{ChunkingPolicy, DefaultChunkingPolicy};

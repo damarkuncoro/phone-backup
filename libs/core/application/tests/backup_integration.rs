@@ -222,8 +222,14 @@ fn test_event_bus_and_cancellation_integration() {
 
     let recorded = collector.events.lock().unwrap();
     assert!(recorded.len() >= 2);
-    assert!(matches!(&recorded[0], domain::DomainEvent::BackupStarted { .. }));
-    assert!(matches!(&recorded.last().unwrap(), domain::DomainEvent::BackupCompleted { .. }));
+    assert!(matches!(
+        &recorded[0],
+        domain::DomainEvent::BackupStarted { .. }
+    ));
+    assert!(matches!(
+        &recorded.last().unwrap(),
+        domain::DomainEvent::BackupCompleted { .. }
+    ));
     println!("✅ Event Bus and CancellationToken integration verified.");
 }
 
@@ -263,7 +269,8 @@ fn test_metrics_storage_decorator_with_service() {
     let metrics = service.storage.metrics();
     assert!(metrics.bytes_written > 0);
     assert!(metrics.write_ops > 0);
-    println!("✅ MetricsStorage decorator integration verified: {} bytes written across {} ops", metrics.bytes_written, metrics.write_ops);
+    println!(
+        "✅ MetricsStorage decorator integration verified: {} bytes written across {} ops",
+        metrics.bytes_written, metrics.write_ops
+    );
 }
-
-
