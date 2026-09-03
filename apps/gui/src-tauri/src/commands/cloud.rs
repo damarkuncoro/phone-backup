@@ -64,6 +64,47 @@ pub async fn test_cloud_connection(
                 }),
             }
         }
+        "webdav" | "nextcloud" => {
+            let ep = endpoint.unwrap_or_default();
+            if ep.trim().is_empty() {
+                return Ok(CloudTestResult {
+                    success: false,
+                    message: "WebDAV endpoint URL cannot be empty".to_string(),
+                    provider,
+                });
+            }
+            let mut builder = opendal::services::Webdav::default();
+            builder = builder.endpoint(&ep);
+            if let Some(user) = access_key.filter(|s| !s.trim().is_empty()) {
+                builder = builder.username(&user);
+            }
+            if let Some(pass) = secret_key.filter(|s| !s.trim().is_empty()) {
+                builder = builder.password(&pass);
+            }
+
+            match opendal::Operator::new(builder) {
+                Ok(op_builder) => {
+                    let op = op_builder.finish();
+                    match op.check().await {
+                        Ok(_) => Ok(CloudTestResult {
+                            success: true,
+                            message: format!("Successfully connected to WebDAV server at '{}'", ep),
+                            provider,
+                        }),
+                        Err(e) => Ok(CloudTestResult {
+                            success: false,
+                            message: format!("WebDAV connection failed: {}", e),
+                            provider,
+                        }),
+                    }
+                }
+                Err(e) => Ok(CloudTestResult {
+                    success: false,
+                    message: format!("Invalid WebDAV configuration: {}", e),
+                    provider,
+                }),
+            }
+        }
         _ => Ok(CloudTestResult {
             success: true,
             message: format!("Mock test passed for provider: {}", provider),
