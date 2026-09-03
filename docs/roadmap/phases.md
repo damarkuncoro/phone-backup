@@ -208,10 +208,17 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 *   **Emergency Recovery Kit Generator (`apps/cli`)**: Command `phone-backup recovery-kit` penghasil dokumen cetak mandiri pemulihan offline zero-knowledge.
 *   **Production Release Packaging Pipeline**: Script `./scripts/build_release.sh` penghasil binary stripped LTO dan checksum SHA-256 terverifikasi.
 
+## ✅ PHASE 52 — Data Optimization Engine & Native WebDAV Storage
+*   **WebDAV & Nextcloud Storage Adapter (`libs/adapters/opendal`)**: Integrasi OpenDAL WebDAV provider (`services-webdav`) dengan kredensial fleksibel.
+*   **WebDAV Desktop GUI & CLI Integration**: Tab konfigurasi multi-cloud (Local, S3, WebDAV, Mock) dan flags `--webdav-endpoint`, `--webdav-user`, `--webdav-password`.
+*   **Categorized Zstd Dictionary Pools (`libs/storage/compression`)**: Kamus terlatih spesifik domain (`android-vcard-v1`, `android-whatsapp-v1`, `android-xml-v1`, `android-sqlite-v1`, `android-json-v1`).
+*   **Page-Aware SQLite Zero-Fill Preconditioning**: Filter *lossless* yang men-zeroing halaman *freelist* SQLite untuk meningkatkan kompresibilitas $>40\%$.
+*   **Dynamic FastCDC TransferMedium Tuning (`libs/storage/chunking`)**: Pengaturan otomatis target chunk FastCDC (`HighSpeedLocal`, `WirelessAgent`, `CloudWebDav`, `ThermalConstrained`) dengan flag `-m/--medium`.
+
 ---
 
 # NEXT GOALS (v1.0.0 Roadmap)
 
 1.  **iOS Support**: Eksplorasi adapter Apple via `libimobiledevice`.
-2.  **Cloud Sync Provider Expansion**: Integrasi provider WebDAV & Nextcloud native.
+2.  **Android Companion APK Build Pipeline**: Otomasi build APK Companion Agent di CI/CD.
 
