@@ -4,7 +4,7 @@ use std::io::Read;
 pub mod config;
 pub mod strategies;
 
-pub use config::{ChunkConfig, ChunkingMethod};
+pub use config::{ChunkConfig, ChunkingMethod, TransferMedium};
 pub use strategies::{Chunk, Chunker, StreamingChunker};
 
 /// The Expert Chunker Factory
