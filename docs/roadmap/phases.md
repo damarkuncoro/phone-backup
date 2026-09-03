@@ -172,6 +172,26 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 *   **Real Hardware Verification**: Teruji dan terverifikasi fungsional 100% pada smartphone fisik `Infinix NOTE 30 (Infinix X6833B)`.
 *   **Modular Automation Suite**: Restrukturisasi direktori `scripts/` (DRY & SOLID) dengan unified runner CLI (`./scripts/run.sh`).
 
+## ✅ PHASE 47 — Specialist Data & Media Domain Crates
+*   **Contacts Specialist Engine (`libs/data/contacts`)**: Parser & writer standar vCard RFC 6350, fuzzy duplicate merger (Jaro-Winkler), dan contact diff matrix.
+*   **Messages & Call Analytics Engine (`libs/data/messages`)**: Formatter XML standar Android (*SMS Backup & Restore*), HTML chat transcript viewer, ekstraktor kode OTP, klasifikasi pesan perbankan/promo, dan metrik statistik panggilan.
+*   **App Security & Split APK Engine (`libs/data/apps`)**: Parser AXML (binary AndroidManifest.xml) murni dalam Rust, auditor izin berbahaya (*Dangerous Permissions*), penilaian skor risiko privasi, dan assembler Split APK bundle.
+*   **WhatsApp Specialist Provider (`libs/apps/whatsapp`)**: Pemindai Scoped Storage Android 11–15 & Legacy, pengindeks media berkas bertanda waktu, dan pembuat arsip HTML offline interaktif.
+*   **Image Intelligence Engine (`libs/media/image`)**: Piramida thumbnail multi-resolusi (*micro, thumb, preview*), deteksi keburaman (*Laplacian sharpness*), dan perceptual hashing (*dHash & aHash*).
+*   **Audio Intelligence & Waveform Engine (`libs/media/audio`)**: Sniffer format audio (MP3, Opus, Ogg, M4A, FLAC, AMR), parser ID3/Vorbis, klasifikasi Voice Notes/Call Recordings, dan generator kurva gelombang amplitudo (*normalized waveform peaks*).
+
+## ✅ PHASE 48 — Specialist CLI Subcommands Integration
+*   `phone-backup export`: Ekspor kontak ke vCard/CSV, SMS ke XML/HTML/CSV/JSON, dan log panggilan ke JSON/Stats.
+*   `phone-backup audit`: Audit keamanan dan penilaian risiko aplikasi/APK.
+*   `phone-backup whatsapp`: Menampilkan lokasi penyimpanan WhatsApp dan mengekspor arsip chat HTML offline.
+*   `phone-backup audio`: Memeriksa metadata audio dan menghasilkan visualisasi ASCII grafik gelombang waveform.
+
+## ✅ PHASE 49 — Desktop GUI Multimedia & Security Lab
+*   **WhatsApp Archive Explorer**: Pratinjau interaktif arsip chat WhatsApp dengan live iframe dan download HTML offline.
+*   **App Security Risk Auditor**: Antarmuka analisis izin berbahaya APK dan kalkulasi skor risiko keamanan.
+*   **Media Lab**: Visualisasi 60-point waveform peaks audio dan evaluasi tingkat ketajaman citra foto.
+*   **100% Code Quality**: Mematuhi aturan $\le 200$ baris per file di seluruh workspace dan 100% test isolation lulus.
+
 ---
 
 # NEXT GOALS (v1.0.0 Roadmap)
