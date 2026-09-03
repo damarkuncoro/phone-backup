@@ -192,6 +192,15 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 *   **Media Lab**: Visualisasi 60-point waveform peaks audio dan evaluasi tingkat ketajaman citra foto.
 *   **100% Code Quality**: Mematuhi aturan $\le 200$ baris per file di seluruh workspace dan 100% test isolation lulus.
 
+## ✅ PHASE 50 — Production Hardening & Real-Device Safety Engine
+*   **Graceful SIGPIPE Handling**: Reset signal handler UNIX `SIGPIPE` pada CLI untuk mencegah crash `Broken pipe (os error 32)`.
+*   **Deep App Metadata Resolver**: Integrasi kueri `dumpsys package` untuk membaca nama aplikasi ramah pengguna dan `versionName` akurat.
+*   **Continuous Thermal Safety Guard**: Pemantauan berkala suhu baterai dan daya pada setiap batch pemrosesan file untuk mencegah *overheating* HP.
+*   **MediaStore Fast Scanner**: Kueri multi-kategori MediaStore Android (`image`, `video`, `audio`, `file`) untuk pemindaian instan dalam milidetik.
+*   **Direct Contact Restorer**: Injeksi kontak langsung ke `content://com.android.contacts/data` via ADB Content Provider.
+*   **Session-based Split APKs Installer**: Pemasangan paket aplikasi modern (*App Bundles / APKS*) dengan sesi atomik (`pm install-create`, `pm install-write`, `pm install-commit`).
+*   **Live Cloud Connection Verification GUI**: Uji konektivitas live ke AWS S3/MinIO via OpenDAL Operator dari Settings Tab.
+
 ---
 
 # NEXT GOALS (v1.0.0 Roadmap)
@@ -199,6 +208,6 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 1.  **Android Companion Agent APK (Wi-Fi gRPC / WebSocket Streaming Client)**:
     *   Implementasi pipeline streaming biner dan pairing QR Code CameraX di Android APK.
     *   Dokumen detail: [**`Companion Agent Roadmap`**](../architecture/companion-agent-roadmap.md).
-2.  **Cloud Sync GUI**: Pengaturan S3/Google Drive langsung dari panel Settings.
+2.  **Packaging & Distribusi Multi-Platform**: Bundling otomatis untuk macOS (`.dmg`) dan Linux (`.deb` / AppImage).
 3.  **iOS Support**: Eksplorasi adapter Apple via `libimobiledevice`.
 

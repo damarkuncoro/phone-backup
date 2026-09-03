@@ -10,140 +10,79 @@ A high-performance, secure, and professional Android backup platform written in 
 
 | Guide / Document | Description |
 | :--- | :--- |
-| 📖 **[Project Wiki (Full Knowledge Base)](wiki/Home.md)** | Basis pengetahuan lengkap modular (Getting Started, CLI, GUI, Architecture, Security, Storage, Wireless Agent, FAQ, Testing). |
-| 🛠 **[Complete How-To Guide](docs/guides/README.md)** | Step-by-step instructions for CLI, Tauri Desktop GUI, S3/R2 Cloud, Wireless Agent, Scheduler, and Troubleshooting FAQ. |
+| 📖 **[Project Wiki](wiki/Home.md)** | Basis pengetahuan lengkap modular (Getting Started, CLI, GUI, Architecture, Security, Storage, Wireless Agent, FAQ, Testing). |
+| 🛠 **[Complete How-To Guide](docs/guides/README.md)** | Panduan operasional CLI, Tauri Desktop GUI, S3/R2 Cloud, Wireless Agent, Scheduler, dan Troubleshooting FAQ. |
 | 🏗 **[Software Architecture Document (SAD)](docs/architecture/README.md)** | Hexagonal ports & adapters, CAS deduplication pipeline, FastCDC, and security architecture. |
-| 📱 **[Android Companion Agent Roadmap](docs/architecture/companion-agent-roadmap.md)** | Wi-Fi local backup protocol, mDNS discovery, and APK architecture. |
-| 🚀 **[Project Roadmap & Phases](docs/roadmap/phases.md)** | Detailed changelog from Phase 01 to Phase 43+. |
-| 🧪 **[Test Cases & Benchmark Report](docs/reports/test-cases-report.md)** | Verification reports, test suite isolation, and multi-scenario trials. |
-| 📝 **[Technical Review & Hardware Assessment](docs/reports/hardware-review.md)** | Real device testing report (Xiaomi/Redmi) and engineering findings. |
+| 🚀 **[Project Roadmap & Phases](docs/roadmap/phases.md)** | Detailed changelog from Phase 01 to Phase 50+ (*Final V4.0 Specifications*). |
+| 🧪 **[Comprehensive Feature Verification Report](docs/reports/comprehensive-feature-verification-report.md)** | Laporan resmi pengujian end-to-end seluruh 19 crates & fitur platform. |
+| 📝 **[Technical Review & Hardware Assessment](docs/reports/hardware-review.md)** | Laporan pengujian langsung pada HP fisik nyata (Vivo V2317 Android 15, Infinix NOTE 30, Xiaomi). |
 | ⚠️ **[Known Limitations](docs/guides/limitations.md)** | Boundaries of ADB vs MTP vs Companion Agent. |
-| 💡 **[Feature Requests & Ideation](docs/roadmap/feature-requests.md)** | Tracked features and future roadmap ideas. |
-| 📑 **[Technical Design References](docs/references/backup-specification.md)** | Specifications for backup engine, contact schema, scanner, and UI design system. |
 
 ---
 
-## 🚀 Features
+## 🚀 Key Capabilities & Specialist Engines
 
-### 🖥 Desktop GUI & Dashboard
-- **Modern Dashboard**: Visual summary of storage efficiency, engine health, and snapshot history built with Tauri, Tailwind CSS, and Chart.js.
-- **Modular UI Architecture**: Highly maintainable frontend using **Native Web Components** and specialized managers (Navigation, Search, Events).
-- **Live Device File Manager**: Real-time file browsing, live search, downloading, uploading, renaming, copying, deleting files, and computing SHA-256 hashes directly on connected Android hardware.
-- **Visual Snapshot Diffing**: Intuitive visual matrix highlighting **New**, **Modified**, **Deleted**, and **Unchanged** files and contacts between backup snapshots.
-- **Installed Apps Explorer**: Live and snapshot inspection of installed Android applications, package metadata, and APK management.
-- **Android Data Explorer**: Comprehensive views for Contacts, SMS, and Call Logs with instant search and vCard export.
-- **Real-time Progress HUD**: Floating status window with animated progress for long-running operations.
+### 🧠 Core Storage, Deduplication & Safety
+- **Content-Addressed Storage (CAS)**: Sub-file FastCDC chunking with dynamic Zstd compression.
+- **Continuous Thermal Safety Guard**: Pemantauan real-time suhu baterai dan daya ponsel di setiap batch upload.
+- **Zero-Knowledge Encryption**: X25519 asimetris (*age*) dan SQLCipher AES-256 GCM (Argon2id KDF).
+- **Emergency Recovery Kit**: Lembar dokumen cetak mandiri untuk pemulihan dingin (*Cold Storage*).
 
-### 🧠 Intelligent Engine & Scalable Patterns
-- **Multi-Transport Connectivity**: Supports both **USB ADB** (`--adapter adb`) and **Wireless Companion Agent** (`--adapter agent`).
-- **Block-level Deduplication**: Uses Content-Defined Chunking (FastCDC) to deduplicate large files at the sub-file level.
-- **Incremental Batch Checkpointing**: Commits database indexes every 50 files so interrupted multi-gigabyte backups resume immediately without loss.
-- **Resilient Transport & Storage Decorators**: Middleware decorators (`RetryStorage`, `MetricsStorage`) adding automatic retry with exponential backoff and telemetry to any storage adapter.
-- **Fluent Builder & Factory Patterns**: Clean, type-safe construction with `BackupServiceBuilder`, `RestoreOptionsBuilder`, and dynamic `StorageFactory`.
-- **Observer & Event-Driven Architecture**: Built-in `DomainEventBus` publishing lifecycle events (`BackupStarted`, `BackupCompleted`, `BackupFailed`) to multiple listeners without coupling.
-- **Cooperative Cancellation**: `CancellationToken` enables graceful, immediate job cancellation from GUI and CLI without data corruption.
-- **Safety Guards**: Automatically pauses or warns if the device battery is too low or temperature is too high.
-- **Zero-Copy Streaming**: Direct data transfer from device to storage via memory streams, extending SSD life.
-- **Parallel Processing**: Multi-threaded hashing, compression, and encryption using `Rayon`.
-
-### 🛡 Security & Privacy
-- **Encrypted Metadata Engine**: Database-level encryption using **SQLCipher (AES-256)** with **Argon2id Key Derivation Function (KDF)**.
-- **Tauri ACL Permission Manifests**: Fine-grained access control and permission declarations (`autogenerated.toml`, ACL schemas) enforcing secure execution.
-- **Asymmetric Object Crypto**: Support for **age (X25519)** public-key encryption for all backed-up files.
-- **Zero-Knowledge Storage**: Data is encrypted locally before hitting any storage backend.
-- **Authenticated Integrity**: Every object is hashed and verified to prevent silent data corruption.
+### 📱 Specialist Domain Crates
+- **Contacts (`phone-backup-contacts`)**: Parser & writer vCard RFC 6350, CSV export, dan direct ADB injection.
+- **Messages & Calls (`phone-backup-messages`)**: Ekspor standar XML (*SMS Backup & Restore*), HTML viewer, dan agregasi analitik riwayat panggilan.
+- **WhatsApp (`phone-backup-whatsapp`)**: Pemindai Scoped Storage Android 11–15 & generator arsip chat HTML offline.
+- **App Security Audit (`phone-backup-apps`)**: Pure-Rust AXML parser, evaluator izin berbahaya, dan Session-based Split APK Installer.
+- **Media Lab (`phone-backup-image` & `phone-backup-audio`)**: Deteksi keburaman foto (*Laplacian sharpness*), perceptual hash (*dHash/aHash*), dan visualisasi kurva 60-point waveform audio.
 
 ---
 
-## 🏗 Architecture
+## 🛠 Command Line Interface (CLI)
 
-The project follows strict **Clean Architecture**, **Hexagonal Architecture**, and a **Standardized Monorepo** structure:
+```bash
+# 1. Diagnostik & Deteksi Perangkat
+phone-backup doctor
+phone-backup -a adb devices
+phone-backup -a adb device-info <DEVICE_ID>
 
-```text
-phone-backup/
-├── apps/               # Executable Entry Points
-│   ├── cli/            # Professional Command Line Interface
-│   └── gui/            # Desktop Dashboard (Tauri + Web Components)
-├── libs/               # Internal Shared Libraries
-│   ├── core/           # Domain, Application, and Ports (Business Logic)
-│   ├── storage/        # Specialized Data Processing (Chunking, Hashing)
-│   ├── adapters/       # IO Implementations (ADB, Wi-Fi, Filesystem)
-│   └── infrastructure/ # Persistence & Security (SQLite SQLCipher)
-├── docs/               # Technical Documentation & Specifications
-└── scripts/            # Build, Release, and Dev Automation
+# 2. Backup & Restore Data
+phone-backup -a adb backup <DEVICE_ID> -i /sdcard/Documents
+phone-backup restore <SNAPSHOT_ID> -t ./restored_folder
+
+# 3. Ekspor Data Spesialis
+phone-backup -a adb export contacts <SNAPSHOT_ID> --format vcard --output contacts.vcf
+phone-backup -a adb export sms <SNAPSHOT_ID> --format xml --output sms_backup.xml
+phone-backup -a adb export calls <SNAPSHOT_ID> --format stats
+
+# 4. WhatsApp Archive & App Audit
+phone-backup whatsapp paths
+phone-backup whatsapp export --output whatsapp_archive.html
+phone-backup audit --apk app_to_check.apk
+
+# 5. Media Lab & Emergency Recovery Kit
+phone-backup audio waveform voice_note.opus
+phone-backup recovery-kit --output emergency_recovery_kit.html
 ```
 
 ---
 
-## 🚦 Panduan Penggunaan Cepat (Quick Start Guide)
+## 🖥 Desktop GUI (Tauri + React)
 
-### 1. Build & Kompilasi Binary:
 ```bash
-cargo build --release -p phone-backup
-```
-
-### 2. Diagnostik Sistem (Doctor Check):
-```bash
-./target/release/phone-backup doctor
-```
-
-### 3. Deteksi Smartphone Terhubung:
-```bash
-# Melalui kabel USB (ADB)
-./target/release/phone-backup --adapter adb devices
-
-# Melalui Wi-Fi (Companion Agent)
-./target/release/phone-backup --adapter agent devices
-```
-
-### 4. Eksekusi Backup:
-```bash
-# Backup Penuh Terenkripsi Password
-./target/release/phone-backup --adapter adb backup -p "KataSandiSuperKuat" <DEVICE_ID>
-
-# Backup Selektif Folder Tertentu (misal: DCIM/Screenshots)
-./target/release/phone-backup --adapter adb backup -i /storage/emulated/0/DCIM/Screenshots -p "KataSandiSuperKuat" <DEVICE_ID>
-
-# Backup ke Cloud S3 / Cloudflare R2 / MinIO
-./target/release/phone-backup --storage opendal --s3-bucket "my-backups" --adapter adb backup -p "KataSandiSuperKuat" <DEVICE_ID>
-```
-
-### 5. Pencarian Instan (FTS5):
-```bash
-./target/release/phone-backup search "document.pdf"
-./target/release/phone-backup contacts "Damar"
-./target/release/phone-backup sms "Bank"
-```
-
-### 6. Restorasi Data (Restore):
-```bash
-# Pulihkan seluruh snapshot ke folder lokal
-./target/release/phone-backup restore -p "KataSandiSuperKuat" -t ./hasil_restore <SNAPSHOT_ID>
-
-# Pulihkan hanya file gambar JPG
-./target/release/phone-backup restore -p "KataSandiSuperKuat" --filter "*.jpg" -t ./foto_restore <SNAPSHOT_ID>
-```
-
-### 7. Menjalankan Desktop GUI:
-```bash
+# Jalankan Desktop GUI mode pengembangan
 cargo tauri dev
 ```
 
 ---
 
-## 🧪 Testing & Quality
-The platform maintains an isolated, 100% pure production codebase with comprehensive tests:
-- **Modular Unit & Integration Tests**: `tests/` suites across all crates.
-- **Real Device E2E Verification**: Tested on real physical Android hardware (Xiaomi, Pixel, etc.).
+## 🧪 Testing & Quality Standards
 
-```bash
-cargo test --workspace
-```
+- **100% Modularity & Clean Architecture**: Setiap file di seluruh repositori strictly $\le 200$ baris.
+- **Workspace Test Isolation**: Seluruh test suites tersimpan mandiri di direktori `tests/` di setiap crate.
+- **Pengujian Keseluruhan**: `cargo test --all` across 19 Crates + CLI + GUI $\rightarrow$ **100% LULUS (0 failed)**.
+- **UI TypeScript Build**: `npm run build` $\rightarrow$ **100% LULUS (0 errors)**.
 
 ---
 
 ## 📄 License
-MIT
-
----
-*Developed with ❤️ for the Android Community.*
+MIT License. Developed with ❤️ for the Android Community.
