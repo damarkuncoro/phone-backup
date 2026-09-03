@@ -46,12 +46,14 @@ where
         println!("Restoring snapshot {} to {}...", snapshot.id.0, target_dir);
     }
 
-    service.perform_restore(
-        &snapshot.id,
-        &target_dir,
-        encryption,
-        filter.map(|f| vec![f.to_string()]),
-    )?;
+    let mut options_builder = domain::RestoreOptions::builder(&target_dir)
+        .with_encryption(encryption);
+    if let Some(f) = filter {
+        options_builder = options_builder.with_filter(f);
+    }
+    let options = options_builder.build();
+
+    service.perform_restore_with_options(&snapshot.id, &options)?;
     println!("\nRestore completed successfully to: {}", target_dir);
     Ok(())
 }

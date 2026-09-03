@@ -25,6 +25,7 @@ mod structured_data;
 mod value_objects;
 
 mod manifest;
+mod restore;
 
 pub use app::{AppId, AppInfo};
 pub use backup_plan::{BackupPlan, DeletedFile, FileReuse};
@@ -39,6 +40,7 @@ pub use file::{FileDiff, FileEntry, FileId};
 pub use manifest::{Manifest, ManifestChunk, ManifestFile};
 pub use media::MediaInfo;
 pub use policy::BackupPolicy;
+pub use restore::{RestoreOptions, RestoreOptionsBuilder};
 pub use retention::{KeepCountStrategy, KeepDailyStrategy, RetentionPolicy, RetentionStrategy};
 pub use scan_result::{ScanResult, ScanSource, ScanWarning};
 pub use schedule::{BackupSchedule, ScheduleFrequency};

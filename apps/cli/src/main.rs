@@ -53,67 +53,67 @@ fn main() -> Result<()> {
         "adb" => {
             let adb_client = AdbClient::new();
             let adb_adapter = AdbAdapter::new(adb_client);
-            let service = BackupService::new(
-                adb_adapter.clone(),
-                adb_adapter.clone(),
-                repository,
-                storage,
-                adb_adapter.clone(),
-                adb_adapter,
-                CliProgress::new(),
-            );
+            let service = BackupService::builder()
+                .with_device_adapter(adb_adapter.clone())
+                .with_scanner_adapter(adb_adapter.clone())
+                .with_repository(repository)
+                .with_storage(storage)
+                .with_app_provider(adb_adapter.clone())
+                .with_data_provider(adb_adapter)
+                .with_progress(CliProgress::new())
+                .build()?;
             execute_command(cli, service)
         }
         "agent" => {
             let agent_adapter = adapter_agent::AgentAdapter::default();
-            let service = BackupService::new(
-                agent_adapter.clone(),
-                agent_adapter.clone(),
-                repository,
-                storage,
-                agent_adapter.clone(),
-                agent_adapter,
-                CliProgress::new(),
-            );
+            let service = BackupService::builder()
+                .with_device_adapter(agent_adapter.clone())
+                .with_scanner_adapter(agent_adapter.clone())
+                .with_repository(repository)
+                .with_storage(storage)
+                .with_app_provider(agent_adapter.clone())
+                .with_data_provider(agent_adapter)
+                .with_progress(CliProgress::new())
+                .build()?;
             execute_command(cli, service)
         }
         "mtp" => {
             let mtp_adapter = adapter_mtp::MtpAdapter::default();
-            let service = BackupService::new(
-                mtp_adapter.clone(),
-                mtp_adapter.clone(),
-                repository,
-                storage,
-                adapter_mock::MockAppProvider,
-                adapter_mock::MockDataProvider,
-                CliProgress::new(),
-            );
+            let service = BackupService::builder()
+                .with_device_adapter(mtp_adapter.clone())
+                .with_scanner_adapter(mtp_adapter.clone())
+                .with_repository(repository)
+                .with_storage(storage)
+                .with_app_provider(adapter_mock::MockAppProvider)
+                .with_data_provider(adapter_mock::MockDataProvider)
+                .with_progress(CliProgress::new())
+                .build()?;
             execute_command(cli, service)
         }
         "folder" => {
             // Treat current directory as the device root for testing
             let folder_adapter = adapter_mtp::MtpAdapter::with_root(std::env::current_dir()?);
-            let service = BackupService::new(
-                folder_adapter.clone(),
-                folder_adapter.clone(),
-                repository,
-                storage,
-                adapter_mock::MockAppProvider,
-                adapter_mock::MockDataProvider,
-                CliProgress::new(),
-            );
+            let service = BackupService::builder()
+                .with_device_adapter(folder_adapter.clone())
+                .with_scanner_adapter(folder_adapter.clone())
+                .with_repository(repository)
+                .with_storage(storage)
+                .with_app_provider(adapter_mock::MockAppProvider)
+                .with_data_provider(adapter_mock::MockDataProvider)
+                .with_progress(CliProgress::new())
+                .build()?;
             execute_command(cli, service)
         }
         _ => {
-            let service = BackupService::new(
-                MockDeviceAdapter::default(),
-                MockScannerAdapter,
-                repository,
-                storage,
-                MockAppProvider,
-                MockDataProvider,
-                CliProgress::new(),
-            );
+            let service = BackupService::builder()
+                .with_device_adapter(MockDeviceAdapter::default())
+                .with_scanner_adapter(MockScannerAdapter)
+                .with_repository(repository)
+                .with_storage(storage)
+                .with_app_provider(MockAppProvider)
+                .with_data_provider(MockDataProvider)
+                .with_progress(CliProgress::new())
+                .build()?;
             execute_command(cli, service)
         }
     }

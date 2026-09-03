@@ -1,3 +1,4 @@
+pub mod builder;
 pub mod guard;
 pub mod manifest;
 pub mod metadata;
@@ -10,6 +11,7 @@ pub mod service;
 pub mod uploader;
 pub mod verify;
 
+pub use builder::BackupServiceBuilder;
 use ports::{
     AppProviderPort, DataProviderPort, DevicePort, ProgressPort, RepositoryPort, ScannerPort,
     StoragePort,
@@ -45,6 +47,10 @@ where
     DP: DataProviderPort,
     P: ProgressPort,
 {
+    pub fn builder() -> BackupServiceBuilder<D, S, R, T, A, DP, P> {
+        BackupServiceBuilder::new()
+    }
+
     pub fn new(
         device_adapter: D,
         scanner_adapter: S,

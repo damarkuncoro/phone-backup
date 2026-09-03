@@ -20,7 +20,6 @@ where
     DP: DataProviderPort,
     P: ProgressPort,
 {
-    #[instrument(skip(self, encryption, filters))]
     pub fn perform_restore(
         &self,
         snapshot_id: &SnapshotId,
@@ -28,17 +27,32 @@ where
         encryption: EncryptionMode,
         filters: Option<Vec<String>>,
     ) -> Result<()> {
+        let options = domain::RestoreOptions {
+            target_dir: target_dir.to_string(),
+            encryption,
+            filters,
+            overwrite_existing: true,
+        };
+        self.perform_restore_with_options(snapshot_id, &options)
+    }
+
+    #[instrument(skip(self, options))]
+    pub fn perform_restore_with_options(
+        &self,
+        snapshot_id: &SnapshotId,
+        options: &domain::RestoreOptions,
+    ) -> Result<()> {
         use rayon::prelude::*;
 
         let files = self.repository.get_snapshot_files(snapshot_id)?;
-        let target_base = Path::new(target_dir);
-        let object_manager = ObjectManager::new(&self.storage, &self.repository, &encryption);
+        let target_base = Path::new(&options.target_dir);
+        let object_manager = ObjectManager::new(&self.storage, &self.repository, &options.encryption);
 
         self.progress
             .start(files.len() as u64, "Starting restoration...");
 
         files.into_par_iter().try_for_each(|file| {
-            if let Some(ref f_list) = filters {
+            if let Some(ref f_list) = options.filters {
                 let matches = f_list
                     .iter()
                     .any(|f| file.path.starts_with(f) || file.path.contains(f));
@@ -46,6 +60,14 @@ where
                     self.progress.inc(1, "Skipping...");
                     return Ok(());
                 }
+            }
+
+            let relative_path = file.path.strip_prefix('/').unwrap_or(&file.path);
+            let restore_path = target_base.join(relative_path);
+
+            if !options.overwrite_existing && restore_path.exists() {
+                self.progress.inc(1, &format!("Skipped existing {}", file.name));
+                return Ok(());
             }
 
             self.progress.inc(0, &format!("Restoring {}", file.name));
@@ -68,8 +90,6 @@ where
                 object_manager.get_chunk(hash)?
             };
 
-            let relative_path = file.path.strip_prefix('/').unwrap_or(&file.path);
-            let restore_path = target_base.join(relative_path);
             if let Some(parent) = restore_path.parent() {
                 fs::create_dir_all(parent)?;
             }

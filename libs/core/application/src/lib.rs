@@ -11,7 +11,7 @@ pub use backup::guard::SnapshotGuard;
 pub use backup::planner::BackupPlanner;
 pub use backup::progress::ProgressEstimator;
 pub use backup::verify::{StorageStats, VerificationReport};
-pub use backup::BackupService;
+pub use backup::{BackupService, BackupServiceBuilder};
 
 pub use storage::hashing::calculate_hash;
 pub use storage::manager::ObjectManager;
