@@ -1,0 +1,19 @@
+[package]
+name = "phone-backup-contacts"
+version.workspace = true
+edition.workspace = true
+description = "Specialized Contacts Backup, Intelligence, Normalization and vCard Engine"
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+domain = { workspace = true }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+base64 = "0.22"
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
