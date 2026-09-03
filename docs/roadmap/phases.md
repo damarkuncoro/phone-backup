@@ -201,13 +201,17 @@ Roadmap ini mendokumentasikan evolusi **phone-backup** dari sebuah skrip sederha
 *   **Session-based Split APKs Installer**: Pemasangan paket aplikasi modern (*App Bundles / APKS*) dengan sesi atomik (`pm install-create`, `pm install-write`, `pm install-commit`).
 *   **Live Cloud Connection Verification GUI**: Uji konektivitas live ke AWS S3/MinIO via OpenDAL Operator dari Settings Tab.
 
+## ✅ PHASE 51 — Wireless QR Pairing & Multi-Socket ADB Streamer Engine
+*   **Wireless Companion Agent QR Pairing GUI**: Dashboard interaktif perender QR Code pairing token dan deteksi IP LAN lokal (`phonebackup://pair?ip=...&port=...&token=...`).
+*   **Multi-Socket ADB Worker Pool (`libs/adapters/adb`)**: Pool soket multi-stream berkinerja tinggi dengan manajemen konkurensi RAII (`AdbWorkerGuard`).
+*   **Desktop System Tray Daemon (`apps/gui/src-tauri`)**: Integrasi `TrayManager` Tauri 2.0 untuk background daemon dan auto-backup USB connect.
+*   **Emergency Recovery Kit Generator (`apps/cli`)**: Command `phone-backup recovery-kit` penghasil dokumen cetak mandiri pemulihan offline zero-knowledge.
+*   **Production Release Packaging Pipeline**: Script `./scripts/build_release.sh` penghasil binary stripped LTO dan checksum SHA-256 terverifikasi.
+
 ---
 
 # NEXT GOALS (v1.0.0 Roadmap)
 
-1.  **Android Companion Agent APK (Wi-Fi gRPC / WebSocket Streaming Client)**:
-    *   Implementasi pipeline streaming biner dan pairing QR Code CameraX di Android APK.
-    *   Dokumen detail: [**`Companion Agent Roadmap`**](../architecture/companion-agent-roadmap.md).
-2.  **Packaging & Distribusi Multi-Platform**: Bundling otomatis untuk macOS (`.dmg`) dan Linux (`.deb` / AppImage).
-3.  **iOS Support**: Eksplorasi adapter Apple via `libimobiledevice`.
+1.  **iOS Support**: Eksplorasi adapter Apple via `libimobiledevice`.
+2.  **Cloud Sync Provider Expansion**: Integrasi provider WebDAV & Nextcloud native.
 
