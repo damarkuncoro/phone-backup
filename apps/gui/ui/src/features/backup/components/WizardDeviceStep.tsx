@@ -28,7 +28,7 @@ export function WizardDeviceStep({
               Pilih Perangkat Sumber
             </h2>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
-              Pilih ponsel atau tablet Android yang ingin dicadangkan datanya.
+              Pilih ponsel atau tablet (Android / Apple iOS) yang ingin dicadangkan datanya.
             </p>
           </div>
         </div>
@@ -43,7 +43,7 @@ export function WizardDeviceStep({
             <Smartphone className="w-12 h-12 text-slate-300 mx-auto" />
             <h3 className="text-sm font-black text-slate-700">Tidak Ada Perangkat Terhubung</h3>
             <p className="text-xs text-slate-400 max-w-md mx-auto text-center">
-              Colokkan ponsel Anda menggunakan kabel USB (pilih mode Transfer File) atau aktifkan USB Debugging.
+              Colokkan ponsel Anda menggunakan kabel USB atau sambungkan melalui Wi-Fi Companion Agent.
             </p>
           </div>
         ) : (
@@ -52,6 +52,7 @@ export function WizardDeviceStep({
               const devId = getDeviceId(device);
               const isSelected = selectedDevice && getDeviceId(selectedDevice) === devId;
               const isMtp = device.connection_type === 'Mtp';
+              const isApple = device.manufacturer?.toLowerCase() === 'apple' || device.os_version?.startsWith('iOS');
 
               return (
                 <div
@@ -87,7 +88,7 @@ export function WizardDeviceStep({
                       </span>
                       <div className="w-1 h-1 bg-slate-200 rounded-full shrink-0" />
                       <span className="text-[10px] font-black text-indigo-500 shrink-0">
-                        Android {device.os_version}
+                        {isApple ? device.os_version : `Android ${device.os_version}`}
                       </span>
                     </div>
 
