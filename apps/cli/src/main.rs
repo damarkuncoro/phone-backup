@@ -117,6 +117,19 @@ fn main() -> Result<()> {
                 .build()?;
             execute_command(cli, service)
         }
+        "ios" | "apple" => {
+            let ios_adapter = adapter_ios::IosDeviceAdapter::new();
+            let service = BackupService::builder()
+                .with_device_adapter(ios_adapter.clone())
+                .with_scanner_adapter(ios_adapter)
+                .with_repository(repository)
+                .with_storage(storage)
+                .with_app_provider(adapter_mock::MockAppProvider)
+                .with_data_provider(adapter_mock::MockDataProvider)
+                .with_progress(CliProgress::new())
+                .build()?;
+            execute_command(cli, service)
+        }
         _ => {
             let service = BackupService::builder()
                 .with_device_adapter(MockDeviceAdapter::default())

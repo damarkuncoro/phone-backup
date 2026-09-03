@@ -1,0 +1,17 @@
+[package]
+name = "phone-backup-adapter-ios"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+domain = { workspace = true }
+ports = { workspace = true }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tracing = "0.1"
+plist = "1"
+which.workspace = true

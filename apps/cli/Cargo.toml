@@ -27,6 +27,7 @@ messages.workspace = true
 apps.workspace = true
 whatsapp.workspace = true
 audio-engine.workspace = true
+adapter-ios.workspace = true
 
 clap.workspace = true
 anyhow.workspace = true
