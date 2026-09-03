@@ -22,7 +22,19 @@ use commands::execute_command;
 use factory::StorageFactory;
 use progress::CliProgress;
 
+#[cfg(unix)]
+fn reset_sigpipe() {
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    }
+}
+
+#[cfg(not(unix))]
+fn reset_sigpipe() {}
+
 fn main() -> Result<()> {
+    reset_sigpipe();
+
     // Initialize structured logging to terminal and file
     let file_appender = tracing_appender::rolling::daily("workspace/logs", "phone-backup.log");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);

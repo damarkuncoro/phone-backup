@@ -34,10 +34,14 @@ fn test_parse_pm_list_apps() {
     let device_id = DeviceId::new("test");
     let output = "package:com.whatsapp versionCode:12345\n\
                   package:com.android.settings versionCode:34";
+    let mut versions = std::collections::HashMap::new();
+    versions.insert("com.whatsapp".to_string(), "2.24.18.77".to_string());
 
-    let apps = AppParser::parse_pm_list_detailed(&device_id, output);
+    let apps = AppParser::parse_pm_list_detailed(&device_id, output, &versions);
     assert_eq!(apps.len(), 2);
     assert_eq!(apps[0].package_name, "com.whatsapp");
+    assert_eq!(apps[0].app_name, "WhatsApp");
+    assert_eq!(apps[0].version_name, "2.24.18.77");
     assert_eq!(apps[0].version_code, 12345);
     assert_eq!(apps[1].package_name, "com.android.settings");
     assert_eq!(apps[1].version_code, 34);

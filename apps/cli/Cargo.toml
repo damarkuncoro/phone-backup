@@ -37,3 +37,4 @@ indicatif.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 tracing-appender.workspace = true
+libc = "0.2"

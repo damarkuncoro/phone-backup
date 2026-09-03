@@ -17,7 +17,12 @@ impl AdbAppRepository {
 
     pub fn list_apps(&self, device_id: &DeviceId) -> Result<Vec<AppInfo>> {
         let stdout = self.client.shell(&device_id.0, AndroidScripts::LIST_APPS)?;
-        Ok(AppParser::parse_pm_list_detailed(device_id, &stdout))
+        let version_map = if let Ok(dumpsys) = self.client.shell(&device_id.0, "dumpsys package packages | grep -E 'Package \\[|versionName='") {
+            AppParser::parse_dumpsys_versions(&dumpsys)
+        } else {
+            std::collections::HashMap::new()
+        };
+        Ok(AppParser::parse_pm_list_detailed(device_id, &stdout, &version_map))
     }
 
     pub fn get_apk(&self, device_id: &DeviceId, package_name: &str) -> Result<Box<dyn Read>> {
