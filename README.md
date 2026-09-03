@@ -34,10 +34,14 @@ A high-performance, secure, and professional Android backup platform written in 
 - **Android Data Explorer**: Comprehensive views for Contacts, SMS, and Call Logs with instant search and vCard export.
 - **Real-time Progress HUD**: Floating status window with animated progress for long-running operations.
 
-### 🧠 Intelligent Engine
+### 🧠 Intelligent Engine & Scalable Patterns
 - **Multi-Transport Connectivity**: Supports both **USB ADB** (`--adapter adb`) and **Wireless Companion Agent** (`--adapter agent`).
 - **Block-level Deduplication**: Uses Content-Defined Chunking (FastCDC) to deduplicate large files at the sub-file level.
-- **Resilient Transport**: Automatic **Exponential Backoff Retry** for unstable USB connections.
+- **Incremental Batch Checkpointing**: Commits database indexes every 50 files so interrupted multi-gigabyte backups resume immediately without loss.
+- **Resilient Transport & Storage Decorators**: Middleware decorators (`RetryStorage`, `MetricsStorage`) adding automatic retry with exponential backoff and telemetry to any storage adapter.
+- **Fluent Builder & Factory Patterns**: Clean, type-safe construction with `BackupServiceBuilder`, `RestoreOptionsBuilder`, and dynamic `StorageFactory`.
+- **Observer & Event-Driven Architecture**: Built-in `DomainEventBus` publishing lifecycle events (`BackupStarted`, `BackupCompleted`, `BackupFailed`) to multiple listeners without coupling.
+- **Cooperative Cancellation**: `CancellationToken` enables graceful, immediate job cancellation from GUI and CLI without data corruption.
 - **Safety Guards**: Automatically pauses or warns if the device battery is too low or temperature is too high.
 - **Zero-Copy Streaming**: Direct data transfer from device to storage via memory streams, extending SSD life.
 - **Parallel Processing**: Multi-threaded hashing, compression, and encryption using `Rayon`.

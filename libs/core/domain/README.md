@@ -10,6 +10,9 @@ This crate contains the core domain models and business entities for the **phone
 - **AppInfo**: Information about an installed Android application (package name, version).
 - **MediaInfo**: Extracted metadata from media files (EXIF, GPS, resolution).
 - **BackupPolicy**: Configuration for what to include or exclude during a backup. Implements **`BackupPolicyBuilder`** (`BackupPolicy::builder()`) for fluent construction.
+- **RestoreOptions**: Granular configuration for restoring snapshots. Implements **`RestoreOptionsBuilder`** (`RestoreOptions::builder()`) with path filters and overwrite options.
+- **CancellationToken**: Thread-safe cooperative cancellation token for responsive GUI and CLI job cancellation.
+- **DomainEventBus**: In-memory observer/event bus for decoupling domain lifecycle events from UI/audit listeners.
 - **RetentionPolicy**: Rules for how long to keep old snapshots.
 
 ## 🛠 Usage

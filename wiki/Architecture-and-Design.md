@@ -95,4 +95,16 @@ graph TD
 4. **Test Isolation (Pure `src/`)**: 100% file kode produksi tidak tercampur dengan blok pengujian, seluruh suite pengujian ditempatkan terisolasi di folder `tests/`.
 
 ---
+
+## 5. Pola Desain (Design Patterns) Terapan
+
+| Pola Desain | Komponen | Tujuan & Manfaat |
+| :--- | :--- | :--- |
+| 🏗 **Builder Pattern** | `BackupServiceBuilder`, `RestoreOptionsBuilder`, `BackupPolicyBuilder` | Konstruksi objek orkestrator dan opsi konfigurasi yang fleksibel, *type-safe*, dan tanpa parameter berlebih (*fluent API*). |
+| 🏭 **Factory Pattern** | `StorageFactory` | Instansiasi polimorfik berbagai backend penyimpanan (Local FileSystem, S3, GCS, Azure Blob) dari konfigurasi/URI. |
+| 🛡 **Decorator Pattern** | `RetryStorage`, `MetricsStorage` | Membungkus `StoragePort` untuk menambahkan kemampuan *auto-retry with exponential backoff* dan observabilitas metrik I/O tanpa menyentuh *core logic*. |
+| 📡 **Observer Pattern** | `DomainEventBus`, `DomainEventHandler` | Menerbitkan event siklus hidup (`BackupStarted`, `BackupCompleted`, `BackupFailed`) secara *loose-coupled* ke GUI, notifikasi OS, dan audit log. |
+| 🛑 **Cooperative Cancellation** | `CancellationToken` | Mekanisme pembatalan aman antar-thread di setiap checkpoint batch transfer data. |
+
+---
 *Lanjutkan ke: [Security & Encryption](Security-and-Encryption.md) atau [Storage & Deduplication](Storage-and-Deduplication.md).*
