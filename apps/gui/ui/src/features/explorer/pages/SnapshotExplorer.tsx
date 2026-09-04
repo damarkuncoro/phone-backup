@@ -1,6 +1,4 @@
-import {
-  Shield, X, Download, Database
-} from 'lucide-react';
+import { Shield, X, Download, Database } from 'lucide-react';
 import { type FileEntry } from '@/services/deviceService';
 import { FileTree } from '@/shared/components/FileTree';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
@@ -8,6 +6,7 @@ import { useSnapshotExplorer } from '../hooks/useSnapshotExplorer';
 import { useState } from 'react';
 import { ContactsExplorer, getContactPhones } from '../components/ContactsExplorer';
 import { SmsExplorer } from '../components/SmsExplorer';
+import { CallsExplorer } from '../components/CallsExplorer';
 import { AppsExplorer } from '../components/AppsExplorer';
 import { RestoreOverlay } from '../components/RestoreOverlay';
 import { SnapshotExplorerHeader, type ExplorerMode } from '../components/SnapshotExplorerHeader';
@@ -33,21 +32,14 @@ export function SnapshotExplorer({ snapshotId, onBack }: SnapshotExplorerProps) 
     title: string;
     message: string;
     onConfirm: () => void;
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    onConfirm: () => {}
-  });
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
 
-  const handleRestoreClick = (path?: string) => {
-    setConfirmState({
-      isOpen: true,
-      title: "Konfirmasi Pemulihan",
-      message: path ? `Restore item: ${path}?` : "Restore seluruh isi snapshot ini ke komputer?",
-      onConfirm: () => startRestore(path ? [path] : undefined)
-    });
-  };
+  const handleRestoreClick = (path?: string) => setConfirmState({
+    isOpen: true,
+    title: "Konfirmasi Pemulihan",
+    message: path ? `Restore item: ${path}?` : "Restore seluruh isi snapshot ini ke komputer?",
+    onConfirm: () => startRestore(path ? [path] : undefined)
+  });
 
   const handleRestoreSelectedClick = () => {
     if (selectedPaths.size === 0) return;
@@ -156,11 +148,8 @@ export function SnapshotExplorer({ snapshotId, onBack }: SnapshotExplorerProps) 
                   contacts={(Array.isArray(rawData) ? rawData : []).filter((c: any) => {
                     if (!c) return false;
                     if (!searchQuery) return true;
-                    const query = searchQuery.toLowerCase();
-                    const name = (c.display_name || '').toLowerCase();
-                    if (name.includes(query)) return true;
-                    const phones = getContactPhones(c);
-                    return phones.some(p => p.number.toLowerCase().includes(query));
+                    const q = searchQuery.toLowerCase();
+                    return (c.display_name || '').toLowerCase().includes(q) || getContactPhones(c).some(p => p.number.toLowerCase().includes(q));
                   })}
                   snapshotId={snapshotId}
                 />
@@ -170,7 +159,16 @@ export function SnapshotExplorer({ snapshotId, onBack }: SnapshotExplorerProps) 
             {mode === 'sms' && (
               <div className="max-w-6xl mx-auto h-[620px]">
                 <SmsExplorer
-                  messages={(Array.isArray(rawData) ? rawData : []).filter((m: any) => m && (((m.body || '').toLowerCase().includes(searchQuery.toLowerCase())) || ((m.address || '').includes(searchQuery))))}
+                  messages={(Array.isArray(rawData) ? rawData : []).filter((m: any) => m && ((m.body || '').toLowerCase().includes(searchQuery.toLowerCase()) || (m.address || '').includes(searchQuery)))}
+                  snapshotId={snapshotId}
+                />
+              </div>
+            )}
+
+            {mode === 'calls' && (
+              <div className="max-w-6xl mx-auto h-[620px]">
+                <CallsExplorer
+                  calls={(Array.isArray(rawData) ? rawData : []).filter((c: any) => c && ((c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (c.number || '').includes(searchQuery)))}
                   snapshotId={snapshotId}
                 />
               </div>
@@ -179,7 +177,7 @@ export function SnapshotExplorer({ snapshotId, onBack }: SnapshotExplorerProps) 
             {mode === 'apps' && (
               <div className="max-w-6xl mx-auto h-[620px]">
                 <AppsExplorer
-                  apps={(Array.isArray(rawData) ? rawData : []).filter((a: any) => a && (((a.name || a.app_name || '').toLowerCase().includes(searchQuery.toLowerCase())) || ((a.package_name || '').toLowerCase().includes(searchQuery.toLowerCase()))))}
+                  apps={(Array.isArray(rawData) ? rawData : []).filter((a: any) => a && ((a.name || a.app_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (a.package_name || '').toLowerCase().includes(searchQuery.toLowerCase())))}
                   snapshotId={snapshotId}
                 />
               </div>

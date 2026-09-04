@@ -155,22 +155,6 @@ impl<
         Ok(snapshot)
     }
 
-    pub(crate) fn check_battery_and_thermal(&self, id: &DeviceId) -> Result<()> {
-        if let Ok((level, temp)) = self.device_adapter.battery_status(id) {
-            if level < 10 {
-                anyhow::bail!("Battery too low ({}%). Please charge your device.", level);
-            }
-            if temp > 45.0 {
-                anyhow::bail!(
-                    "Device temperature too high ({:.1}°C). Let it cool down.",
-                    temp
-                );
-            }
-            info!("Safety Check: Battery {}%, Temp {}°C - OK", level, temp);
-        }
-        Ok(())
-    }
-
     pub(crate) fn mark_interrupted(
         &self,
         snapshot: &mut Snapshot,
@@ -183,44 +167,6 @@ impl<
         snapshot.total_bytes = bytes;
         snapshot.deduped_bytes = dedup;
         self.repository.update_snapshot(snapshot)?;
-        Ok(())
-    }
-
-    pub(crate) fn check_available_disk_space(&self, required_bytes: u64) -> Result<()> {
-        let available = self.storage.available_space()?;
-        if available < required_bytes {
-            anyhow::bail!(
-                "Insufficient disk space on target storage. Required: {:.2} MB, Available: {:.2} MB",
-                required_bytes as f64 / 1024.0 / 1024.0,
-                available as f64 / 1024.0 / 1024.0
-            );
-        }
-        info!(
-            "Target Storage Capacity Check: OK (Available: {:.2} MB, Required: {:.2} MB)",
-            available as f64 / 1024.0 / 1024.0,
-            required_bytes as f64 / 1024.0 / 1024.0
-        );
-        Ok(())
-    }
-
-    pub(crate) fn store_structured_data<V: serde::Serialize>(
-        &self,
-        snapshot_id: &domain::SnapshotId,
-        data_type: domain::StructuredDataType,
-        data: &V,
-        encryption: &EncryptionMode,
-    ) -> Result<()> {
-        let json = serde_json::to_vec(data)?;
-        let object_manager = crate::storage::manager::ObjectManager::new(
-            &self.storage,
-            &self.repository,
-            encryption,
-        );
-
-        let (chunk_id, _, _) = object_manager.put_object(&json, None)?;
-
-        self.repository
-            .save_structured_data_ref(snapshot_id, data_type, &chunk_id)?;
         Ok(())
     }
 }

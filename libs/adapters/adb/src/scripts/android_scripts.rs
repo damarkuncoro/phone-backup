@@ -23,7 +23,11 @@ impl AndroidScripts {
     }
 
     pub fn find_files(roots: &[String]) -> String {
-        let roots_str = roots.join(" ");
+        let roots_str = roots
+            .iter()
+            .map(|r| format!("\"{}\"", r.trim()))
+            .collect::<Vec<_>>()
+            .join(" ");
         format!("find {} -type f ! -path '*/.trash/*' ! -path '*/cache/*' ! -path '*/.cache/*' -exec stat -c '%n|%s|%Y' {{}} + 2>/dev/null", roots_str)
     }
 

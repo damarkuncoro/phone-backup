@@ -3,7 +3,7 @@ import { backupService } from '@/services/backupService';
 import { safeListen } from '@/shared/lib/ipc';
 import { formatETA } from '@/shared/lib/formatters';
 
-export type ExplorerMode = 'files' | 'contacts' | 'sms' | 'apps';
+export type ExplorerMode = 'files' | 'contacts' | 'sms' | 'calls' | 'apps';
 
 interface ProgressPayload {
     type: 'start' | 'inc' | 'finish' | 'error' | 'log';
@@ -45,7 +45,8 @@ export function useSnapshotExplorer(snapshotId: string) {
         const result = await backupService.getSnapshotFiles(snapshotId);
         setRawData(Array.isArray(result) ? result : []);
       } else {
-        const result = await backupService.getStructuredData(snapshotId, mode);
+        const queryType = mode === 'calls' ? 'call_logs' : mode;
+        const result = await backupService.getStructuredData(snapshotId, queryType);
         setRawData(Array.isArray(result) ? result : []);
       }
     } catch (err) {

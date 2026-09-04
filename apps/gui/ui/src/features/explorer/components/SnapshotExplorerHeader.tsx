@@ -1,10 +1,10 @@
 import {
-  Folder, Users, MessageSquare, Smartphone, ArrowLeft, Download,
+  Folder, Users, MessageSquare, PhoneCall, Smartphone, ArrowLeft, Download,
   Search, Shield, RefreshCcw
 } from 'lucide-react';
 import { cn } from "@/shared/lib/utils";
 
-export type ExplorerMode = 'files' | 'contacts' | 'sms' | 'apps';
+export type ExplorerMode = 'files' | 'contacts' | 'sms' | 'calls' | 'apps';
 
 interface SnapshotExplorerHeaderProps {
   snapshotId: string;
@@ -54,6 +54,7 @@ export function SnapshotExplorerHeader({
             <ModeTab active={mode === 'files'} icon={Folder} label="Files" onClick={() => onSetMode('files')} />
             <ModeTab active={mode === 'contacts'} icon={Users} label="Contacts" onClick={() => onSetMode('contacts')} />
             <ModeTab active={mode === 'sms'} icon={MessageSquare} label="Messages" onClick={() => onSetMode('sms')} />
+            <ModeTab active={mode === 'calls'} icon={PhoneCall} label="Calls" onClick={() => onSetMode('calls')} />
             <ModeTab active={mode === 'apps'} icon={Smartphone} label="Apps" onClick={() => onSetMode('apps')} />
           </div>
 

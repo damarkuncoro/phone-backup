@@ -75,7 +75,9 @@ where
             self.progress.inc(0, &format!("Restoring {}", file.name));
 
             let chunks = self.repository.get_file_chunks(&file.id)?;
-            let data = if !chunks.is_empty() {
+            let data = if file.size_bytes == 0 {
+                Vec::new()
+            } else if !chunks.is_empty() {
                 let mut full_data = Vec::with_capacity(file.size_bytes as usize);
                 for (chunk_id, _offset, _length, _storage_key) in chunks {
                     let chunk_data = object_manager.get_chunk(&chunk_id)?;
