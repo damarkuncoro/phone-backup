@@ -1,92 +1,8 @@
-import {
-  Sparkles, Check, ArrowLeft, ArrowRight, Zap,
-  HardDrive, Image as ImageIcon, MessageSquare, FolderCheck, Users, PhoneCall, Smartphone
-} from 'lucide-react';
-import { cn } from "@/shared/lib/utils";
+import { Sparkles, ArrowLeft, ArrowRight, Zap } from 'lucide-react';
+import { DATA_OPTIONS, type DataOption } from '../lib/wizardDataOptions';
+import { WizardDataOptionCard } from './WizardDataOptionCard';
 
-export interface DataOption {
-  id: string;
-  label: string;
-  icon: any;
-  description: string;
-  detail: string;
-  requiresAdb?: boolean;
-}
-
-export const DATA_OPTIONS: DataOption[] = [
-  {
-    id: 'full_storage',
-    label: 'Seluruh Memori Internal',
-    icon: HardDrive,
-    description: 'Semua folder & file di memori ponsel (Termasuk WhatsApp, Musik, Rekaman, & Folder Kustom).',
-    detail: 'Rekomendasi Total',
-    requiresAdb: false
-  },
-  {
-    id: 'photos',
-    label: 'Galeri & Media',
-    icon: ImageIcon,
-    description: 'Foto kamera (DCIM), Gambar (Pictures), dan Video rekaman.',
-    detail: 'Volume Tinggi',
-    requiresAdb: false
-  },
-  {
-    id: 'chat_media',
-    label: 'Media WhatsApp & Chat',
-    icon: MessageSquare,
-    description: 'Foto, video, voice note, dan dokumen dari percakapan WhatsApp & Telegram.',
-    detail: 'Media Sosial',
-    requiresAdb: false
-  },
-  {
-    id: 'files',
-    label: 'Dokumen & Unduhan',
-    icon: FolderCheck,
-    description: 'Folder Download, Dokumen, PDF, Arsip Zip, dan file umum.',
-    detail: 'File Explorer',
-    requiresAdb: false
-  },
-  {
-    id: 'audio',
-    label: 'Musik & Rekaman Suara',
-    icon: Sparkles,
-    description: 'Folder Music, Recordings, VoiceRecorder, Ringtones, dan Podcast.',
-    detail: 'Audio & Suara',
-    requiresAdb: false
-  },
-  {
-    id: 'contacts',
-    label: 'Kontak & Telepon',
-    icon: Users,
-    description: 'Nama, nomor telepon, email, dan vCard kontak tersimpan.',
-    detail: 'E2E Encrypted',
-    requiresAdb: true
-  },
-  {
-    id: 'sms',
-    label: 'Pesan SMS',
-    icon: MessageSquare,
-    description: 'Riwayat percakapan SMS masuk & keluar, dan pesan teks.',
-    detail: 'Secure Vault',
-    requiresAdb: true
-  },
-  {
-    id: 'call_logs',
-    label: 'Riwayat Panggilan',
-    icon: PhoneCall,
-    description: 'Catatan panggilan masuk, keluar, dan panggilan tak terjawab.',
-    detail: 'Log Aktivitas',
-    requiresAdb: true
-  },
-  {
-    id: 'apps',
-    label: 'Daftar Aplikasi',
-    icon: Smartphone,
-    description: 'Daftar paket aplikasi Android terinstal dan versi APK.',
-    detail: 'Metadata Inventory',
-    requiresAdb: true
-  },
-];
+export { DATA_OPTIONS, type DataOption };
 
 interface WizardDataStepProps {
   isMtpDevice: boolean;
@@ -150,52 +66,18 @@ export function WizardDataStep({
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {DATA_OPTIONS.map(opt => {
-            const isSelected = selectedData.includes(opt.id);
-            const isDisabled = isMtpDevice && opt.requiresAdb;
-
-            return (
-              <div
-                key={opt.id}
-                onClick={() => !isDisabled && onToggleData(opt.id)}
-                className={cn(
-                  "p-5 rounded-[28px] border-2 transition-all flex flex-col justify-between space-y-3 relative overflow-hidden select-none",
-                  isDisabled
-                    ? "opacity-40 bg-slate-50 border-slate-200/50 cursor-not-allowed"
-                    : isSelected
-                    ? "border-indigo-500 bg-indigo-50/40 shadow-md ring-2 ring-indigo-500/10 cursor-pointer"
-                    : "border-slate-100 hover:border-indigo-200 bg-white cursor-pointer"
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <div className={cn(
-                    "w-11 h-11 rounded-2xl flex items-center justify-center shadow-inner",
-                    isSelected ? "bg-indigo-600 text-white" : "bg-slate-50 text-slate-400"
-                  )}>
-                    <opt.icon className="w-5 h-5" />
-                  </div>
-                  <span className={cn(
-                    "text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider",
-                    isSelected ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-400"
-                  )}>
-                    {opt.detail}
-                  </span>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-black text-slate-900 text-sm">{opt.label}</h4>
-                    {isSelected && <Check className="w-4 h-4 text-indigo-600 stroke-[3]" />}
-                  </div>
-                  <p className="text-[11px] text-slate-500 font-medium mt-1 leading-relaxed">{opt.description}</p>
-                </div>
-              </div>
-            );
-          })}
+          {DATA_OPTIONS.map(opt => (
+            <WizardDataOptionCard
+              key={opt.id}
+              option={opt}
+              isSelected={selectedData.includes(opt.id)}
+              isDisabled={Boolean(isMtpDevice && opt.requiresAdb)}
+              onToggle={onToggleData}
+            />
+          ))}
         </div>
       </div>
 
-      {/* Step 2 Footer with Express Backup Option */}
       <div className="pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3">
         <button
           type="button"
@@ -210,7 +92,7 @@ export function WizardDataStep({
             type="button"
             disabled={selectedData.length === 0}
             onClick={onExpressBackup}
-            title="Langsung mulai proses backup tanpa menunggu analisis pohon file selesai (sangat cepat untuk HP 128GB-512GB)"
+            title="Langsung mulai proses backup tanpa menunggu analisis pohon file selesai"
             className="px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50"
           >
             <Zap className="w-4 h-4 text-amber-400" />

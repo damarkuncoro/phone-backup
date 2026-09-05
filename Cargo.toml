@@ -23,6 +23,15 @@ members = [
     "libs/apps/whatsapp",
     "libs/media/audio",
     "libs/adapters/ios",
+    "libs/scanner",
+    "libs/data/documents",
+    "libs/media/video",
+    "libs/data/calls",
+    "libs/data/calendar",
+    "libs/apps/telegram",
+    "libs/data/notes",
+    "libs/data/wifi",
+    "libs/data/bookmarks",
 ]
 
 [workspace.package]
@@ -55,6 +64,7 @@ argon2 = "0.5"
 rand = "0.8"
 kamadak-exif = "0.5"
 mp4 = "0.14"
+quick-xml = "0.31"
 sysinfo = "0.30"
 which = "6.0"
 indicatif = "0.17"
@@ -94,3 +104,14 @@ apps = { path = "libs/data/apps", package = "phone-backup-apps", version = "0.4.
 whatsapp = { path = "libs/apps/whatsapp", package = "phone-backup-whatsapp", version = "0.4.1" }
 audio-engine = { path = "libs/media/audio", package = "phone-backup-audio", version = "0.4.1" }
 adapter-ios = { path = "libs/adapters/ios", package = "phone-backup-adapter-ios", version = "0.4.1" }
+scanner-engine = { path = "libs/scanner", package = "phone-backup-scanner", version = "0.4.1" }
+documents = { path = "libs/data/documents", package = "phone-backup-documents", version = "0.4.1" }
+video-engine = { path = "libs/media/video", package = "phone-backup-video", version = "0.4.1" }
+calls = { path = "libs/data/calls", package = "phone-backup-calls", version = "0.4.1" }
+calendar = { path = "libs/data/calendar", package = "phone-backup-calendar", version = "0.4.1" }
+telegram = { path = "libs/apps/telegram", package = "phone-backup-telegram", version = "0.4.1" }
+notes = { path = "libs/data/notes", package = "phone-backup-notes", version = "0.4.1" }
+wifi = { path = "libs/data/wifi", package = "phone-backup-wifi", version = "0.4.1" }
+bookmarks = { path = "libs/data/bookmarks", package = "phone-backup-bookmarks", version = "0.4.1" }
+
+

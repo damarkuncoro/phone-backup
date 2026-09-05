@@ -1,0 +1,16 @@
+[package]
+name = "phone-backup-video"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Specialized video engine: pure Rust container & codec header inspector, resolution tiering, and metadata extractor"
+
+[dependencies]
+domain = { workspace = true }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tracing.workspace = true
+mp4.workspace = true

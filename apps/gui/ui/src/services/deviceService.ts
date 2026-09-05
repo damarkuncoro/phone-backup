@@ -27,6 +27,31 @@ export interface FileEntry {
   permissions?: string;
 }
 
+export interface ScanCategorySummary {
+  file_count: number;
+  total_bytes: number;
+}
+
+export interface ScanMetrics {
+  duration_ms: number;
+  directories_scanned: number;
+  files_scanned: number;
+  throughput_files_per_sec: number;
+}
+
+export interface ScanWarning {
+  source: string;
+  path: string;
+  message: string;
+}
+
+export interface ScanResultPayload {
+  files: FileEntry[];
+  warnings: ScanWarning[];
+  categories: Record<string, ScanCategorySummary>;
+  metrics: ScanMetrics | null;
+}
+
 export const deviceService = {
   async getAll(): Promise<Device[]> {
     return await safeInvoke("get_devices");
@@ -42,6 +67,37 @@ export const deviceService = {
       ...f,
       is_dir: f.is_dir === true || f.mime_type === 'inode/directory' || (typeof f.permissions === 'string' && f.permissions.startsWith('d'))
     }));
+  },
+
+  async scanDetailed(deviceId: string, roots?: string[], filter?: any): Promise<ScanResultPayload> {
+    try {
+      const res: any = await safeInvoke("scan_device_detailed", {
+        device_id: deviceId,
+        roots: roots || null,
+        filter: filter || null,
+      });
+      if (res && Array.isArray(res.files)) {
+        return {
+          files: (res.files || []).map((f: any) => ({
+            ...f,
+            is_dir: f.is_dir === true || f.mime_type === 'inode/directory' || (typeof f.permissions === 'string' && f.permissions.startsWith('d'))
+          })),
+          warnings: res.warnings || [],
+          categories: res.categories || {},
+          metrics: res.metrics || null,
+        };
+      }
+    } catch (e) {
+      console.warn("scan_device_detailed fallback to standard scan:", e);
+    }
+
+    const files = await this.scan(deviceId);
+    return {
+      files,
+      warnings: [],
+      categories: {},
+      metrics: null,
+    };
   },
 
   async browse(deviceId: string, path: string): Promise<FileEntry[]> {
@@ -78,6 +134,10 @@ export const deviceService = {
 
   async getStatus() {
     return await safeInvoke("get_doctor_report");
+  },
+
+  async getLiveData(deviceId: string, dataType: 'contacts' | 'sms' | 'call_logs' | 'apps'): Promise<any[]> {
+    return await safeInvoke("get_live_data", { device_id: deviceId, data_type: dataType });
   },
 
   async connectWireless(host: string, port: number = 5555): Promise<string> {

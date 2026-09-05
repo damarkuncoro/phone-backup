@@ -15,11 +15,11 @@ where
     DP: DataProviderPort,
     P: ports::ProgressPort,
 {
-    println!("🩺 Phone Backup Doctor - System Diagnostic");
-    println!("-----------------------------------------");
+    println!("🩺 Phone Backup Doctor - Comprehensive System Diagnostic");
+    println!("-------------------------------------------------------");
 
-    // 1. Check ADB
-    print!("Checking ADB installation... ");
+    // 1. Check Android ADB
+    print!("Checking Android ADB installation... ");
     let adb_path = adapter_adb::AdbClient::find_adb();
     let adb_check = Command::new(&adb_path).arg("version").output();
     match adb_check {
@@ -34,15 +34,34 @@ where
         _ => println!("❌ NOT FOUND. Please install ADB or set ANDROID_HOME."),
     }
 
-    // 2. Check Device Connectivity
+    // 2. Check USB MTP Subsystem & Conflicts
+    print!("Checking USB MTP subsystem... ");
+    let conflicts = adapter_mtp::MtpConflictResolver::find_conflicts();
+    if conflicts.is_empty() {
+        println!("✅ READY (No exclusive USB locking processes detected)");
+    } else {
+        println!("⚠️ CONFLICT: {} process(es) locking USB: {:?}", conflicts.len(), conflicts);
+        println!("   Tip: Run `phone-backup fix-mtp` or use the GUI troubleshooting wizard.");
+    }
+
+    // 3. Check Apple iOS libimobiledevice Tools
+    print!("Checking Apple iOS bridge (ideviceinfo)... ");
+    let ios_check = Command::new("ideviceinfo").arg("-h").output();
+    if ios_check.is_ok() {
+        println!("✅ FOUND (Apple device tethering available)");
+    } else {
+        println!("ℹ️ NOT INSTALLED (Optional for iOS backup. Install via `brew install libimobiledevice`)");
+    }
+
+    // 4. Check Device Connectivity
     print!("Checking connected devices... ");
     match service.list_devices() {
         Ok(devices) if !devices.is_empty() => println!("✅ {} device(s) detected", devices.len()),
-        Ok(_) => println!("⚠️ NO DEVICES. Connect your phone via USB and enable debugging."),
+        Ok(_) => println!("⚠️ NO DEVICES. Connect your phone via USB and enable debugging/MTP."),
         Err(e) => println!("❌ ERROR: {}", e),
     }
 
-    // 3. Check Workspace & Database
+    // 5. Check Workspace & Database
     print!("Checking workspace integrity... ");
     if std::path::Path::new("workspace/backup.db").exists() {
         println!("✅ backup.db found");
@@ -50,7 +69,7 @@ where
         println!("⚠️ backup.db missing. It will be created on first backup.");
     }
 
-    // 4. Check Storage
+    // 6. Check Storage Connectivity
     print!("Checking storage connectivity... ");
     match service.storage.exists("health-check") {
         Ok(_) => println!("✅ storage reachable"),
@@ -60,3 +79,4 @@ where
     println!("\nDiagnostic Complete!");
     Ok(())
 }
+

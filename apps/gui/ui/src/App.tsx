@@ -14,6 +14,7 @@ import { WhatsAppArchivePage } from './features/whatsapp/pages/WhatsAppArchivePa
 import { AppAuditPage } from './features/audit/pages/AppAuditPage';
 import { MediaLabPage } from './features/media/pages/MediaLabPage';
 import { WirelessPairingPage } from './features/wireless/pages/WirelessPairingPage';
+import { DataVaultPage } from './features/datavault/pages/DataVaultPage';
 import { useSearch } from './features/search/hooks/useSearch';
 import { type Device } from './services/deviceService';
 import { useDevices } from './features/devices/hooks/useDevices';
@@ -126,6 +127,7 @@ function App() {
           />
         )}
         {activeView === 'whatsapp' && <WhatsAppArchivePage />}
+        {activeView === 'datavault' && <DataVaultPage />}
         {activeView === 'audit' && <AppAuditPage />}
         {activeView === 'media' && <MediaLabPage />}
         {activeView === 'wireless' && <WirelessPairingPage />}

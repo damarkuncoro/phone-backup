@@ -49,7 +49,24 @@ vi.mock('@/services/deviceService', () => ({
   deviceService: {
     getAll: vi.fn().mockResolvedValue([mockDevice]),
     scan: vi.fn().mockResolvedValue(mockFiles),
-    getBattery: vi.fn().mockResolvedValue([90, 31])
+    scanDetailed: vi.fn().mockResolvedValue({
+      files: mockFiles,
+      warnings: [],
+      categories: {
+        photos: { file_count: 1, total_bytes: 3500000 },
+        documents: { file_count: 1, total_bytes: 1200000 }
+      },
+      metrics: {
+        duration_ms: 15,
+        directories_scanned: 2,
+        files_scanned: 2,
+        throughput_files_per_sec: 133.3
+      }
+    }),
+    getBattery: vi.fn().mockResolvedValue([90, 31]),
+    getLiveData: vi.fn().mockResolvedValue([
+      { id: '1', display_name: 'Budi Santoso', phones: [{ number: '+628123456789' }] }
+    ])
   },
   getDeviceId: (d: any) => (typeof d.id === 'string' ? d.id : d.id?.[0] || 'dev1')
 }));
@@ -110,5 +127,41 @@ describe('BackupWizard Component', () => {
       expect(screen.getByText('Eksplorasi Rencana Backup')).toBeInTheDocument();
     });
     expect(screen.getByRole('button', { name: /Konfirmasi & Mulai Backup/i })).toBeInTheDocument();
+  });
+
+  it('allows previewing and selecting specific contacts in Review step', async () => {
+    render(<BackupWizard />);
+    
+    // Select device and navigate to step 2
+    const devCard = screen.getByText('Google Pixel 8 Pro').closest('div');
+    if (devCard) fireEvent.click(devCard);
+    fireEvent.click(screen.getByRole('button', { name: /Lanjutkan/i }));
+
+    // Step 2 -> Navigate to Step 3
+    await waitFor(() => {
+      expect(screen.getByText('Apa yang ingin Anda cadangkan?')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Review Rencana/i }));
+
+    // Switch to Kontak HP tab
+    await waitFor(() => {
+      expect(screen.getByText(/Kontak HP/i)).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByText(/Kontak HP/i));
+
+    // Verify contact card is rendered
+    await waitFor(() => {
+      expect(screen.getByText('Budi Santoso')).toBeInTheDocument();
+      expect(screen.getByText('+628123456789')).toBeInTheDocument();
+    });
+
+    // Toggle contact or batch actions
+    expect(screen.getByText(/1 dari 1 Kontak Dipilih/i)).toBeInTheDocument();
+    const batchBtn = screen.getByRole('button', { name: /Batal Semua/i });
+    fireEvent.click(batchBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/0 dari 1 Kontak Dipilih/i)).toBeInTheDocument();
+    });
   });
 });

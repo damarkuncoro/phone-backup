@@ -15,3 +15,5 @@ chrono.workspace = true
 tracing = "0.1"
 plist = "1"
 which.workspace = true
+scanner-engine.workspace = true
+

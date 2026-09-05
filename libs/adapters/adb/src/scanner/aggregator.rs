@@ -2,12 +2,13 @@ use super::filesystem_scanner::FileSystemScanner;
 use super::mediastore_scanner::MediaStoreScanner;
 use crate::client::AdbClient;
 use anyhow::Result;
-use domain::{DeviceId, FileEntry};
-use std::collections::BTreeMap;
+use domain::{DeviceId, FileEntry, ScanFilter, ScanResult, ScanSource, ScanWarning};
+use scanner_engine::ScanPipeline;
+use std::thread;
 
 pub const DEFAULT_SCAN_ROOTS: &[&str] = &["/storage/emulated/0"];
 
-/// Coordinator aggregating MediaStore and FileSystem sub-scanners with deterministic sorting.
+/// High-performance multi-source concurrent scanner aggregator with deduplication and metrics.
 #[derive(Clone)]
 pub struct ScannerAggregator {
     mediastore_scanner: MediaStoreScanner,
@@ -30,26 +31,6 @@ impl ScannerAggregator {
         }
     }
 
-    fn merge_file_entries(mediastore: FileEntry, filesystem: FileEntry) -> FileEntry {
-        FileEntry {
-            id: mediastore.id,
-            device_id: filesystem.device_id,
-            path: mediastore.path,
-            name: filesystem.name,
-            size_bytes: filesystem.size_bytes,
-            modified_at: filesystem.modified_at,
-            mime_type: if mediastore.mime_type.is_empty() {
-                filesystem.mime_type
-            } else {
-                mediastore.mime_type
-            },
-            permissions: filesystem.permissions,
-            hash_sha256: filesystem.hash_sha256.or(mediastore.hash_sha256),
-            thumbnail_hash: mediastore.thumbnail_hash.or(filesystem.thumbnail_hash),
-            media_info: mediastore.media_info.or(filesystem.media_info),
-        }
-    }
-
     pub fn scan(&self, device_id: &DeviceId, roots: Vec<String>) -> Result<Vec<FileEntry>> {
         let res = self.scan_with_result(device_id, roots)?;
         Ok(res.files)
@@ -59,52 +40,72 @@ impl ScannerAggregator {
         &self,
         device_id: &DeviceId,
         roots: Vec<String>,
-    ) -> Result<domain::ScanResult> {
-        let mut warnings = Vec::new();
+    ) -> Result<ScanResult> {
+        self.scan_with_filter(device_id, roots, &ScanFilter::default())
+    }
 
-        let media_entries = match self.mediastore_scanner.scan(device_id) {
-            Ok(entries) => entries,
-            Err(e) => {
-                warnings.push(domain::ScanWarning {
-                    source: domain::ScanSource::MediaStoreImages,
-                    path: "MediaStore".to_string(),
-                    message: format!("MediaStore query warning: {}", e),
+    fn handle_worker_result(
+        res: thread::Result<Result<Vec<FileEntry>>>,
+        source: ScanSource,
+        path: String,
+        op_name: &str,
+        pipeline: &mut ScanPipeline,
+    ) -> Vec<FileEntry> {
+        match res {
+            Ok(Ok(entries)) => entries,
+            Ok(Err(e)) => {
+                pipeline.add_warning(ScanWarning {
+                    source,
+                    path,
+                    message: format!("{} warning: {}", op_name, e),
                 });
                 Vec::new()
             }
-        };
+            Err(_) => {
+                pipeline.add_warning(ScanWarning {
+                    source,
+                    path,
+                    message: format!("{} worker thread panicked", op_name),
+                });
+                Vec::new()
+            }
+        }
+    }
 
+    pub fn scan_with_filter(
+        &self,
+        device_id: &DeviceId,
+        roots: Vec<String>,
+        filter: &ScanFilter,
+    ) -> Result<ScanResult> {
         let scan_roots = self.resolve_roots(roots);
-        let filesystem_entries = match self.filesystem_scanner.scan(device_id, &scan_roots) {
-            Ok(entries) => entries,
-            Err(e) => {
-                warnings.push(domain::ScanWarning {
-                    source: domain::ScanSource::FileSystem,
-                    path: scan_roots.join(", "),
-                    message: format!("Filesystem scan warning: {}", e),
-                });
-                Vec::new()
-            }
-        };
+        let mut pipeline = ScanPipeline::builder()
+            .with_filter(filter.clone())
+            .with_directory_count(scan_roots.len())
+            .build();
 
-        let mut entries_map = BTreeMap::<String, FileEntry>::new();
+        let (media_res, fs_res) = thread::scope(|s| {
+            let media_handle = s.spawn(|| self.mediastore_scanner.scan(device_id));
+            let fs_handle = s.spawn(|| self.filesystem_scanner.scan(device_id, &scan_roots));
+            (media_handle.join(), fs_handle.join())
+        });
 
-        for media in media_entries {
-            entries_map.insert(media.path.clone(), media);
-        }
+        let media_entries = Self::handle_worker_result(
+            media_res,
+            ScanSource::MediaStoreImages,
+            "MediaStore".to_string(),
+            "MediaStore",
+            &mut pipeline,
+        );
 
-        for fs_file in filesystem_entries {
-            if let Some(existing_media) = entries_map.remove(&fs_file.path) {
-                let merged = Self::merge_file_entries(existing_media, fs_file);
-                entries_map.insert(merged.path.clone(), merged);
-            } else {
-                entries_map.insert(fs_file.path.clone(), fs_file);
-            }
-        }
+        let filesystem_entries = Self::handle_worker_result(
+            fs_res,
+            ScanSource::FileSystem,
+            scan_roots.join(", "),
+            "Filesystem",
+            &mut pipeline,
+        );
 
-        Ok(domain::ScanResult::new(
-            entries_map.into_values().collect(),
-            warnings,
-        ))
+        Ok(pipeline.process_multi_source(media_entries, filesystem_entries))
     }
 }

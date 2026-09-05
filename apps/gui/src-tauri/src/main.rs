@@ -16,7 +16,10 @@ fn on_connect(socket: socketioxide::extract::SocketRef) {
 
 fn main() {
     // 1. Initialize formal logging
-    tracing_subscriber::fmt::init();
+    let filter = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"))
+        .add_directive("nusb=off".parse().unwrap());
+    tracing_subscriber::fmt().with_env_filter(filter).init();
 
     // 2. Setup diagnostic panic hook
     std::panic::set_hook(Box::new(|info| {
@@ -66,6 +69,7 @@ fn main() {
             commands::device::get_devices,
             commands::device::get_all_known_devices,
             commands::device::scan_device,
+            commands::device::scan_device_detailed,
             commands::device::get_live_apps,
             commands::device::browse_directory,
             commands::device::delete_device_file,
@@ -113,11 +117,20 @@ fn main() {
             commands::communication::export_sms_html,
             commands::communication::get_call_stats,
             commands::communication::generate_whatsapp_archive_preview,
+            commands::communication::get_whatsapp_sync_status,
+            commands::communication::get_synced_whatsapp_html,
+            commands::communication::get_whatsapp_qr_html,
             commands::media::analyze_audio_file,
             commands::media::check_image_sharpness,
             commands::app_audit::audit_apk_file,
             commands::cloud::test_cloud_connection,
             commands::wireless::get_wireless_pairing_info,
+            commands::wireless::connect_wireless_device,
+            commands::datavault::get_wifi_vault,
+            commands::datavault::get_wifi_qr,
+            commands::datavault::get_bookmarks_vault,
+            commands::datavault::get_notes_vault,
+            commands::datavault::get_calendar_vault,
         ])
         .run(tauri::generate_context!());
 

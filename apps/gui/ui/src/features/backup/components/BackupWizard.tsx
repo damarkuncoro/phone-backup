@@ -5,7 +5,8 @@ import { useBackupWizard } from '../hooks/useBackupWizard';
 import { UI_TOKENS } from '@/shared/theme/tokens';
 import { WizardHeader } from './WizardHeader';
 import { WizardDeviceStep } from './WizardDeviceStep';
-import { WizardDataStep, DATA_OPTIONS } from './WizardDataStep';
+import { WizardDataStep } from './WizardDataStep';
+import { DATA_OPTIONS } from '../lib/wizardDataOptions';
 import { WizardReviewStep } from './WizardReviewStep';
 import { WizardProgressStep } from './WizardProgressStep';
 
@@ -24,7 +25,9 @@ export function BackupWizard({ initialDevice, onFinish }: BackupWizardProps) {
     selectedPaths, handleTogglePath, handleNextToConfigure, handleStartBackup, handleExpressBackup,
     analysisState,
     progressMsg, progressPercent, totalItems, currentItems, error,
-    selectedFiles, totalBytes
+    selectedFiles, totalBytes,
+    liveContacts, selectedContactIds, toggleContactId, selectAllContacts, deselectAllContacts,
+    loadingStructured
   } = useBackupWizard();
 
   const [encryptionEnabled] = useState(true);
@@ -94,6 +97,13 @@ export function BackupWizard({ initialDevice, onFinish }: BackupWizardProps) {
             onBack={() => setStep('select-data')}
             onExpressBackup={handleExpressBackup}
             onStartBackup={() => handleStartBackup(DATA_OPTIONS.length)}
+            selectedData={selectedData}
+            liveContacts={liveContacts}
+            selectedContactIds={selectedContactIds}
+            onToggleContact={toggleContactId}
+            onSelectAllContacts={selectAllContacts}
+            onDeselectAllContacts={deselectAllContacts}
+            loadingStructured={loadingStructured}
           />
         )}
 

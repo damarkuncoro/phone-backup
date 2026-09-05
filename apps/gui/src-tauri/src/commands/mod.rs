@@ -3,6 +3,7 @@ pub mod backup;
 pub mod cloud;
 pub mod communication;
 pub mod contact;
+pub mod datavault;
 pub mod device;
 pub mod media;
 pub mod system;

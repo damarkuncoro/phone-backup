@@ -1,0 +1,16 @@
+[package]
+name = "phone-backup-calls"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Specialized call log engine: pure Rust XML/JSON/CSV parsers, talk time analytics, frequent contact stats, and exporters"
+
+[dependencies]
+domain = { workspace = true }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+quick-xml.workspace = true
+tracing.workspace = true

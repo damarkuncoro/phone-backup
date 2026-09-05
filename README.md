@@ -31,7 +31,7 @@ A high-performance, secure, and professional Android backup platform written in 
 ### 📱 Specialist Domain Crates
 - **Contacts (`phone-backup-contacts`)**: Parser & writer vCard RFC 6350, CSV export, dan direct ADB injection.
 - **Messages & Calls (`phone-backup-messages`)**: Ekspor standar XML (*SMS Backup & Restore*), HTML viewer, dan agregasi analitik riwayat panggilan.
-- **WhatsApp (`phone-backup-whatsapp`)**: Pemindai Scoped Storage Android 11–15 & generator arsip chat HTML offline.
+- **WhatsApp (`phone-backup-whatsapp`)**: Live Multi-Device QR Sync, pemindai Scoped Storage Android 11–15 & generator arsip chat HTML offline.
 - **App Security Audit (`phone-backup-apps`)**: Pure-Rust AXML parser, evaluator izin berbahaya, dan Session-based Split APK Installer.
 - **Media Lab (`phone-backup-image` & `phone-backup-audio`)**: Deteksi keburaman foto (*Laplacian sharpness*), perceptual hash (*dHash/aHash*), dan visualisasi kurva 60-point waveform audio.
 

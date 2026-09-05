@@ -49,15 +49,15 @@ impl AndroidScripts {
     }
 
     pub fn list_dir(path: &str) -> String {
-        let clean_path = path.trim_end_matches('/');
-        let base = if clean_path.is_empty() {
-            ""
+        let clean = path.trim();
+        let target = if clean.is_empty() || clean == "/" {
+            "/"
         } else {
-            clean_path
+            clean.trim_end_matches('/')
         };
         format!(
-            "ls -a1 \"{}\" | while read line; do [ \"$line\" = \".\" ] || [ \"$line\" = \"..\" ] || stat -L -c \"%n|%s|%Y|%F\" \"{}/$line\" 2>/dev/null; done",
-            path, base
+            "find \"{target}\" -maxdepth 1 ! -path \"{target}\" -exec stat -L -c \"%n|%s|%Y|%F\" {{}} + 2>/dev/null || (ls -a1 \"{target}\" | while read line; do [ \"$line\" = \".\" ] || [ \"$line\" = \"..\" ] || stat -L -c \"%n|%s|%Y|%F\" \"{target}/$line\" 2>/dev/null; done)",
+            target = target
         )
     }
 

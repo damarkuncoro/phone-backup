@@ -44,7 +44,9 @@ pub use media::MediaInfo;
 pub use policy::BackupPolicy;
 pub use restore::{RestoreOptions, RestoreOptionsBuilder};
 pub use retention::{KeepCountStrategy, KeepDailyStrategy, RetentionPolicy, RetentionStrategy};
-pub use scan_result::{ScanResult, ScanSource, ScanWarning};
+pub use scan_result::{
+    ScanCategory, ScanCategorySummary, ScanFilter, ScanMetrics, ScanResult, ScanSource, ScanWarning,
+};
 pub use schedule::{BackupSchedule, ScheduleFrequency};
 pub use settings::{AppSettings, StorageBackend};
 pub use snapshot::{Snapshot, SnapshotId, SnapshotStatus};

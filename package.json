@@ -1,0 +1,14 @@
+{
+  "name": "phone-backup-monorepo",
+  "version": "0.4.1",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix apps/gui/ui run dev",
+    "build": "npm --prefix apps/gui/ui run build",
+    "gui:dev": "npm --prefix apps/gui/ui run dev",
+    "gui:build": "npm --prefix apps/gui/ui run build",
+    "tauri": "npm --prefix apps/gui run tauri",
+    "tauri:dev": "cd apps/gui && cargo tauri dev",
+    "tauri:build": "cd apps/gui && cargo tauri build"
+  }
+}

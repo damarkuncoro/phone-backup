@@ -28,6 +28,15 @@ apps.workspace = true
 whatsapp.workspace = true
 audio-engine.workspace = true
 adapter-ios.workspace = true
+scanner-engine.workspace = true
+documents.workspace = true
+video-engine.workspace = true
+calls.workspace = true
+calendar.workspace = true
+telegram.workspace = true
+notes.workspace = true
+wifi.workspace = true
+bookmarks.workspace = true
 
 clap.workspace = true
 anyhow.workspace = true

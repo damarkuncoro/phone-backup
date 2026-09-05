@@ -1,0 +1,15 @@
+[package]
+name = "phone-backup-notes"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Specialized mobile notes and checklist engine: Google Keep Takeout parser, Markdown checklist extractor, tag analytics, and offline HTML notes wall"
+
+[dependencies]
+domain = { workspace = true }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tracing.workspace = true

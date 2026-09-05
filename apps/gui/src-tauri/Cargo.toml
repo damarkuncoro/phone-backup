@@ -32,6 +32,14 @@ messages = { workspace = true }
 apps = { workspace = true }
 whatsapp = { workspace = true }
 audio-engine = { workspace = true }
+video-engine = { workspace = true }
+documents = { workspace = true }
+calls = { workspace = true }
+calendar = { workspace = true }
+notes = { workspace = true }
+wifi = { workspace = true }
+bookmarks = { workspace = true }
+telegram = { workspace = true }
 axum.workspace = true
 socketioxide.workspace = true
 tower.workspace = true

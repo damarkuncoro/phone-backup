@@ -73,6 +73,15 @@ impl ScannerPort for AdbAdapter {
     fn scan(&self, device_id: &DeviceId, roots: Vec<String>) -> Result<Vec<FileEntry>> {
         self.scanner_gw.scan(device_id, roots)
     }
+
+    fn scan_detailed(
+        &self,
+        device_id: &DeviceId,
+        roots: Vec<String>,
+        filter: Option<&domain::ScanFilter>,
+    ) -> Result<domain::ScanResult> {
+        self.scanner_gw.scan_detailed(device_id, roots, filter)
+    }
 }
 
 impl AppProviderPort for AdbAdapter {

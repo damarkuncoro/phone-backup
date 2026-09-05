@@ -122,14 +122,33 @@ export function SettingsStorageTab({
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-wrap gap-1.5">
+              <span className="text-[10px] font-bold text-slate-400 self-center mr-1">Presets:</span>
+              {[
+                { name: 'AWS S3', reg: 'us-east-1', ep: '' },
+                { name: 'Cloudflare R2', reg: 'auto', ep: 'https://<account_id>.r2.cloudflarestorage.com' },
+                { name: 'MinIO Local', reg: 'us-east-1', ep: 'http://localhost:9000' },
+                { name: 'Backblaze B2', reg: 'us-west-004', ep: 'https://s3.us-west-004.backblazeb2.com' },
+              ].map(p => (
+                <button
+                  key={p.name}
+                  type="button"
+                  onClick={() => { setS3Region(p.reg); if (p.ep) setS3Endpoint(p.ep); }}
+                  className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-slate-200 text-slate-700 hover:text-indigo-600 rounded-lg text-[10px] font-bold transition"
+                >
+                  {p.name}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {currentBackendType === 'S3' && (
                 <>
                   <input type="text" placeholder="Bucket Name" value={s3Bucket} onChange={(e) => setS3Bucket(e.target.value)} className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none" />
-                  <input type="text" placeholder="Region (us-east-1)" value={s3Region} onChange={(e) => setS3Region(e.target.value)} className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none" />
+                  <input type="text" placeholder="Region (e.g. us-east-1, auto)" value={s3Region} onChange={(e) => setS3Region(e.target.value)} className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none" />
                 </>
               )}
-              <input type="text" placeholder={currentBackendType === 'S3' ? "Custom Endpoint (https://s3...)" : "WebDAV URL (https://nextcloud.local/remote.php/dav/files/...)"} value={s3Endpoint} onChange={(e) => setS3Endpoint(e.target.value)} className="sm:col-span-2 w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none" />
+              <input type="text" placeholder={currentBackendType === 'S3' ? "Endpoint URL (leave empty for AWS S3)" : "WebDAV URL"} value={s3Endpoint} onChange={(e) => setS3Endpoint(e.target.value)} className="sm:col-span-2 w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none" />
               <input type="text" placeholder={currentBackendType === 'S3' ? "Access Key ID" : "Username"} value={s3AccessKey} onChange={(e) => setS3AccessKey(e.target.value)} className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none" />
               <input type="password" placeholder={currentBackendType === 'S3' ? "Secret Access Key" : "Password / App Token"} value={s3SecretKey} onChange={(e) => setS3SecretKey(e.target.value)} className="w-full bg-white border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono outline-none" />
             </div>
@@ -148,20 +167,18 @@ export function SettingsStorageTab({
         <div className="border-t border-slate-100 pt-6 space-y-3">
           <h4 className="text-xs font-black uppercase tracking-wider text-slate-700">Akses Cepat Direktori Sistem</h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button type="button" onClick={() => onOpenFolder('restore')} className="flex items-center justify-between p-4 bg-slate-50 hover:bg-indigo-50 border border-slate-200/70 hover:border-indigo-200 rounded-2xl transition-all group text-left">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-600 group-hover:text-indigo-600 shadow-sm"><FolderOpen className="w-5 h-5" /></div>
-                <div><p className="text-xs font-black text-slate-800">Buka Folder Restore</p><p className="text-[10px] text-slate-400">Lokasi file hasil pemulihan snapshot</p></div>
-              </div>
-              <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-indigo-600" />
-            </button>
-            <button type="button" onClick={() => onOpenFolder('downloads')} className="flex items-center justify-between p-4 bg-slate-50 hover:bg-indigo-50 border border-slate-200/70 hover:border-indigo-200 rounded-2xl transition-all group text-left">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-600 group-hover:text-indigo-600 shadow-sm"><FolderOpen className="w-5 h-5" /></div>
-                <div><p className="text-xs font-black text-slate-800">Buka Folder Downloads</p><p className="text-[10px] text-slate-400">Berkas unduhan dari HP</p></div>
-              </div>
-              <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-indigo-600" />
-            </button>
+            {[
+              { type: 'restore' as const, title: 'Buka Folder Restore', desc: 'Lokasi file hasil pemulihan snapshot' },
+              { type: 'downloads' as const, title: 'Buka Folder Downloads', desc: 'Berkas unduhan dari HP' },
+            ].map(f => (
+              <button key={f.type} type="button" onClick={() => onOpenFolder(f.type)} className="flex items-center justify-between p-4 bg-slate-50 hover:bg-indigo-50 border border-slate-200/70 hover:border-indigo-200 rounded-2xl transition-all group text-left">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-600 group-hover:text-indigo-600 shadow-sm"><FolderOpen className="w-5 h-5" /></div>
+                  <div><p className="text-xs font-black text-slate-800">{f.title}</p><p className="text-[10px] text-slate-400">{f.desc}</p></div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-indigo-600" />
+              </button>
+            ))}
           </div>
         </div>
       </div>

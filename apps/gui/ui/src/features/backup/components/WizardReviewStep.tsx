@@ -1,10 +1,12 @@
-import React from 'react';
-import { Search, ShieldCheck, ArrowLeft, ArrowRight, Lock, FolderCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, ShieldCheck, ArrowLeft, ArrowRight, Lock, FolderCheck, Users, HardDrive } from 'lucide-react';
 import { type FileEntry } from '@/services/deviceService';
 import { formatBytes } from '@/shared/lib/formatters';
 import { FileTree } from '@/shared/components/FileTree';
+import type { ContactData } from '@/features/explorer/components/contactsUtils';
 import type { AnalysisState } from '../hooks/useBackupWizard';
 import { AnalysisHud } from './AnalysisHud';
+import { WizardContactsPreview } from './WizardContactsPreview';
 
 interface WizardReviewStepProps {
   totalBytes: number;
@@ -20,34 +22,35 @@ interface WizardReviewStepProps {
   onBack: () => void;
   onExpressBackup: () => void;
   onStartBackup: () => void;
+  selectedData?: string[];
+  liveContacts?: ContactData[];
+  loadingStructured?: boolean;
+  selectedContactIds?: Set<string>;
+  onToggleContact?: (id: string) => void;
+  onSelectAllContacts?: () => void;
+  onDeselectAllContacts?: () => void;
 }
 
 export const WizardReviewStep: React.FC<WizardReviewStepProps> = ({
-  totalBytes,
-  selectedFilesCount,
-  reviewSearch,
-  onReviewSearchChange,
-  isCalculating,
-  analysisState,
-  scannedFiles,
-  selectedPaths,
-  onTogglePath,
-  encryptionEnabled,
-  onBack,
-  onExpressBackup,
-  onStartBackup
+  totalBytes, selectedFilesCount, reviewSearch, onReviewSearchChange, isCalculating,
+  analysisState, scannedFiles, selectedPaths, onTogglePath, encryptionEnabled, onBack,
+  onExpressBackup, onStartBackup, selectedData = [], liveContacts = [], loadingStructured = false,
+  selectedContactIds = new Set(), onToggleContact, onSelectAllContacts, onDeselectAllContacts
 }) => {
+  const hasFiles = selectedData.some(d => ['full_storage', 'photos', 'chat_media', 'files', 'audio'].includes(d));
+  const hasContacts = selectedData.includes('contacts');
+  const [activeTab, setActiveTab] = useState<'files' | 'contacts'>(hasFiles ? 'files' : 'contacts');
+  const [contactSearch, setContactSearch] = useState('');
+
   return (
     <div className="flex-1 flex flex-col min-h-0 animate-in fade-in duration-200">
       {/* Review Header Stats */}
-      <div className="p-6 md:p-8 border-b border-slate-100 shrink-0 bg-white space-y-5">
+      <div className="p-6 md:p-8 border-b border-slate-100 shrink-0 bg-white space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-black text-slate-900 tracking-tight">
-              Eksplorasi Rencana Backup
-            </h2>
+            <h2 className="text-xl font-black text-slate-900 tracking-tight">Eksplorasi Rencana Backup</h2>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
-              Tinjau file yang terdeteksi. Anda dapat mengecualikan folder atau file tertentu.
+              Tinjau daftar data dan berkas yang akan disimpan ke arsip backup.
             </p>
           </div>
 
@@ -64,21 +67,60 @@ export const WizardReviewStep: React.FC<WizardReviewStepProps> = ({
           </div>
         </div>
 
-        <div className="relative">
-          <Search className="absolute left-4 top-3.5 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Cari nama file dalam rencana backup..."
-            value={reviewSearch}
-            onChange={(e) => onReviewSearchChange(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200/80 pl-11 pr-4 py-3 rounded-2xl text-xs font-medium outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 transition-all"
-          />
-        </div>
+        {/* Tab switchers if both files and contacts exist */}
+        {hasContacts && hasFiles && (
+          <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setActiveTab('files')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                activeTab === 'files' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              <HardDrive className="w-4 h-4" />
+              <span>Pohon File ({scannedFiles.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('contacts')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                activeTab === 'contacts' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Kontak HP ({selectedContactIds.size}/{liveContacts.length})</span>
+            </button>
+          </div>
+        )}
+
+        {activeTab === 'files' && hasFiles && (
+          <div className="relative">
+            <Search className="absolute left-4 top-3.5 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari nama file dalam rencana backup..."
+              value={reviewSearch}
+              onChange={(e) => onReviewSearchChange(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200/80 pl-11 pr-4 py-3 rounded-2xl text-xs font-medium outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-300 transition-all"
+            />
+          </div>
+        )}
       </div>
 
-      {/* Tree View Area or Live Analysis HUD */}
+      {/* Main Review Content Area */}
       <div className="flex-1 overflow-y-auto bg-slate-50/50 custom-scrollbar p-6">
-        {isCalculating ? (
+        {activeTab === 'contacts' || !hasFiles ? (
+          <WizardContactsPreview
+            contacts={liveContacts}
+            searchQuery={contactSearch}
+            onSearchChange={setContactSearch}
+            isLoading={loadingStructured}
+            selectedContactIds={selectedContactIds}
+            onToggleContact={onToggleContact}
+            onSelectAll={onSelectAllContacts}
+            onDeselectAll={onDeselectAllContacts}
+          />
+        ) : isCalculating ? (
           <AnalysisHud analysisState={analysisState} onExpressBackup={onExpressBackup} />
         ) : scannedFiles.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center py-20 text-slate-400 space-y-2">
@@ -88,12 +130,7 @@ export const WizardReviewStep: React.FC<WizardReviewStepProps> = ({
           </div>
         ) : (
           <div className="max-w-3xl mx-auto pb-10">
-            <FileTree
-              files={scannedFiles}
-              searchQuery={reviewSearch}
-              selectedPaths={selectedPaths}
-              onToggle={onTogglePath}
-            />
+            <FileTree files={scannedFiles} searchQuery={reviewSearch} selectedPaths={selectedPaths} onToggle={onTogglePath} />
           </div>
         )}
       </div>

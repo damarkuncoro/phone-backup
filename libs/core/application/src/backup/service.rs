@@ -37,14 +37,19 @@ impl<
         self.check_battery_and_thermal(id)?;
 
         // 2. SCAN DEVICE
-        self.progress.log("Scanning device filesystem...");
-        let all_files = self
-            .scanner_adapter
-            .scan(id, policy.include_paths.clone())?;
-        let manifest_files: Vec<FileEntry> = all_files
-            .into_iter()
-            .filter(|f| policy.should_include(&f.path))
-            .collect();
+        let manifest_files: Vec<FileEntry> = if policy.include_paths == vec!["__NO_FILES__".to_string()] {
+            self.progress.log("Skipping filesystem scan (structured data only)...");
+            Vec::new()
+        } else {
+            self.progress.log("Scanning device filesystem...");
+            let all_files = self
+                .scanner_adapter
+                .scan(id, policy.include_paths.clone())?;
+            all_files
+                .into_iter()
+                .filter(|f| policy.should_include(&f.path))
+                .collect()
+        };
         self.progress.log(&format!(
             "Manifest built with {} files",
             manifest_files.len()

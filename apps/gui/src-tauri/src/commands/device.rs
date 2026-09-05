@@ -26,6 +26,20 @@ pub async fn scan_device(
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub async fn scan_device_detailed(
+    state: State<'_, AppState>,
+    device_id: String,
+    roots: Option<Vec<String>>,
+    filter: Option<domain::ScanFilter>,
+) -> Result<domain::ScanResult, String> {
+    let id = DeviceId::new(device_id);
+    state
+        .engine
+        .scan_device_detailed(&id, roots.unwrap_or_default(), filter.as_ref())
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_device_battery(
     state: State<'_, AppState>,
     device_id: String,
@@ -151,22 +165,22 @@ pub async fn get_live_data(
     match data_type.as_str() {
         "contacts" => {
             let data = state.engine.list_contacts(&id).map_err(|e| e.to_string())?;
-            Ok(serde_json::to_value(data).unwrap())
+            Ok(serde_json::to_value(data).map_err(|e| e.to_string())?)
         }
         "sms" => {
             let data = state.engine.list_sms(&id).map_err(|e| e.to_string())?;
-            Ok(serde_json::to_value(data).unwrap())
+            Ok(serde_json::to_value(data).map_err(|e| e.to_string())?)
         }
         "call_logs" => {
             let data = state
                 .engine
                 .list_call_logs(&id)
                 .map_err(|e| e.to_string())?;
-            Ok(serde_json::to_value(data).unwrap())
+            Ok(serde_json::to_value(data).map_err(|e| e.to_string())?)
         }
         "apps" => {
             let data = state.engine.list_apps(&id).map_err(|e| e.to_string())?;
-            Ok(serde_json::to_value(data).unwrap())
+            Ok(serde_json::to_value(data).map_err(|e| e.to_string())?)
         }
         _ => Err("Unsupported data type".to_string()),
     }

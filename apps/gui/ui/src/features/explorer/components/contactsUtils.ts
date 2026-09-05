@@ -74,7 +74,7 @@ export function getContactPhones(contact: ContactData): { number: string; type?:
     if (typeof item === 'string' && item.trim()) {
       results.push({ number: item.trim() });
     } else if (item && typeof item === 'object') {
-      const num = item.raw_value || item.normalized_value;
+      const num = (item as any).number || item.raw_value || item.normalized_value;
       if (num && String(num).trim()) {
         results.push({
           number: String(num).trim(),

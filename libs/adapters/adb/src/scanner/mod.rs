@@ -5,3 +5,6 @@ pub mod mediastore_scanner;
 pub use aggregator::{ScannerAggregator, DEFAULT_SCAN_ROOTS};
 pub use filesystem_scanner::FileSystemScanner;
 pub use mediastore_scanner::MediaStoreScanner;
+pub use scanner_engine::{
+    FileClassifier, FileMerger, IncrementalScanner, NoiseFilter, ScanMetricsTracker, ScanPipeline,
+};

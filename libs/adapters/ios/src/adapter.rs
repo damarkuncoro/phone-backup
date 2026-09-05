@@ -1,17 +1,21 @@
+use crate::afc::AfcClient;
 use crate::protocol::IosDeviceProperties;
 use anyhow::{anyhow, Result};
-use domain::{CapabilityMatrix, Device, DeviceId, FileEntry, FileId};
+use domain::{CapabilityMatrix, Device, DeviceId, FileEntry};
 use ports::{DevicePort, ScannerPort};
-use std::io::Cursor;
 use std::process::Command;
 
 /// Device and Scanner Port implementation for Apple iOS devices.
 #[derive(Debug, Clone, Default)]
-pub struct IosDeviceAdapter;
+pub struct IosDeviceAdapter {
+    afc: AfcClient,
+}
 
 impl IosDeviceAdapter {
     pub fn new() -> Self {
-        Self
+        Self {
+            afc: AfcClient::new(),
+        }
     }
 
     /// Queries connected iOS device metadata via ideviceinfo CLI if available.
@@ -93,11 +97,11 @@ impl DevicePort for IosDeviceAdapter {
         Ok(props.to_capability_matrix())
     }
 
-    fn read_file(&self, _id: &DeviceId, _path: &str) -> Result<Box<dyn std::io::Read>> {
-        Ok(Box::new(Cursor::new(Vec::new())))
+    fn read_file(&self, id: &DeviceId, path: &str) -> Result<Box<dyn std::io::Read>> {
+        self.afc.read_file(&id.0, path)
     }
 
-    fn push_file(&self, _id: &DeviceId, _source: &mut dyn std::io::Read, _target_path: &str) -> Result<()> {
+    fn push_file(&self, _id: &DeviceId, _src: &mut dyn std::io::Read, _target: &str) -> Result<()> {
         Ok(())
     }
 
@@ -105,19 +109,19 @@ impl DevicePort for IosDeviceAdapter {
         Ok((85, 30.5))
     }
 
-    fn list_directory(&self, id: &DeviceId, _path: &str) -> Result<Vec<FileEntry>> {
-        self.scan(id, vec!["/DCIM".to_string()])
+    fn list_directory(&self, id: &DeviceId, path: &str) -> Result<Vec<FileEntry>> {
+        self.scan(id, vec![path.to_string()])
     }
 
     fn delete_remote(&self, _id: &DeviceId, _path: &str) -> Result<()> {
         Ok(())
     }
 
-    fn rename_remote(&self, _id: &DeviceId, _old_path: &str, _new_path: &str) -> Result<()> {
+    fn rename_remote(&self, _id: &DeviceId, _old: &str, _new: &str) -> Result<()> {
         Ok(())
     }
 
-    fn copy_remote(&self, _id: &DeviceId, _source_path: &str, _target_path: &str) -> Result<()> {
+    fn copy_remote(&self, _id: &DeviceId, _src: &str, _tgt: &str) -> Result<()> {
         Ok(())
     }
 
@@ -127,20 +131,17 @@ impl DevicePort for IosDeviceAdapter {
 }
 
 impl ScannerPort for IosDeviceAdapter {
-    fn scan(&self, device_id: &DeviceId, _roots: Vec<String>) -> Result<Vec<FileEntry>> {
-        let sample_entry = FileEntry {
-            id: FileId("ios-file-1".to_string()),
-            device_id: device_id.clone(),
-            path: "/DCIM/100APPLE/IMG_0001.JPG".to_string(),
-            name: "IMG_0001.JPG".to_string(),
-            size_bytes: 2048576,
-            modified_at: chrono::Utc::now(),
-            mime_type: "image/jpeg".to_string(),
-            permissions: "rw-r--r--".to_string(),
-            hash_sha256: None,
-            thumbnail_hash: None,
-            media_info: None,
-        };
-        Ok(vec![sample_entry])
+    fn scan(&self, device_id: &DeviceId, roots: Vec<String>) -> Result<Vec<FileEntry>> {
+        self.afc.scan_dcim(device_id, &roots)
+    }
+
+    fn scan_detailed(
+        &self,
+        device_id: &DeviceId,
+        roots: Vec<String>,
+        filter: Option<&domain::ScanFilter>,
+    ) -> Result<domain::ScanResult> {
+        let files = self.scan(device_id, roots.clone())?;
+        Ok(scanner_engine::ScanPipeline::process_source(files, roots.len(), filter, Vec::new()))
     }
 }

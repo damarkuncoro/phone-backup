@@ -105,4 +105,29 @@ where
     pub fn scan_device(&self, id: &DeviceId) -> Result<Vec<FileEntry>> {
         self.scanner_adapter.scan(id, vec![])
     }
+
+    #[instrument(skip(self, filter))]
+    pub fn scan_device_detailed(
+        &self,
+        id: &DeviceId,
+        roots: Vec<String>,
+        filter: Option<&domain::ScanFilter>,
+    ) -> Result<domain::ScanResult> {
+        self.scanner_adapter.scan_detailed(id, roots, filter)
+    }
+
+    #[instrument(skip(self))]
+    pub fn read_remote_header(
+        &self,
+        id: &DeviceId,
+        path: &str,
+        max_bytes: usize,
+    ) -> Result<Vec<u8>> {
+        use std::io::Read;
+        let mut reader = self.device_adapter.read_file(id, path)?;
+        let mut buf = vec![0u8; max_bytes];
+        let bytes_read = reader.read(&mut buf)?;
+        buf.truncate(bytes_read);
+        Ok(buf)
+    }
 }

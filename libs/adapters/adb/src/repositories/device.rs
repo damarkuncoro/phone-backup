@@ -57,7 +57,11 @@ impl AdbDeviceRepository {
             storage_total_bytes: total,
             storage_used_bytes: used,
             storage_free_bytes: free,
-            connection_type: ConnectionType::Usb,
+            connection_type: if id.0.contains(':') {
+                ConnectionType::Wifi
+            } else {
+                ConnectionType::Usb
+            },
         })
     }
 

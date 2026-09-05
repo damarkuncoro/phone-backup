@@ -74,7 +74,7 @@ describe('SettingsPage Component', () => {
 
     expect(screen.getByText('Storage Engine Backend')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Buka Folder Restore/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Buka Folder Unduhan/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Buka Folder Downloads|Buka Folder Unduhan/i })).toBeInTheDocument();
   });
 
   it('switches to Maintenance tab and triggers garbage collection', async () => {

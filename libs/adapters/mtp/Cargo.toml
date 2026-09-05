@@ -22,8 +22,10 @@ tokio = { version = "1.53.1", features = ["macros", "rt", "rt-multi-thread", "ti
 futures = "0.3.34"
 async-stream = "0.3.6"
 blake3 = "1.8.7"
-thiserror.workspace = true
+thiserror = { workspace = true }
 mime_guess = { workspace = true }
+scanner-engine = { workspace = true }
+
 
 [dev-dependencies]
 tempfile = { workspace = true }

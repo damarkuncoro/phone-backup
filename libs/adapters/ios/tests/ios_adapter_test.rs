@@ -1,6 +1,7 @@
 use domain::{Capability, CapabilityStatus, ConnectionType, DeviceId};
 use phone_backup_adapter_ios::{IosDeviceAdapter, IosDeviceProperties};
-use ports::DevicePort;
+use ports::{DevicePort, ScannerPort};
+use std::io::Read;
 
 #[test]
 fn test_ios_properties_conversion() {
@@ -34,4 +35,18 @@ fn test_ios_device_adapter_mock() {
     let dev_id = DeviceId::new("00008110-001234567890ABCD");
     let dev = adapter.info(&dev_id).expect("info failed");
     assert_eq!(dev.manufacturer, "Apple");
+}
+
+#[test]
+fn test_afc_client_and_scan_dcim() {
+    let adapter = IosDeviceAdapter::new();
+    let dev_id = DeviceId::new("00008110-001234567890ABCD");
+    let scanned = adapter.scan(&dev_id, vec!["/DCIM/100APPLE".to_string()]).expect("scan failed");
+    assert!(!scanned.is_empty());
+    assert!(scanned[0].path.starts_with("/DCIM/100APPLE/"));
+
+    let mut stream = adapter.read_file(&dev_id, &scanned[0].path).expect("read failed");
+    let mut buf = Vec::new();
+    stream.read_to_end(&mut buf).expect("read_to_end failed");
+    assert!(!buf.is_empty());
 }

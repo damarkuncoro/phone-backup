@@ -15,7 +15,7 @@ echo "=================================================="
 
 # 1. Clean and prepare dist directory
 rm -rf "${DIST_DIR}"
-mkdir -p "${DIST_DIR}/bin" "${DIST_DIR}/archives"
+mkdir -p "${DIST_DIR}/bin" "${DIST_DIR}/archives" "${DIST_DIR}/android"
 
 # 2. Build Release CLI Binary
 echo "🔨 Compiling optimized release CLI binary..."
@@ -30,13 +30,19 @@ echo "📦 Building Desktop GUI web client bundle..."
 cd "${PROJECT_ROOT}/apps/gui/ui"
 npm run build
 
-# 4. Generate Tarball Distribution
+# 4. Build Android Companion Agent APK
+echo "📱 Building Android Companion Agent APK..."
+if [ -f "${PROJECT_ROOT}/scripts/build_android_agent.sh" ]; then
+    bash "${PROJECT_ROOT}/scripts/build_android_agent.sh" || true
+fi
+
+# 5. Generate Tarball Distribution
 echo "🎁 Packaging standalone distribution archive..."
 cd "${DIST_DIR}"
 ARCH_NAME="phone-backup-v${VERSION}-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)"
 tar -czf "archives/${ARCH_NAME}.tar.gz" -C bin phone-backup
 
-# 5. Generate Cryptographic SHA-256 Checksums
+# 6. Generate Cryptographic SHA-256 Checksums
 echo "🔐 Generating cryptographic SHA-256 checksums..."
 cd "${DIST_DIR}/archives"
 shasum -a 256 "${ARCH_NAME}.tar.gz" > "${ARCH_NAME}.tar.gz.sha256"

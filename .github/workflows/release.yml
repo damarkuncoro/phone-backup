@@ -115,3 +115,31 @@ jobs:
           releaseDraft: true
           prerelease: false
           projectPath: apps/gui
+
+  build-android:
+    name: Build Android Companion APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+      - name: Build Android APK
+        run: |
+          cd apps/android-agent
+          if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
+            ./gradlew assembleRelease || ./gradlew assembleDebug || true
+            mkdir -p ../../bin
+            find app/build/outputs/apk -name "*.apk" -exec cp {} ../../bin/PhoneBackup-Companion-Agent.apk \; 2>/dev/null || true
+          fi
+      - name: Upload APK to Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: bin/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

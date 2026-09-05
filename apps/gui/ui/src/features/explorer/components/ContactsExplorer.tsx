@@ -1,12 +1,10 @@
 import { useState, useMemo } from 'react';
-import { Download, Check, Contact as ContactIcon } from 'lucide-react';
+import { Download, Check, Contact as ContactIcon, Sparkles, RotateCcw } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { backupService } from '@/services/backupService';
 import type { ContactData } from './contactsUtils';
-import {
-  getContactPhones, getContactEmails, getContactOrg
-} from './contactsUtils';
-
+import { getContactPhones, getContactEmails, getContactOrg } from './contactsUtils';
+import { detectDuplicateGroups, autoMergeAllDuplicates } from '../lib/contactsDeduplicator';
 import { ContactListPane } from './ContactListPane';
 import { ContactDetailPane } from './ContactDetailPane';
 
@@ -22,29 +20,31 @@ export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorer
   const [selectedAlphabet, setSelectedAlphabet] = useState<string>('ALL');
   const [exportingVCard, setExportingVCard] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
+  const [isMergedView, setIsMergedView] = useState(false);
+
+  const duplicateStats = useMemo(() => {
+    const groups = detectDuplicateGroups(contacts);
+    return { groups, count: groups.reduce((acc, g) => acc + (g.contacts.length - 1), 0) };
+  }, [contacts]);
+
+  const activeContacts = useMemo(() => isMergedView ? autoMergeAllDuplicates(contacts).merged : contacts, [contacts, isMergedView]);
 
   useMemo(() => {
-    if (!selectedContact && contacts && contacts.length > 0) {
-      setSelectedContact(contacts[0]);
-    }
-  }, [contacts, selectedContact]);
+    if (!selectedContact && activeContacts && activeContacts.length > 0) setSelectedContact(activeContacts[0]);
+  }, [activeContacts, selectedContact]);
 
   const alphabetList = useMemo(() => {
     const chars = new Set<string>();
-    contacts.forEach(c => {
+    activeContacts.forEach(c => {
       const first = (c.display_name || '')[0]?.toUpperCase();
       if (first && /[A-Z]/.test(first)) chars.add(first);
     });
     return Array.from(chars).sort();
-  }, [contacts]);
+  }, [activeContacts]);
 
   const filteredContacts = useMemo(() => {
-    return contacts.filter(c => {
-      if (selectedAlphabet === 'ALL') return true;
-      const first = (c.display_name || '')[0]?.toUpperCase();
-      return first === selectedAlphabet;
-    });
-  }, [contacts, selectedAlphabet]);
+    return activeContacts.filter(c => selectedAlphabet === 'ALL' || (c.display_name || '')[0]?.toUpperCase() === selectedAlphabet);
+  }, [activeContacts, selectedAlphabet]);
 
   const handleExportAllVCard = async () => {
     setExportingVCard(true);
@@ -59,7 +59,6 @@ export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorer
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-
       setExportSuccess(true);
       setTimeout(() => setExportSuccess(false), 3000);
     } catch (err) {
@@ -74,17 +73,7 @@ export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorer
     const phones = getContactPhones(contact);
     const emails = getContactEmails(contact);
     const org = getContactOrg(contact);
-
-    const vcard = [
-      'BEGIN:VCARD',
-      'VERSION:3.0',
-      `FN:${contact.display_name}`,
-      ...(org ? [`ORG:${org}`] : []),
-      ...phones.map(p => `TEL;TYPE=CELL:${p.number}`),
-      ...emails.map(e => `EMAIL:${e.email}`),
-      'END:VCARD'
-    ].join('\r\n');
-
+    const vcard = ['BEGIN:VCARD', 'VERSION:3.0', `FN:${contact.display_name}`, ...(org ? [`ORG:${org}`] : []), ...phones.map(p => `TEL;TYPE=CELL:${p.number}`), ...emails.map(e => `EMAIL:${e.email}`), 'END:VCARD'].join('\r\n');
     const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -107,8 +96,13 @@ export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorer
             <h2 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
               Buku Kontak Vault
               <span className="text-[10px] font-black uppercase px-2.5 py-0.5 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100">
-                {contacts.length} Kontak
+                {activeContacts.length} Kontak
               </span>
+              {isMergedView && (
+                <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-amber-500 text-white rounded-full">
+                  Deduplikasi Aktif
+                </span>
+              )}
             </h2>
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
               Data Terdekripsi & Siap Dipulihkan
@@ -116,19 +110,36 @@ export function ContactsExplorer({ contacts = [], snapshotId }: ContactsExplorer
           </div>
         </div>
 
-        <button
-          onClick={handleExportAllVCard}
-          disabled={exportingVCard || contacts.length === 0}
-          className={cn(
-            "flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50",
-            exportSuccess
-              ? "bg-emerald-600 text-white"
-              : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100"
+        <div className="flex items-center gap-2">
+          {duplicateStats.count > 0 && (
+            <button
+              onClick={() => setIsMergedView(prev => !prev)}
+              className={cn(
+                "flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-sm border",
+                isMergedView
+                  ? "bg-amber-100 text-amber-900 border-amber-300 hover:bg-amber-200"
+                  : "bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-amber-100"
+              )}
+            >
+              {isMergedView ? <RotateCcw className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
+              <span>{isMergedView ? 'Batal Gabung' : `Gabung ${duplicateStats.count} Duplikat`}</span>
+            </button>
           )}
-        >
-          {exportSuccess ? <Check className="w-4 h-4" /> : <Download className="w-4 h-4" />}
-          {exportSuccess ? "vCard Berhasil Diunduh!" : exportingVCard ? "Mengekspor..." : "Ekspor Semua (.vcf)"}
-        </button>
+
+          <button
+            onClick={handleExportAllVCard}
+            disabled={exportingVCard || activeContacts.length === 0}
+            className={cn(
+              "flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 disabled:opacity-50",
+              exportSuccess
+                ? "bg-emerald-600 text-white"
+                : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100"
+            )}
+          >
+            {exportSuccess ? <Check className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+            {exportSuccess ? "vCard Berhasil Diunduh!" : exportingVCard ? "Mengekspor..." : "Ekspor Semua (.vcf)"}
+          </button>
+        </div>
       </div>
 
       {alphabetList.length > 0 && (

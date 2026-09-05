@@ -111,3 +111,20 @@ fn test_parse_battery() {
     assert!(status.is_charging);
     assert_eq!(status.temperature, 32.5);
 }
+
+#[test]
+fn test_parse_directory() {
+    let device_id = DeviceId::new("test");
+    let output = "/sdcard/DCIM/Camera|4096|1725000000|directory\n\
+                  /sdcard/DCIM/photo.jpg|2048590|1725000010|regular file\n\
+                  /sdcard/DCIM/notes.txt|512|1725000020|regular file\n";
+
+    let entries = phone_backup_adapter_adb::parsers::directory_parser::DirectoryParser::parse(&device_id, output);
+    assert_eq!(entries.len(), 3);
+    assert_eq!(entries[0].name, "Camera");
+    assert_eq!(entries[0].permissions, "d");
+    assert_eq!(entries[1].name, "photo.jpg");
+    assert_eq!(entries[1].size_bytes, 2048590);
+    assert_eq!(entries[2].name, "notes.txt");
+}
+

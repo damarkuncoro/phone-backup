@@ -1,15 +1,25 @@
 pub mod audio;
 pub mod audit;
 pub mod backup;
+pub mod bookmarks;
+pub mod calendar;
+pub mod calls;
 pub mod command_trait;
 pub mod device;
+pub mod diff;
 pub mod doctor;
+pub mod documents;
 pub mod export;
+pub mod notes;
 pub mod recovery_kit;
 pub mod restore;
+pub mod scan;
 pub mod schedule;
 pub mod stats;
+pub mod telegram;
+pub mod videos;
 pub mod whatsapp;
+pub mod wifi;
 
 #[allow(unused_imports)]
 pub use command_trait::CliCommand;
@@ -54,7 +64,23 @@ where
         }
         Commands::Devices => device::print_devices(&service)?,
         Commands::DeviceInfo { id } => device::print_device_info(&service, &id)?,
-        Commands::Scan { id } => device::scan_device(&service, &id)?,
+        Commands::Scan {
+            id,
+            category,
+            min_size,
+            max_size,
+            sort,
+            limit,
+        } => scan::handle_scan(
+            &service,
+            &id,
+            category,
+            min_size,
+            max_size,
+            &sort,
+            limit,
+        )?,
+        Commands::Diff { id } => diff::handle_diff(&service, &id)?,
         Commands::Apps { id } => device::list_apps(&service, &id)?,
         Commands::Backup {
             id,
@@ -119,6 +145,14 @@ where
         Commands::Audit(args) => audit::handle_audit(args)?,
         Commands::Whatsapp(args) => whatsapp::handle_whatsapp(args)?,
         Commands::Audio(args) => audio::handle_audio(args)?,
+        Commands::Documents(args) => documents::handle_documents(args, &service)?,
+        Commands::Videos(args) => videos::handle_videos(args, &service)?,
+        Commands::Calls(args) => calls::handle_calls(args, &service)?,
+        Commands::Calendar(args) => calendar::handle_calendar(args, &service)?,
+        Commands::Telegram(args) => telegram::handle_telegram(args, &service)?,
+        Commands::Notes(args) => notes::handle_notes(args, &service)?,
+        Commands::Wifi(args) => wifi::handle_wifi(args, &service)?,
+        Commands::Bookmarks(args) => bookmarks::handle_bookmarks(args, &service)?,
     }
     Ok(())
 }

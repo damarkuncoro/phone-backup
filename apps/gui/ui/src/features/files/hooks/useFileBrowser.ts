@@ -20,6 +20,10 @@ export const QUICK_ACCESS_ITEMS: QuickAccessItem[] = [
   { id: 'music', name: 'Musik', path: '/storage/emulated/0/Music', icon: 'music' },
 ];
 
+// In-memory directory cache for instant (0ms) folder navigation & SWR
+const dirCache = new Map<string, { data: FileEntry[]; timestamp: number }>();
+const CACHE_TTL_MS = 60_000;
+
 export function useFileBrowser() {
   const { devices } = useDevices();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
@@ -40,14 +44,25 @@ export function useFileBrowser() {
     }
   }, [devices, selectedDeviceId]);
 
-  const loadFiles = useCallback(async (deviceId: string, path: string) => {
-    setLoading(true);
+  const loadFiles = useCallback(async (deviceId: string, path: string, forceRefresh = false) => {
+    const cacheKey = `${deviceId}:${path}`;
+    const cached = dirCache.get(cacheKey);
+    const isStale = !cached || (Date.now() - cached.timestamp > CACHE_TTL_MS);
+
+    if (cached && !forceRefresh) {
+      setFiles(cached.data);
+      if (!isStale) return; // Fresh cache, no background fetch needed
+    } else {
+      setLoading(true);
+    }
+
     try {
       const result = await deviceService.browse(deviceId, path);
+      dirCache.set(cacheKey, { data: result, timestamp: Date.now() });
       setFiles(result);
     } catch (err) {
       console.error("Failed to load files", err);
-      setFiles([]);
+      if (!cached) setFiles([]);
     } finally {
       setLoading(false);
     }
@@ -86,7 +101,7 @@ export function useFileBrowser() {
 
   const refresh = useCallback(() => {
     if (selectedDeviceId) {
-      loadFiles(selectedDeviceId, currentPath);
+      loadFiles(selectedDeviceId, currentPath, true);
     }
   }, [selectedDeviceId, currentPath, loadFiles]);
 

@@ -17,8 +17,28 @@ pub enum Commands {
         /// Device id, e.g. A1B2C3D4
         id: String,
     },
-    /// Scan device filesystem
+    /// Scan device filesystem with specialist categorization and filtering
     Scan {
+        /// Device id, e.g. A1B2C3D4
+        id: String,
+        /// Optional category filter (e.g. photos, videos, whatsapp, documents, apks, audio)
+        #[arg(short, long)]
+        category: Option<String>,
+        /// Optional minimum size filter in bytes
+        #[arg(long)]
+        min_size: Option<u64>,
+        /// Optional maximum size filter in bytes
+        #[arg(long)]
+        max_size: Option<u64>,
+        /// Sort results by: name, size, or date
+        #[arg(short, long, default_value = "name")]
+        sort: String,
+        /// Maximum number of discovered files to display
+        #[arg(short, long, default_value_t = 20)]
+        limit: usize,
+    },
+    /// Compare current device state with the latest backup snapshot
+    Diff {
         /// Device id, e.g. A1B2C3D4
         id: String,
     },
@@ -124,6 +144,22 @@ pub enum Commands {
     Whatsapp(crate::commands::whatsapp::WhatsAppArgs),
     /// Audio inspection, tags, and waveform peaks
     Audio(crate::commands::audio::AudioArgs),
+    /// Document intelligence, PDF/Office inspection, and snippet preview
+    Documents(crate::commands::documents::DocumentsArgs),
+    /// Video inspection, container formats, and quality resolution tiering
+    Videos(crate::commands::videos::VideosArgs),
+    /// Call log history inspection, talk time analytics, and export
+    Calls(crate::commands::calls::CallsArgs),
+    /// Calendar schedule inspection, recurrence, conflict detection, and export
+    Calendar(crate::commands::calendar::CalendarArgs),
+    /// Telegram backup discovery, voice/video note classification, and offline HTML export
+    Telegram(crate::commands::telegram::TelegramArgs),
+    /// Notes, checklists, memos, and Google Keep archive backup
+    Notes(crate::commands::notes::NotesArgs),
+    /// Wi-Fi credentials, config store parser, and QR code connection generator
+    Wifi(crate::commands::wifi::WifiArgs),
+    /// Browser bookmarks, reading lists, and universal HTML/Markdown exporter
+    Bookmarks(crate::commands::bookmarks::BookmarksArgs),
 }
 
 #[derive(Subcommand)]

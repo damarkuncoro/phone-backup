@@ -32,12 +32,20 @@ impl DevicePort for CompositeDeviceAdapter {
         let mut all = Vec::new();
         let mut seen_serials = std::collections::HashSet::new();
 
+        let normalize = |s: &str| -> String {
+            s.strip_prefix("usb://serial/")
+                .unwrap_or(s)
+                .trim()
+                .to_lowercase()
+        };
+
         // RECOMMENDATION 10: ADB Priority
         match self.adb_device.discover() {
             Ok(adb_devs) => {
                 info!("Composite Discovery: Found {} ADB devices", adb_devs.len());
                 for dev in adb_devs {
-                    seen_serials.insert(dev.serial.clone());
+                    seen_serials.insert(normalize(&dev.serial));
+                    seen_serials.insert(normalize(&dev.id.0));
                     all.push(dev);
                 }
             }
@@ -48,8 +56,8 @@ impl DevicePort for CompositeDeviceAdapter {
             Ok(mtp_devs) => {
                 info!("Composite Discovery: Found {} MTP devices", mtp_devs.len());
                 for dev in mtp_devs {
-                    // Only add if not already present via ADB
-                    if !seen_serials.contains(&dev.serial) {
+                    let norm = normalize(&dev.serial);
+                    if !seen_serials.contains(&norm) && !seen_serials.contains(&dev.serial.to_lowercase()) {
                         all.push(dev);
                     } else {
                         info!("Composite Discovery: Skipping MTP for device {} (already available via ADB)", dev.serial);
@@ -130,6 +138,19 @@ impl ScannerPort for CompositeScannerAdapter {
             self.mtp_scanner.scan(id, target_paths)
         } else {
             self.adb_scanner.scan(id, target_paths)
+        }
+    }
+
+    fn scan_detailed(
+        &self,
+        id: &DeviceId,
+        target_paths: Vec<String>,
+        filter: Option<&domain::ScanFilter>,
+    ) -> Result<domain::ScanResult> {
+        if id.0.starts_with("mtp:") || id.0.starts_with("usb://") {
+            self.mtp_scanner.scan_detailed(id, target_paths, filter)
+        } else {
+            self.adb_scanner.scan_detailed(id, target_paths, filter)
         }
     }
 }

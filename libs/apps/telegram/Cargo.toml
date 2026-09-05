@@ -1,0 +1,15 @@
+[package]
+name = "phone-backup-telegram"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Specialized Telegram backup engine: Desktop export JSON parser, Android media path discovery, voice/video note classification, and offline HTML viewer"
+
+[dependencies]
+domain = { workspace = true }
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tracing.workspace = true

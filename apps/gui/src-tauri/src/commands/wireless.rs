@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::net::UdpSocket;
+use std::process::Command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WirelessPairingInfo {
@@ -28,6 +29,25 @@ pub fn get_wireless_pairing_info() -> Result<WirelessPairingInfo, String> {
         qr_payload,
         server_status: "Active (Listening on 0.0.0.0:3030)".to_string(),
     })
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn connect_wireless_device(host: String, port: Option<u16>) -> Result<String, String> {
+    let port_num = port.unwrap_or(5555);
+    let target = format!("{}:{}", host.trim(), port_num);
+
+    let output = Command::new("adb")
+        .arg("connect")
+        .arg(&target)
+        .output()
+        .map_err(|e| format!("Failed to execute adb connect: {}", e))?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    if stdout.contains("connected to") || stdout.contains("already connected") {
+        Ok(stdout.trim().to_string())
+    } else {
+        Err(stdout.trim().to_string())
+    }
 }
 
 fn get_primary_ip() -> Option<String> {

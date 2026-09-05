@@ -9,5 +9,6 @@ repository.workspace = true
 [dependencies]
 domain = { workspace = true }
 ports = { workspace = true }
+scanner-engine = { workspace = true }
 anyhow.workspace = true
 chrono.workspace = true

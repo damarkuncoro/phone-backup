@@ -53,4 +53,14 @@ impl ScannerPort for MockScannerAdapter {
             },
         ])
     }
+
+    fn scan_detailed(
+        &self,
+        device_id: &DeviceId,
+        roots: Vec<String>,
+        filter: Option<&domain::ScanFilter>,
+    ) -> Result<domain::ScanResult> {
+        let files = self.scan(device_id, roots.clone())?;
+        Ok(scanner_engine::ScanPipeline::process_source(files, roots.len(), filter, Vec::new()))
+    }
 }
