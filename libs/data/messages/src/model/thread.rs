@@ -35,7 +35,7 @@ impl ConversationThread {
         if !msg.read {
             self.unread_count += 1;
         }
-        if self.last_message_date.map_or(true, |last| msg.date > last) {
+        if self.last_message_date.is_none_or(|last| msg.date > last) {
             self.last_message_date = Some(msg.date);
         }
         self.messages.push(msg);

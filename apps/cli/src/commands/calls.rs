@@ -113,7 +113,7 @@ where
         args.contact.as_deref(),
         args.min_duration,
     );
-    call_items.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    call_items.sort_by_key(|b| std::cmp::Reverse(b.timestamp));
 
     println!("\n📋 Call Records ({})", call_items.len());
     println!("{:<28} {:<18} {:<16} {:>10}  TIMESTAMP", "NAME", "NUMBER", "TYPE", "DURATION");

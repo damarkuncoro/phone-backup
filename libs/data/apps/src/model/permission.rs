@@ -47,7 +47,7 @@ impl PermissionEntry {
             "android.permission.MANAGE_EXTERNAL_STORAGE",
         ];
 
-        if dangerous_list.iter().any(|&d| name == d) {
+        if dangerous_list.contains(&name) {
             PermissionProtection::Dangerous
         } else if name.contains("BIND_") || name.contains("SYSTEM_") {
             PermissionProtection::Privileged

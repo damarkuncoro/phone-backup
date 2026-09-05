@@ -31,10 +31,11 @@ impl<
         info!("🚀 Starting Backup Job for device: {}", id.0);
         let policy = policy.unwrap_or_default();
 
-        // 1. SAFETY CHECK
+        // 1. SAFETY & WAKE-LOCK CHECK
         let device = self.device_adapter.info(id)?;
         self.repository.save_device(&device)?;
         self.check_battery_and_thermal(id)?;
+        let _ = self.device_adapter.set_stay_on(id, true);
 
         // 2. SCAN DEVICE
         let manifest_files: Vec<FileEntry> = if policy.include_paths == vec!["__NO_FILES__".to_string()] {
@@ -154,6 +155,7 @@ impl<
 
         // --- SMART RETENTION ---
         let _ = self.apply_retention_strategy(id, &domain::KeepCountStrategy { keep_limit: 10 });
+        let _ = self.device_adapter.set_stay_on(id, false);
 
         info!("✨ Backup Job Completed: {}", snapshot.id.0);
         self.progress.finish("Backup completed successfully!");
@@ -167,6 +169,7 @@ impl<
         bytes: u64,
         dedup: u64,
     ) -> Result<()> {
+        let _ = self.device_adapter.set_stay_on(&snapshot.device_id, false);
         snapshot.status = SnapshotStatus::Interrupted;
         snapshot.total_files = files;
         snapshot.total_bytes = bytes;

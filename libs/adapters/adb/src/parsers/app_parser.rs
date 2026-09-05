@@ -87,7 +87,7 @@ impl AppParser {
             "org.telegram.messenger" => "Telegram".to_string(),
             _ => {
                 // If package has dots like com.vivo.soundrecorder -> Soundrecorder
-                if let Some(last_segment) = pkg.split('.').last() {
+                if let Some(last_segment) = pkg.split('.').next_back() {
                     let mut c = last_segment.chars();
                     match c.next() {
                         None => pkg.to_string(),

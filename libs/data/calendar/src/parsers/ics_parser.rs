@@ -97,7 +97,7 @@ fn strip_prefix_case<'a>(s: &'a str, prefix: &str) -> Option<&'a str> {
 }
 
 fn parse_ics_date(line: &str) -> (Option<DateTime<Utc>>, bool) {
-    let val = match line.split(':').last() {
+    let val = match line.split(':').next_back() {
         Some(v) => v.trim(),
         None => return (None, false),
     };

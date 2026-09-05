@@ -24,18 +24,13 @@ where
 
     #[instrument(skip(self))]
     pub fn get_latest_snapshot_any_device(&self) -> Result<Option<Snapshot>> {
-        let devices = self.list_devices()?;
+        let snapshots = self.repository.list_all_snapshots()?;
         let mut latest: Option<Snapshot> = None;
-        for d in devices {
-            if let Ok(snapshots) = self.list_snapshots(&d.id) {
-                if let Some(s) = snapshots
-                    .into_iter()
-                    .find(|s| s.status == SnapshotStatus::Completed)
-                {
-                    if latest.is_none() || s.started_at > latest.as_ref().unwrap().started_at {
-                        latest = Some(s);
-                    }
-                }
+        for s in snapshots {
+            if s.status == SnapshotStatus::Completed
+                && (latest.is_none() || s.started_at > latest.as_ref().unwrap().started_at)
+            {
+                latest = Some(s);
             }
         }
         Ok(latest)
@@ -58,7 +53,9 @@ where
 
     #[instrument(skip(self))]
     pub fn delete_snapshot(&self, id: &SnapshotId) -> Result<()> {
-        self.repository.delete_snapshot(id)
+        self.repository.delete_snapshot(id)?;
+        let _ = self.garbage_collect();
+        Ok(())
     }
 
     #[instrument(skip(self))]

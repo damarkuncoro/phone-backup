@@ -69,6 +69,16 @@ where
         }
     }
 
+    // Query live Android Calendar Content Provider if on ADB device
+    if calendar_events.is_empty() {
+        let adb_client = adapter_adb::AdbClient::new();
+        let script = "content query --uri content://com.android.calendar/events --projection title:dtstart:dtend:allDay:eventLocation:description:rrule";
+        if let Ok(stdout) = adb_client.shell(&args.id, script) {
+            let mut parsed = calendar::AndroidCalendarParser::parse(&stdout);
+            calendar_events.append(&mut parsed);
+        }
+    }
+
     let stats = CalendarAnalytics::compute_stats(&calendar_events);
 
     println!("\n📊 Calendar Schedule Summary:");

@@ -27,7 +27,7 @@ impl ThreadEngine {
         }
 
         // Sort threads by latest message date (newest thread first)
-        thread_list.sort_by(|a, b| b.last_message_date.cmp(&a.last_message_date));
+        thread_list.sort_by_key(|b| std::cmp::Reverse(b.last_message_date));
 
         thread_list
     }

@@ -138,8 +138,9 @@ where
     println!("{}", "-".repeat(105));
 
     for bm in filtered.iter().take(args.limit) {
-        let clean_title = if bm.title.len() > 30 {
-            format!("{}...", &bm.title[..27])
+        let clean_title = if bm.title.chars().count() > 30 {
+            let truncated: String = bm.title.chars().take(27).collect();
+            format!("{}...", truncated)
         } else {
             bm.title.clone()
         };
@@ -153,7 +154,9 @@ where
         );
     }
 
-    if filtered.len() > args.limit {
+    if filtered.is_empty() {
+        println!("   (No bookmarks found on storage. Use `--import <PATH>` to import Chrome Bookmarks JSON or HTML files)");
+    } else if filtered.len() > args.limit {
         println!("... and {} more bookmarks (use --limit to show more)", filtered.len() - args.limit);
     }
 

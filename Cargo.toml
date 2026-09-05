@@ -35,7 +35,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.4.1"
+version = "0.5.0"
 edition = "2021"
 license = "MIT"
 authors = ["Damar Kuncoro <damarkuncoro@gmail.com>"]
@@ -84,34 +84,34 @@ tower = "0.4"
 tower-http = { version = "0.5", features = ["cors"] }
 
 # Internal Workspace Dependencies (Short names for convenience)
-domain = { path = "libs/core/domain", package = "phone-backup-domain", version = "0.4.1" }
-ports = { path = "libs/core/ports", package = "phone-backup-ports", version = "0.4.1" }
-application = { path = "libs/core/application", package = "phone-backup-application", version = "0.4.1" }
-adapter-mock = { path = "libs/adapters/mock", package = "phone-backup-adapter-mock", version = "0.4.1" }
-adapter-adb = { path = "libs/adapters/adb", package = "phone-backup-adapter-adb", version = "0.4.1" }
-adapter-mtp = { path = "libs/adapters/mtp", package = "phone-backup-adapter-mtp", version = "0.4.1" }
-adapter-agent = { path = "libs/adapters/agent", package = "phone-backup-adapter-agent", version = "0.4.1" }
-adapter-filesystem = { path = "libs/adapters/filesystem", package = "phone-backup-adapter-filesystem", version = "0.4.1" }
-adapter-opendal = { path = "libs/adapters/opendal", package = "phone-backup-adapter-opendal", version = "0.4.1" }
-adapter-database-sqlite = { path = "libs/infrastructure/database-sqlite", package = "phone-backup-adapter-database-sqlite", version = "0.4.1" }
-chunking = { path = "libs/storage/chunking", package = "phone-backup-chunking", version = "0.4.1" }
-compression = { path = "libs/storage/compression", package = "phone-backup-compression", version = "0.4.1" }
-security = { path = "libs/storage/security", package = "phone-backup-security", version = "0.4.1" }
-contacts = { path = "libs/data/contacts", package = "phone-backup-contacts", version = "0.4.1" }
-image-engine = { path = "libs/media/image", package = "phone-backup-image", version = "0.4.1" }
-messages = { path = "libs/data/messages", package = "phone-backup-messages", version = "0.4.1" }
-apps = { path = "libs/data/apps", package = "phone-backup-apps", version = "0.4.1" }
-whatsapp = { path = "libs/apps/whatsapp", package = "phone-backup-whatsapp", version = "0.4.1" }
-audio-engine = { path = "libs/media/audio", package = "phone-backup-audio", version = "0.4.1" }
-adapter-ios = { path = "libs/adapters/ios", package = "phone-backup-adapter-ios", version = "0.4.1" }
-scanner-engine = { path = "libs/scanner", package = "phone-backup-scanner", version = "0.4.1" }
-documents = { path = "libs/data/documents", package = "phone-backup-documents", version = "0.4.1" }
-video-engine = { path = "libs/media/video", package = "phone-backup-video", version = "0.4.1" }
-calls = { path = "libs/data/calls", package = "phone-backup-calls", version = "0.4.1" }
-calendar = { path = "libs/data/calendar", package = "phone-backup-calendar", version = "0.4.1" }
-telegram = { path = "libs/apps/telegram", package = "phone-backup-telegram", version = "0.4.1" }
-notes = { path = "libs/data/notes", package = "phone-backup-notes", version = "0.4.1" }
-wifi = { path = "libs/data/wifi", package = "phone-backup-wifi", version = "0.4.1" }
-bookmarks = { path = "libs/data/bookmarks", package = "phone-backup-bookmarks", version = "0.4.1" }
+domain = { path = "libs/core/domain", package = "phone-backup-domain", version = "0.5.0" }
+ports = { path = "libs/core/ports", package = "phone-backup-ports", version = "0.5.0" }
+application = { path = "libs/core/application", package = "phone-backup-application", version = "0.5.0" }
+adapter-mock = { path = "libs/adapters/mock", package = "phone-backup-adapter-mock", version = "0.5.0" }
+adapter-adb = { path = "libs/adapters/adb", package = "phone-backup-adapter-adb", version = "0.5.0" }
+adapter-mtp = { path = "libs/adapters/mtp", package = "phone-backup-adapter-mtp", version = "0.5.0" }
+adapter-agent = { path = "libs/adapters/agent", package = "phone-backup-adapter-agent", version = "0.5.0" }
+adapter-filesystem = { path = "libs/adapters/filesystem", package = "phone-backup-adapter-filesystem", version = "0.5.0" }
+adapter-opendal = { path = "libs/adapters/opendal", package = "phone-backup-adapter-opendal", version = "0.5.0" }
+adapter-database-sqlite = { path = "libs/infrastructure/database-sqlite", package = "phone-backup-adapter-database-sqlite", version = "0.5.0" }
+chunking = { path = "libs/storage/chunking", package = "phone-backup-chunking", version = "0.5.0" }
+compression = { path = "libs/storage/compression", package = "phone-backup-compression", version = "0.5.0" }
+security = { path = "libs/storage/security", package = "phone-backup-security", version = "0.5.0" }
+contacts = { path = "libs/data/contacts", package = "phone-backup-contacts", version = "0.5.0" }
+image-engine = { path = "libs/media/image", package = "phone-backup-image", version = "0.5.0" }
+messages = { path = "libs/data/messages", package = "phone-backup-messages", version = "0.5.0" }
+apps = { path = "libs/data/apps", package = "phone-backup-apps", version = "0.5.0" }
+whatsapp = { path = "libs/apps/whatsapp", package = "phone-backup-whatsapp", version = "0.5.0" }
+audio-engine = { path = "libs/media/audio", package = "phone-backup-audio", version = "0.5.0" }
+adapter-ios = { path = "libs/adapters/ios", package = "phone-backup-adapter-ios", version = "0.5.0" }
+scanner-engine = { path = "libs/scanner", package = "phone-backup-scanner", version = "0.5.0" }
+documents = { path = "libs/data/documents", package = "phone-backup-documents", version = "0.5.0" }
+video-engine = { path = "libs/media/video", package = "phone-backup-video", version = "0.5.0" }
+calls = { path = "libs/data/calls", package = "phone-backup-calls", version = "0.5.0" }
+calendar = { path = "libs/data/calendar", package = "phone-backup-calendar", version = "0.5.0" }
+telegram = { path = "libs/apps/telegram", package = "phone-backup-telegram", version = "0.5.0" }
+notes = { path = "libs/data/notes", package = "phone-backup-notes", version = "0.5.0" }
+wifi = { path = "libs/data/wifi", package = "phone-backup-wifi", version = "0.5.0" }
+bookmarks = { path = "libs/data/bookmarks", package = "phone-backup-bookmarks", version = "0.5.0" }
 
 

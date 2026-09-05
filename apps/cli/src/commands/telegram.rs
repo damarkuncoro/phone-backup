@@ -118,7 +118,7 @@ where
         true
     });
 
-    telegram_files.sort_by(|a, b| b.2.cmp(&a.2));
+    telegram_files.sort_by_key(|b| std::cmp::Reverse(b.2));
 
     println!("\n📂 Discovered Telegram Media ({})", telegram_files.len());
     println!("{:<45} {:<20} {:>12}  MODIFIED", "FILENAME", "TYPE", "SIZE");

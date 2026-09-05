@@ -63,4 +63,8 @@ impl DevicePort for AdbDeviceGateway {
     fn calculate_hash(&self, id: &DeviceId, path: &str) -> Result<String> {
         self.repo.calculate_hash(id, path)
     }
+
+    fn set_stay_on(&self, id: &DeviceId, stay_on: bool) -> Result<()> {
+        self.repo.set_stay_on(id, stay_on)
+    }
 }

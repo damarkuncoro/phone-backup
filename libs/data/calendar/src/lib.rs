@@ -12,4 +12,4 @@ pub use domain::{
 };
 pub use exporters::{IcsExporter, JsonCalendarExporter};
 pub use factory::CalendarFactory;
-pub use parsers::{IcsParser, JsonCalendarParser};
+pub use parsers::{AndroidCalendarParser, IcsParser, JsonCalendarParser};

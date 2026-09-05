@@ -92,7 +92,7 @@ impl AdbDataRepository {
             let create_cmd = "content insert --uri content://com.android.contacts/raw_contacts --bind account_type:s:null --bind account_name:s:null";
             if let Ok(raw_out) = self.client.shell(&device_id.0, create_cmd) {
                 // Extract raw_contact_id from URI or Row
-                if let Some(id_str) = raw_out.split('/').last().or_else(|| raw_out.split('=').last()) {
+                if let Some(id_str) = raw_out.split('/').next_back().or_else(|| raw_out.split('=').next_back()) {
                     let clean_id = id_str.trim();
                     if let Ok(raw_id) = clean_id.parse::<i64>() {
                         // Insert Display Name

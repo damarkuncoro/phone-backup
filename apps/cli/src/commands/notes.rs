@@ -145,7 +145,9 @@ where
         );
     }
 
-    if filtered.len() > args.limit {
+    if filtered.is_empty() {
+        println!("   (No notes or memos found on device storage. Use `--import-keep <PATH>` to import Google Keep Takeout archives)");
+    } else if filtered.len() > args.limit {
         println!("... and {} more notes (use --limit to show more)", filtered.len() - args.limit);
     }
 

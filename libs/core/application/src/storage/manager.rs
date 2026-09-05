@@ -25,16 +25,22 @@ impl<'a, T: StoragePort, R: RepositoryPort> ObjectManager<'a, T, R> {
 
     pub fn put_chunk_with_context(&self, data: &[u8], ctx: &FileMetadataContext) -> Result<(String, bool)> {
         let content_hash = calculate_hash(data);
+        let key_tag = match self.encryption {
+            EncryptionMode::Password(p) => format!("p:{}", &calculate_hash(p.as_bytes())[..8]),
+            EncryptionMode::PublicKey(k) => format!("k:{}", k.chars().take(8).collect::<String>()),
+            EncryptionMode::None => "raw".to_string(),
+        };
+        let logical_hash = format!("{}-{}", content_hash, key_tag);
         let plaintext_size = data.len() as u64;
 
-        if let Some(chunk_id) = self.repository.get_logical_chunk_by_hash(&content_hash)? {
+        if let Some(chunk_id) = self.repository.get_logical_chunk_by_hash(&logical_hash)? {
             if self.repository.get_storage_key_for_chunk(&chunk_id)?.is_some() {
                 return Ok((chunk_id, false));
             }
             return self.create_physical_object_with_context(&chunk_id, data, ctx);
         }
 
-        let chunk_id = self.repository.save_logical_chunk(&content_hash, plaintext_size)?;
+        let chunk_id = self.repository.save_logical_chunk(&logical_hash, plaintext_size)?;
         self.create_physical_object_with_context(&chunk_id, data, ctx)
     }
 

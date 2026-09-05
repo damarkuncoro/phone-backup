@@ -89,7 +89,8 @@ where
             .first()
             .map(|p| p.raw_value.clone())
             .unwrap_or_default();
-        println!("{:<15} {:<25} {:<30}", &s_id.0[..8], c.display_name, phone);
+        let short_id: String = s_id.0.chars().take(8).collect();
+        println!("{:<15} {:<25} {:<30}", short_id, c.display_name, phone);
     }
     Ok(())
 }
@@ -130,14 +131,16 @@ where
     println!("{:<15} {:<15} {:<40}", "SNAPSHOT", "SENDER", "MESSAGE");
     println!("{}", "-".repeat(70));
     for (s_id, m) in results {
-        let body = if m.body.len() > 37 {
-            format!("{}...", &m.body[..37])
+        let body = if m.body.chars().count() > 37 {
+            let truncated: String = m.body.chars().take(37).collect();
+            format!("{}...", truncated)
         } else {
             m.body.clone()
         };
+        let short_id: String = s_id.0.chars().take(8).collect();
         println!(
             "{:<15} {:<15} {:<40}",
-            &s_id.0[..8],
+            short_id,
             m.address,
             body.replace('\n', " ")
         );

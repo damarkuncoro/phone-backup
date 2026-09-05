@@ -47,4 +47,9 @@ pub trait DevicePort: Send + Sync {
 
     /// Calculate SHA-256 hash of a remote file.
     fn calculate_hash(&self, id: &DeviceId, path: &str) -> Result<String>;
+
+    /// Acquire or release wake lock / stay-on state during active backup.
+    fn set_stay_on(&self, _id: &DeviceId, _stay_on: bool) -> Result<()> {
+        Ok(())
+    }
 }

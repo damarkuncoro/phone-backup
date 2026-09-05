@@ -91,13 +91,13 @@ impl VCardParser {
                 c.emails.push(EmailAddress::new(val.trim(), e_type));
             }
             "ORG" => {
-                let org = c.organization.get_or_insert_with(|| Organization {
+                let org = c.organization.get_or_insert(Organization {
                     company: None, title: None, department: None,
                 });
                 org.company = Some(val.trim().to_string());
             }
             "TITLE" => {
-                let org = c.organization.get_or_insert_with(|| Organization {
+                let org = c.organization.get_or_insert(Organization {
                     company: None, title: None, department: None,
                 });
                 org.title = Some(val.trim().to_string());

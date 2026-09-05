@@ -41,7 +41,7 @@ impl CallLogAnalytics {
         }
 
         let mut top_numbers: Vec<(String, usize)> = number_frequency.into_iter().collect();
-        top_numbers.sort_by(|a, b| b.1.cmp(&a.1));
+        top_numbers.sort_by_key(|b| std::cmp::Reverse(b.1));
         top_numbers.truncate(5);
 
         let connected_count = incoming_count + outgoing_count;

@@ -54,9 +54,9 @@ impl WifiConfigStoreXmlParser {
                                     current_ssid = val.trim_matches('"').to_string();
                                 }
                                 "ConfigKey" if current_ssid.is_empty() => {
-                                    if val.starts_with('"') {
-                                        if let Some(end) = val[1..].find('"') {
-                                            current_ssid = val[1..=end].to_string();
+                                    if let Some(stripped) = val.strip_prefix('"') {
+                                        if let Some(end) = stripped.find('"') {
+                                            current_ssid = stripped[..end].to_string();
                                         } else {
                                             current_ssid = val.trim_matches('"').to_string();
                                         }

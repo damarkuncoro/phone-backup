@@ -26,7 +26,7 @@ impl SqliteZeroFillPreconditioner {
         let raw_page_size = u16::from_be_bytes([output[16], output[17]]) as usize;
         let page_size = if raw_page_size == 1 { 65536 } else { raw_page_size };
 
-        if page_size < 512 || page_size > 65536 || output.len() < page_size {
+        if !(512..=65536).contains(&page_size) || output.len() < page_size {
             return Ok(output);
         }
 

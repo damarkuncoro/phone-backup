@@ -23,12 +23,35 @@ impl ScannerAggregator {
         }
     }
 
-    fn resolve_roots(&self, provided_roots: Vec<String>) -> Vec<String> {
-        if provided_roots.is_empty() {
-            DEFAULT_SCAN_ROOTS.iter().map(|s| s.to_string()).collect()
-        } else {
-            provided_roots
+    fn resolve_roots(&self, device_id: &DeviceId, provided_roots: Vec<String>) -> Vec<String> {
+        if !provided_roots.is_empty() {
+            return provided_roots;
         }
+
+        let mut roots: Vec<String> = DEFAULT_SCAN_ROOTS.iter().map(|s| s.to_string()).collect();
+
+        // Auto-discover external MicroSD and OTG storage volumes on device
+        if let Ok(stdout) = self
+            .filesystem_scanner
+            .client()
+            .shell(&device_id.0, "ls -1 /storage 2>/dev/null")
+        {
+            for line in stdout.lines() {
+                let name = line.trim();
+                if !name.is_empty()
+                    && name != "emulated"
+                    && name != "self"
+                    && name != "knox-emulated"
+                {
+                    let ext_path = format!("/storage/{}", name);
+                    if !roots.contains(&ext_path) {
+                        roots.push(ext_path);
+                    }
+                }
+            }
+        }
+
+        roots
     }
 
     pub fn scan(&self, device_id: &DeviceId, roots: Vec<String>) -> Result<Vec<FileEntry>> {
@@ -78,14 +101,21 @@ impl ScannerAggregator {
         roots: Vec<String>,
         filter: &ScanFilter,
     ) -> Result<ScanResult> {
-        let scan_roots = self.resolve_roots(roots);
+        let is_custom_roots = !roots.is_empty();
+        let scan_roots = self.resolve_roots(device_id, roots);
         let mut pipeline = ScanPipeline::builder()
             .with_filter(filter.clone())
             .with_directory_count(scan_roots.len())
             .build();
 
         let (media_res, fs_res) = thread::scope(|s| {
-            let media_handle = s.spawn(|| self.mediastore_scanner.scan(device_id));
+            let media_handle = s.spawn(|| {
+                if is_custom_roots {
+                    Ok(Vec::new())
+                } else {
+                    self.mediastore_scanner.scan(device_id)
+                }
+            });
             let fs_handle = s.spawn(|| self.filesystem_scanner.scan(device_id, &scan_roots));
             (media_handle.join(), fs_handle.join())
         });

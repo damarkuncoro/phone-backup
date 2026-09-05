@@ -32,8 +32,8 @@ impl AudioPipelineBuilder {
     }
 
     pub fn process(&self, rel_path: &str, bytes: &[u8]) -> Result<ProcessedAudio> {
-        let filename = rel_path.split(['/', '\\']).last().unwrap_or(rel_path);
-        let ext = filename.split('.').last().unwrap_or("");
+        let filename = rel_path.split(['/', '\\']).next_back().unwrap_or(rel_path);
+        let ext = filename.split('.').next_back().unwrap_or("");
 
         let format = AudioFormat::from_magic_or_extension(bytes, ext);
         let category = AudioClassifier::classify(rel_path, filename);

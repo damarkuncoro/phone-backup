@@ -21,7 +21,7 @@ impl WhatsAppMediaIndexer {
     pub fn parse_media_item(rel_path: &str, size_bytes: u64) -> WhatsAppMediaItem {
         let category = WhatsAppPathScanner::categorize_path(rel_path);
         let is_sent = rel_path.contains("/Sent/") || rel_path.contains("\\Sent\\");
-        let filename = rel_path.split(['/', '\\']).last().unwrap_or(rel_path).to_string();
+        let filename = rel_path.split(['/', '\\']).next_back().unwrap_or(rel_path).to_string();
         let date_created = Self::extract_date_from_filename(&filename);
 
         let mut item = WhatsAppMediaItem::new(rel_path, filename, category, is_sent, size_bytes);

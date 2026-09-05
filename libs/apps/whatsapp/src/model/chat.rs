@@ -32,7 +32,7 @@ impl WhatsAppChat {
     }
 
     pub fn add_message(&mut self, msg: WhatsAppMessage) {
-        if self.last_activity.map_or(true, |last| msg.timestamp > last) {
+        if self.last_activity.is_none_or(|last| msg.timestamp > last) {
             self.last_activity = Some(msg.timestamp);
         }
         self.messages.push(msg);

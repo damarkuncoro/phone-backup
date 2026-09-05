@@ -72,6 +72,33 @@ impl RecurrenceRule {
         self
     }
 
+    pub fn parse(s: &str) -> Option<Self> {
+        let clean = s.trim();
+        let mut freq = None;
+        let mut interval = 1;
+        let mut count = None;
+
+        for part in clean.split(';') {
+            let mut kv = part.split('=');
+            let k = kv.next()?.trim().to_uppercase();
+            let v = kv.next()?.trim();
+            match k.as_str() {
+                "FREQ" => freq = Frequency::from_rrule_str(v),
+                "INTERVAL" => interval = v.parse().unwrap_or(1),
+                "COUNT" => count = v.parse().ok(),
+                _ => {}
+            }
+        }
+
+        freq.map(|f| {
+            let mut r = Self::new(f).with_interval(interval);
+            if let Some(c) = count {
+                r = r.with_count(c);
+            }
+            r
+        })
+    }
+
     /// Formats rule into readable text description.
     pub fn format_description(&self) -> String {
         if self.interval == 1 {

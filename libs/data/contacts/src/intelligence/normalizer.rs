@@ -24,12 +24,12 @@ impl PhoneNormalizer {
 
         if cleaned.starts_with('+') {
             cleaned
-        } else if cleaned.starts_with("00") {
-            format!("+{}", &cleaned[2..])
+        } else if let Some(stripped) = cleaned.strip_prefix("00") {
+            format!("+{}", stripped)
         } else if cleaned.starts_with(digits_only_prefix) {
             format!("+{}", cleaned)
-        } else if cleaned.starts_with('0') {
-            format!("{}{}", prefix, &cleaned[1..])
+        } else if let Some(stripped) = cleaned.strip_prefix('0') {
+            format!("{}{}", prefix, stripped)
         } else {
             format!("{}{}", prefix, cleaned)
         }

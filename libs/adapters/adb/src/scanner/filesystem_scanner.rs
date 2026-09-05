@@ -15,6 +15,10 @@ impl FileSystemScanner {
         Self { client }
     }
 
+    pub fn client(&self) -> &AdbClient {
+        &self.client
+    }
+
     pub fn scan(&self, device_id: &DeviceId, roots: &[String]) -> Result<Vec<FileEntry>> {
         let script = AndroidScripts::find_files(roots);
         let stdout = self

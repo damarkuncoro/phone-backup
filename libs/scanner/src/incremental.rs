@@ -1,7 +1,20 @@
 use domain::{FileDiff, FileEntry};
 use std::collections::{HashMap, HashSet};
 
-/// High-speed change detector based on mtime and size comparison.
+fn normalize_path(path: &str) -> String {
+    let p = path.trim();
+    if let Some(rest) = p.strip_prefix("/sdcard/") {
+        format!("/storage/emulated/0/{}", rest)
+    } else if let Some(rest) = p.strip_prefix("sdcard/") {
+        format!("/storage/emulated/0/{}", rest)
+    } else if let Some(rest) = p.strip_prefix("/storage/self/primary/") {
+        format!("/storage/emulated/0/{}", rest)
+    } else {
+        p.to_string()
+    }
+}
+
+/// High-speed change detector based on mtime and size comparison with Android path alias normalization.
 pub struct IncrementalScanner;
 
 impl IncrementalScanner {
@@ -14,9 +27,15 @@ impl IncrementalScanner {
         let mut modified = Vec::new();
         let mut current_paths = HashSet::with_capacity(current_files.len());
 
+        let mut norm_prev = HashMap::with_capacity(previous_index.len());
+        for (k, v) in previous_index {
+            norm_prev.insert(normalize_path(k), (k, v));
+        }
+
         for current in current_files {
-            current_paths.insert(&current.path);
-            if let Some(prev) = previous_index.get(&current.path) {
+            let norm_cur = normalize_path(&current.path);
+            current_paths.insert(norm_cur.clone());
+            if let Some((_, prev)) = norm_prev.get(&norm_cur) {
                 if prev.size_bytes != current.size_bytes || prev.modified_at != current.modified_at
                 {
                     modified.push(current.clone());
@@ -27,9 +46,9 @@ impl IncrementalScanner {
         }
 
         let mut removed = Vec::new();
-        for (prev_path, prev_file) in previous_index {
-            if !current_paths.contains(prev_path) {
-                removed.push(prev_file.clone());
+        for (norm_p, (_, prev_file)) in &norm_prev {
+            if !current_paths.contains(norm_p) {
+                removed.push((*prev_file).clone());
             }
         }
 
@@ -52,8 +71,14 @@ impl IncrementalScanner {
         let mut changed = Vec::new();
         let mut unchanged = Vec::new();
 
+        let mut norm_prev = HashMap::with_capacity(previous_index.len());
+        for (k, v) in previous_index {
+            norm_prev.insert(normalize_path(k), v);
+        }
+
         for current in current_files {
-            if let Some(prev) = previous_index.get(&current.path) {
+            let norm_cur = normalize_path(&current.path);
+            if let Some(prev) = norm_prev.get(&norm_cur) {
                 if prev.size_bytes == current.size_bytes && prev.modified_at == current.modified_at
                 {
                     unchanged.push(current);

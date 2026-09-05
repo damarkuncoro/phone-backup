@@ -149,7 +149,9 @@ where
         );
     }
 
-    if filtered.len() > args.limit {
+    if filtered.is_empty() {
+        println!("   (No saved Wi-Fi networks found. On Android 10+, Wi-Fi credentials require Root or `--import WifiConfigStore.xml`)");
+    } else if filtered.len() > args.limit {
         println!("... and {} more networks (use --limit to show more)", filtered.len() - args.limit);
     }
 

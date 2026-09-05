@@ -19,10 +19,10 @@ impl MarkdownNoteParser {
                 continue;
             }
 
-            if trimmed.starts_with("- [ ] ") {
-                checklist.push(ChecklistItem::unchecked(&trimmed[6..]));
-            } else if trimmed.starts_with("- [x] ") || trimmed.starts_with("- [X] ") {
-                checklist.push(ChecklistItem::checked(&trimmed[6..]));
+            if let Some(stripped) = trimmed.strip_prefix("- [ ] ") {
+                checklist.push(ChecklistItem::unchecked(stripped));
+            } else if let Some(stripped) = trimmed.strip_prefix("- [x] ").or_else(|| trimmed.strip_prefix("- [X] ")) {
+                checklist.push(ChecklistItem::checked(stripped));
             } else {
                 // Extract inline tags #word
                 for word in trimmed.split_whitespace() {

@@ -153,4 +153,10 @@ impl AdbDeviceRepository {
         // Output is "hash  path"
         Ok(output.split_whitespace().next().unwrap_or("").to_string())
     }
+
+    pub fn set_stay_on(&self, id: &DeviceId, stay_on: bool) -> Result<()> {
+        let cmd = if stay_on { "svc power stayon usb" } else { "svc power stayon false" };
+        let _ = self.client.shell(&id.0, cmd);
+        Ok(())
+    }
 }

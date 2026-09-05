@@ -53,10 +53,26 @@ where
         println!("ℹ️ NOT INSTALLED (Optional for iOS backup. Install via `brew install libimobiledevice`)");
     }
 
-    // 4. Check Device Connectivity
+    // 4. Check Device Connectivity & Battery/Thermal Health
     print!("Checking connected devices... ");
     match service.list_devices() {
-        Ok(devices) if !devices.is_empty() => println!("✅ {} device(s) detected", devices.len()),
+        Ok(devices) if !devices.is_empty() => {
+            println!("✅ {} device(s) detected", devices.len());
+            for dev in &devices {
+                let bat_info = service.get_device_battery(&dev.id);
+                match bat_info {
+                    Ok((level, temp)) => {
+                        println!(
+                            "   📱 [{}] {} (Android {}) | 🔋 Battery: {}% | 🌡️ Temp: {:.1}°C",
+                            dev.id.0, dev.model, dev.os_version, level, temp
+                        );
+                    }
+                    Err(_) => {
+                        println!("   📱 [{}] {} (Android {})", dev.id.0, dev.model, dev.os_version);
+                    }
+                }
+            }
+        }
         Ok(_) => println!("⚠️ NO DEVICES. Connect your phone via USB and enable debugging/MTP."),
         Err(e) => println!("❌ ERROR: {}", e),
     }
@@ -69,11 +85,14 @@ where
         println!("⚠️ backup.db missing. It will be created on first backup.");
     }
 
-    // 6. Check Storage Connectivity
+    // 6. Check Storage Connectivity & Available Free Space
     print!("Checking storage connectivity... ");
-    match service.storage.exists("health-check") {
-        Ok(_) => println!("✅ storage reachable"),
-        Err(e) => println!("❌ storage error: {}", e),
+    match service.storage.available_space() {
+        Ok(bytes) => {
+            let gb = bytes as f64 / 1024.0 / 1024.0 / 1024.0;
+            println!("✅ Storage reachable ({:.2} GB available)", gb);
+        }
+        Err(e) => println!("❌ Storage error: {}", e),
     }
 
     println!("\nDiagnostic Complete!");

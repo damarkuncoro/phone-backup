@@ -119,7 +119,7 @@ where
         true
     });
 
-    video_items.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
+    video_items.sort_by_key(|b| std::cmp::Reverse(b.modified_at));
 
     println!("\n🎥 Discovered Videos ({})", video_items.len());
     println!("{:<45} {:<15} {:>12}  MODIFIED", "PATH", "CONTAINER", "SIZE");

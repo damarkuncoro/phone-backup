@@ -82,7 +82,7 @@ where
     });
 
     doc_items = DocumentAnalyzer::filter_documents(doc_items, parsed_type, args.min_size);
-    doc_items.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
+    doc_items.sort_by_key(|b| std::cmp::Reverse(b.modified_at));
 
     println!("\n📄 Documents Discovered ({})", doc_items.len());
     println!("{:<45} {:<18} {:>12}  MODIFIED", "PATH", "TYPE", "SIZE");

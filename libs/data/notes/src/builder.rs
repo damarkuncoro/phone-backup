@@ -77,12 +77,10 @@ impl NoteItemBuilder {
             format!("note_{}", nanos)
         });
 
-        let note_type = self.note_type.unwrap_or_else(|| {
-            if !self.checklist_items.is_empty() {
-                NoteType::Checklist
-            } else {
-                NoteType::TextNote
-            }
+        let note_type = self.note_type.unwrap_or(if !self.checklist_items.is_empty() {
+            NoteType::Checklist
+        } else {
+            NoteType::TextNote
         });
 
         let mut note = NoteItem::new(id, title, content);

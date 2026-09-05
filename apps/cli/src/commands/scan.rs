@@ -114,9 +114,9 @@ where
     };
 
     match sort {
-        "size" => filtered_files.sort_by(|a, b| b.size_bytes.cmp(&a.size_bytes)),
-        "date" => filtered_files.sort_by(|a, b| b.modified_at.cmp(&a.modified_at)),
-        _ => filtered_files.sort_by(|a, b| a.path.cmp(&b.path)),
+        "size" => filtered_files.sort_by_key(|b| std::cmp::Reverse(b.size_bytes)),
+        "date" => filtered_files.sort_by_key(|b| std::cmp::Reverse(b.modified_at)),
+        _ => filtered_files.sort_by_key(|a| a.path.clone()),
     }
 
     println!("\n📁 Discovered Files ({})", filtered_files.len());

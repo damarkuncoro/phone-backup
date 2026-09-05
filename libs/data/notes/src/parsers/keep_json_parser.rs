@@ -17,12 +17,12 @@ impl KeepJsonParser {
 
         let created_at = v.get("createdTimestampUsec")
             .and_then(|u| u.as_i64())
-            .and_then(|usec| DateTime::from_timestamp_micros(usec))
+            .and_then(DateTime::from_timestamp_micros)
             .unwrap_or_else(Utc::now);
 
         let updated_at = v.get("userEditedTimestampUsec")
             .and_then(|u| u.as_i64())
-            .and_then(|usec| DateTime::from_timestamp_micros(usec))
+            .and_then(DateTime::from_timestamp_micros)
             .unwrap_or(created_at);
 
         let mut tags = Vec::new();
